@@ -11,11 +11,17 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 
 from redteam import __version__
 from redteam.corpora import LOADERS
+
+# Load .env from the current working directory if present. Best-effort:
+# never fails the CLI if .env is missing. Real auth errors surface later
+# as ConfigError from the relevant adapter at __init__ time.
+load_dotenv()
 
 app = typer.Typer(
     name="redteam",
