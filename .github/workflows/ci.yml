@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+# No real API calls are made in CI — see ETHICS + budget guards.
+# When branch protection is enabled, require the display name below
+# ("Lint, typecheck, smoke run") — see Lesson L13.
+
+jobs:
+  build:
+    name: Lint, typecheck, smoke run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install project (editable, with dev extras)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Ruff (format check)
+        run: ruff format --check .
+
+      - name: Mypy (typecheck)
+        run: mypy src/
+
+      - name: Pytest (unit)
+        run: pytest tests/unit

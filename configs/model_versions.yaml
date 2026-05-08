@@ -1,0 +1,51 @@
+# Pinned model identifiers. Every result reported by this harness must
+# carry one of these IDs verbatim. Verified 2026-05-05.
+
+targets:
+  - id: claude-sonnet-4-6
+    provider: anthropic
+    model: claude-sonnet-4-6
+    role: frontier_primary
+    notes: |
+      Current generation Sonnet (Feb 2026 release). Use for the
+      "frontier API" arm of every defence comparison.
+
+  - id: llama3.1-8b-local
+    provider: ollama
+    model: llama3.1:8b
+    quantisation: Q4_K_M
+    role: local_secondary
+    notes: |
+      Selected over Llama 4 Scout: Scout is MoE 17B-active / 109B-total
+      and does not fit the dev machine's 8 GB VRAM / 32 GB RAM budget.
+      Revisit when project moves to a workstation.
+
+  - id: meta-secalign-8b
+    provider: huggingface          # may also be available via ollama later
+    model: facebook/Meta-SecAlign-8B
+    role: stretch_phase_5
+    notes: |
+      Llama-3.1-8B fine-tuned with SecAlign preference optimization for
+      prompt-injection robustness. Inclusion gives the project a
+      SOTA-vs-baseline comparison story that recruiters will care about.
+
+judges:
+  - id: claude-haiku-4-5
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+    role: scoring_judge
+    notes: |
+      Cheap, fast, and from a separate sub-family from the Sonnet target,
+      reducing same-model bias. See Lesson L17 — judge MUST NOT be among
+      targets.
+
+defence_models:
+  - id: llama-guard-4-12b
+    provider: ollama
+    model: llama-guard4:12b
+    quantisation: Q4_K_M
+    role: pre_and_post_filter
+    notes: |
+      Newer than Guard 3 8B; multimodal-capable (we use text only). Q4
+      fits 8 GB VRAM tightly — share VRAM with the target by routing
+      through a single Ollama instance and serialising calls.

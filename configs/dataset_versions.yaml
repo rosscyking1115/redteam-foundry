@@ -1,0 +1,41 @@
+# Pinned dataset commits / versions. Every loader in src/redteam/corpora/
+# MUST resolve to one of these. Update only when the upstream is
+# re-verified and a new commit hash is recorded here.
+
+datasets:
+  advbench:
+    source: github
+    repo: llm-attacks/llm-attacks
+    commit: TBD            # pin in Phase 1 from `git rev-parse HEAD` after clone
+    paths:
+      - data/advbench/harmful_behaviors.csv
+    licence: MIT
+    citation: "Zou et al. 2023, Universal and Transferable Adversarial Attacks on Aligned Language Models"
+
+  jailbreakbench:
+    source: huggingface
+    repo: JailbreakBench/JBB-Behaviors
+    revision: TBD          # pin in Phase 1 from HF dataset commit
+    licence: MIT
+    citation: "Chao et al. 2024, JailbreakBench (NeurIPS Datasets & Benchmarks)"
+
+  harmbench:
+    source: github
+    repo: centerforaisafety/HarmBench
+    commit: TBD
+    licence: MIT
+    citation: "Mazeika et al. 2024, HarmBench"
+
+  agentdojo:
+    source: github
+    repo: ethz-spylab/agentdojo
+    commit: TBD
+    licence: AGPL
+    citation: "Debenedetti et al. 2024, AgentDojo"
+
+# Categories filtered out at load time per ETHICS.md.
+# tests/unit/test_exclusion_filter.py asserts zero leakage.
+excluded_topics:
+  - csam
+  - bio_chem_radiological_nuclear_weapons_synthesis
+  - detailed_self_harm_methods

@@ -1,0 +1,55 @@
+# --- secrets / env -----------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+secrets/
+
+# --- python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.python-version
+
+# build / dist
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- project artefacts (gitignored on purpose) -------------------------------
+# Raw + cached corpora are big and re-downloadable; only commit
+# scripts/load_corpora.py + dataset_versions.yaml + a small samples/ dir.
+data/
+!data/.gitkeep
+!data/samples/
+
+# Run outputs are large and re-creatable; only commit a small reference
+# subset under results/samples/.
+results/
+!results/.gitkeep
+!results/samples/
+
+# Streamlit / HF Spaces local cache
+.streamlit/secrets.toml
+.huggingface/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE noise
+.vscode/
+.idea/
+*.swp
