@@ -10,12 +10,23 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.4
+  # Use the venv's ruff (pinned in pyproject.toml [dev]) so pre-commit and CI
+  # never drift to different versions. Requires the venv to be active when
+  # committing — that's already the standard workflow here.
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix]
+        name: ruff (lint, autofix)
+        entry: ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: ruff-format
+        name: ruff format
+        entry: ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.2

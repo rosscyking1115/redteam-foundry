@@ -1,12 +1,12 @@
-# Pinned dataset commits / versions. Every loader in src/redteam/corpora/
-# MUST resolve to one of these. Update only when the upstream is
-# re-verified and a new commit hash is recorded here.
+# Pinned dataset commits / versions — verified 2026-05-08 against upstream
+# repos. Loaders in src/redteam/corpora/ MUST resolve to one of these.
+# Update only when the upstream is re-verified and the new SHA is recorded.
 
 datasets:
   advbench:
     source: github
     repo: llm-attacks/llm-attacks
-    commit: TBD            # pin in Phase 1 from `git rev-parse HEAD` after clone
+    commit: 098262edf85f807224e70ecd87b9d83716bf6b73       # 2024-08-02
     paths:
       - data/advbench/harmful_behaviors.csv
     licence: MIT
@@ -15,26 +15,34 @@ datasets:
   jailbreakbench:
     source: huggingface
     repo: JailbreakBench/JBB-Behaviors
-    revision: TBD          # pin in Phase 1 from HF dataset commit
+    revision: 886acc352a31533ffbcf4ef22c744658688086fc     # 2024-09-26
+    paths:
+      - data/harmful-behaviors.csv
     licence: MIT
     citation: "Chao et al. 2024, JailbreakBench (NeurIPS Datasets & Benchmarks)"
 
   harmbench:
     source: github
     repo: centerforaisafety/HarmBench
-    commit: TBD
+    commit: 8e1604d1171fe8a48d8febecd22f600e462bdcdd       # 2024-08-05
+    paths:
+      - data/behavior_datasets/harmbench_behaviors_text_all.csv
     licence: MIT
     citation: "Mazeika et al. 2024, HarmBench"
 
   agentdojo:
     source: github
     repo: ethz-spylab/agentdojo
-    commit: TBD
+    commit: 18b501a630db736e1d0496a496d8d7aa947c596d       # 2026-03-30
+    notes: |
+      Phase 1 ships an embedded set of canonical injection patterns drawn
+      from Table 1 of the AgentDojo paper. Full suite + tool-environment
+      integration lands in Phase 5.
     licence: AGPL
     citation: "Debenedetti et al. 2024, AgentDojo"
 
 # Categories filtered out at load time per ETHICS.md.
-# tests/unit/test_exclusion_filter.py asserts zero leakage.
+# tests/unit/test_exclusion_filter.py asserts zero leakage end-to-end.
 excluded_topics:
   - csam
   - bio_chem_radiological_nuclear_weapons_synthesis

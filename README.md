@@ -64,6 +64,19 @@ redteam version                     # prints 0.1.0
 Hard $5/run budget cap is enforced inside `Target.send` (see Lesson L3 in
 `PROJECT-1-KIT.md`). Set a matching console cap before first run.
 
+## Running CI locally before pushing
+
+`scripts/ci_local.ps1` (Windows) and `scripts/ci_local.sh` (Linux/macOS) run
+the **exact** same checks that `.github/workflows/ci.yml` runs — ruff lint,
+ruff format --check, mypy, pytest. Activate the venv, then:
+
+```powershell
+scripts\ci_local.ps1
+```
+
+If it exits green, CI on the PR will be green too. If it fails, fix locally
+before `git push`.
+
 ## Repository layout
 
 See `PROJECT-1-KIT.md` §6 for the target layout. Phase-0 skeleton populates

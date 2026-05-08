@@ -30,15 +30,17 @@ coverage.xml
 # --- project artefacts (gitignored on purpose) -------------------------------
 # Raw + cached corpora are big and re-downloadable; only commit
 # scripts/load_corpora.py + dataset_versions.yaml + a small samples/ dir.
-data/
-!data/.gitkeep
-!data/samples/
+# Leading slash means "only at repo root" — a bare `data/` would also match
+# tests/data/ (which holds committed test fixtures) and silently exclude it.
+/data/
+!/data/.gitkeep
+!/data/samples/
 
 # Run outputs are large and re-creatable; only commit a small reference
 # subset under results/samples/.
-results/
-!results/.gitkeep
-!results/samples/
+/results/
+!/results/.gitkeep
+!/results/samples/
 
 # Streamlit / HF Spaces local cache
 .streamlit/secrets.toml
