@@ -1,0 +1,16 @@
+# All prompt-based defences active. Llama Guard pre+post live in the
+# `local_full_stack` config to avoid mixing Anthropic + Ollama in one run
+# until the orchestrator's budget guard is exercised on both providers.
+name: anthropic-full-stack
+target: claude-sonnet-4-6
+defences:
+  - id: system-prompt
+  - id: spotlighting
+  - id: secalign
+  - id: constitutional   # ~3x cost — Constitutional makes 3 calls per case
+corpora:
+  - source: advbench
+    limit: 20
+budget_usd: 1.50         # higher cap to absorb the 3x from Constitutional
+concurrency: 2
+max_tokens: 256

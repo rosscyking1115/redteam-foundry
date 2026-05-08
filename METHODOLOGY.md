@@ -100,3 +100,4 @@ Three layers, in order of expense:
 | Date | What was verified |
 | --- | --- |
 | 2026-05-05 | Pre-Phase-0 stack audit. Confirmed Claude 4.6/4.7 family, Llama 4 / Llama Guard 4 availability, OWASP LLM Top 10 v2025, GHA v6, Python 3.13. Added SecAlign to defence stack. Selected llama3.1:8b for local target (Llama 4 Scout requires more RAM than the dev machine has). |
+| 2026-05-08 | Phase 3 defence layer landed. Six defences implemented (system-prompt, constitutional, spotlighting, secalign, llamaguard4-pre, llamaguard4-post). Exit-check live smoke asserts defences never reduce baseline refusal rate. |

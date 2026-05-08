@@ -1,0 +1,15 @@
+name: local-llama31-full-stack
+target: llama3.1-8b-local
+defences:
+  - id: llamaguard4-post   # outermost: catches anything that leaks through
+  - id: llamaguard4-pre    # input gate
+  - id: spotlighting
+  - id: secalign
+  - id: system-prompt
+guard_model: llama-guard4:12b
+corpora:
+  - source: advbench
+    limit: 20
+budget_usd: 0.0
+concurrency: 1
+max_tokens: 256

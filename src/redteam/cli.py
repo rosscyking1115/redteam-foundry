@@ -61,12 +61,6 @@ def version_cmd() -> None:
     typer.echo(__version__)
 
 
-@app.command(name="run")
-def run_cmd() -> None:
-    """[Phase 3] Run an evaluation from a YAML config (with budget cap)."""
-    _not_yet(3, "run")
-
-
 @app.command(name="score")
 def score_cmd() -> None:
     """[Phase 4] Re-score a cached run without re-querying targets."""
@@ -295,3 +289,61 @@ def targets_ping(
         )
 
     asyncio.run(go())
+
+
+# ---------------------------------------------------------------------------
+# `redteam run --config <path>` (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="run")
+def run_cmd(
+    config: Annotated[
+        Path,
+        typer.Option("--config", "-c", help="Path to a YAML run config under configs/."),
+    ],
+    cache_root: Annotated[
+        Path,
+        typer.Option("--cache-root", help="Where to put the response cache."),
+    ] = Path("data/cache/responses"),
+    output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", help="Override the output directory."),
+    ] = None,
+) -> None:
+    """Run an evaluation from a YAML run config and write the JSON result."""
+    import asyncio
+
+    from redteam.budget import BudgetExceeded
+    from redteam.orchestrator import RunConfig, run, write_result
+    from redteam.targets import ConfigError, OllamaUnavailable
+
+    if not config.exists():
+        typer.echo(typer.style(f"Config not found: {config}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+
+    cfg = RunConfig.from_yaml(config)
+    typer.echo(
+        typer.style(
+            f"Run: {cfg.name}  target={cfg.target}  "
+            f"defences={[d.id for d in cfg.defences]}  cap=${cfg.budget_usd}",
+            fg=typer.colors.CYAN,
+        )
+    )
+
+    try:
+        result = asyncio.run(run(cfg, cache_root=cache_root))
+    except (ConfigError, OllamaUnavailable, BudgetExceeded) as exc:
+        typer.echo(typer.style(f"{type(exc).__name__}: {exc}", fg=typer.colors.RED))
+        raise typer.Exit(code=1) from exc
+
+    out = output_dir or cfg.output_dir
+    written = write_result(result, out)
+    typer.echo(
+        typer.style(
+            f"Done. {result.cases_total} cases, refusal_rate={result.refusal_rate:.2%}, "
+            f"ASR={result.asr:.2%}, total ${result.total_cost_usd}",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {written}", fg=typer.colors.BRIGHT_BLACK))

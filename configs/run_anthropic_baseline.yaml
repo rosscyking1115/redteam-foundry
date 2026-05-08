@@ -1,0 +1,9 @@
+name: anthropic-baseline
+target: claude-sonnet-4-6
+defences: []
+corpora:
+  - source: advbench
+    limit: 20
+budget_usd: 0.50
+concurrency: 4
+max_tokens: 256

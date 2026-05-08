@@ -1,0 +1,9 @@
+name: local-llama31-baseline
+target: llama3.1-8b-local
+defences: []
+corpora:
+  - source: advbench
+    limit: 20
+budget_usd: 0.0          # local => $0
+concurrency: 1           # one Ollama call at a time on the 4070
+max_tokens: 256
