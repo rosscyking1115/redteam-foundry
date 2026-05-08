@@ -52,8 +52,8 @@ dev = [
 redteam = "redteam.cli:app"
 
 [project.urls]
-Repository = "https://github.com/leaffeng1115/llm-redteam-harness"
-Issues = "https://github.com/leaffeng1115/llm-redteam-harness/issues"
+Repository = "https://github.com/rosscyking1115/llm-redteam-harness"
+Issues = "https://github.com/rosscyking1115/llm-redteam-harness/issues"
 
 # ----------------------------------------------------------------------------
 # Build

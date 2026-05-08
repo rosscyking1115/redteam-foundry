@@ -4,7 +4,7 @@
 > defence stack blocks published adversarial prompts. Built as a measurement
 > tool, not a weapon — see [`ETHICS.md`](./ETHICS.md).
 
-[![CI](https://github.com/leaffeng1115/llm-redteam-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/leaffeng1115/llm-redteam-harness/actions/workflows/ci.yml)
+[![CI](https://github.com/rosscyking1115/llm-redteam-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/llm-redteam-harness/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 
@@ -49,7 +49,7 @@ Plus FRR on a 50-prompt benign control set.
 ## Getting started
 
 ```bash
-git clone https://github.com/leaffeng1115/llm-redteam-harness.git
+git clone https://github.com/rosscyking1115/llm-redteam-harness.git
 cd llm-redteam-harness
 uv venv --python 3.13
 source .venv/bin/activate           # macOS/Linux
@@ -87,7 +87,7 @@ transcripts removed, email **leaffeng1115@gmail.com** —
   title  = {llm-redteam-harness: Reproducible LLM defence evaluation},
   author = {Ross},
   year   = {2026},
-  url    = {https://github.com/leaffeng1115/llm-redteam-harness}
+  url    = {https://github.com/rosscyking1115/llm-redteam-harness}
 }
 ```
 
