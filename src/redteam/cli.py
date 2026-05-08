@@ -55,12 +55,6 @@ def version_cmd() -> None:
     typer.echo(__version__)
 
 
-@app.command(name="targets")
-def targets_cmd() -> None:
-    """[Phase 2] List configured target adapters and run a smoke ping."""
-    _not_yet(2, "targets")
-
-
 @app.command(name="run")
 def run_cmd() -> None:
     """[Phase 3] Run an evaluation from a YAML config (with budget cap)."""
@@ -197,3 +191,101 @@ def corpora_list(
                 fg=typer.colors.YELLOW,
             )
         )
+
+
+# ---------------------------------------------------------------------------
+# `redteam targets ...` (Phase 2)
+# ---------------------------------------------------------------------------
+
+targets_app = typer.Typer(
+    name="targets",
+    help="List configured target adapters and run a smoke ping (Phase 2).",
+    no_args_is_help=True,
+    add_completion=False,
+)
+app.add_typer(targets_app)
+
+
+@targets_app.command("list")
+def targets_list() -> None:
+    """List configured target adapters and their pinned model versions."""
+    from redteam.targets import TARGETS
+
+    table = Table(title="Configured target adapters", show_lines=False)
+    table.add_column("ID", style="cyan", no_wrap=True)
+    table.add_column("Class", style="dim")
+    table.add_column("Model version", no_wrap=True)
+    table.add_column("Provider")
+    for tid, cls in sorted(TARGETS.items()):
+        provider = (
+            "anthropic"
+            if "Anthropic" in cls.__name__
+            else "ollama"
+            if "Ollama" in cls.__name__
+            else "openai"
+            if "OpenAI" in cls.__name__
+            else "?"
+        )
+        table.add_row(tid, cls.__name__, cls.model_version, provider)
+    _console.print(table)
+
+
+@targets_app.command("ping")
+def targets_ping(
+    target: Annotated[
+        str,
+        typer.Option("--target", "-t", help="Target id from `redteam targets list`."),
+    ] = "claude-sonnet-4-6",
+    prompt: Annotated[
+        str,
+        typer.Option("--prompt", "-p", help="Prompt to send."),
+    ] = "What is 2+2?",
+    max_tokens: Annotated[
+        int,
+        typer.Option("--max-tokens", help="Cap on output tokens."),
+    ] = 64,
+) -> None:
+    """Send a single prompt to a target and print the response.
+
+    Goes through the budget guard. Use the smallest possible max_tokens
+    while debugging. Does NOT use the response cache (so reruns hit the API).
+    """
+    import asyncio
+
+    from redteam.budget import BudgetExceeded
+    from redteam.schemas import Message
+    from redteam.targets import TARGETS, ConfigError, OllamaUnavailable
+
+    if target not in TARGETS:
+        typer.echo(
+            typer.style(
+                f"Unknown target {target!r}. Try `redteam targets list`.", fg=typer.colors.RED
+            )
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        instance = TARGETS[target]()
+    except (ConfigError, OllamaUnavailable) as exc:
+        typer.echo(typer.style(f"{type(exc).__name__}: {exc}", fg=typer.colors.RED))
+        raise typer.Exit(code=1) from exc
+
+    async def go() -> None:
+        try:
+            resp = await instance.send(
+                [Message(role="user", content=prompt)], max_tokens=max_tokens
+            )
+        except BudgetExceeded as exc:
+            typer.echo(typer.style(f"BudgetExceeded: {exc}", fg=typer.colors.RED))
+            raise typer.Exit(code=1) from exc
+        typer.echo(typer.style(resp.response_text, fg=typer.colors.GREEN))
+        typer.echo("")
+        typer.echo(
+            typer.style(
+                f"[{resp.target_id} | {resp.input_tokens} in / {resp.output_tokens} out | "
+                f"${resp.cost_usd} | {resp.latency_ms} ms]",
+                fg=typer.colors.BRIGHT_BLACK,
+            )
+        )
+
+    asyncio.run(go())
