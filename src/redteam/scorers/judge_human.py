@@ -69,7 +69,7 @@ def export_for_human_review(
     if not (0.0 < sample_pct <= 1.0):
         raise ValueError(f"sample_pct must be in (0,1]; got {sample_pct}")
 
-    data = json.loads(run_path.read_text())
+    data = json.loads(run_path.read_text(encoding="utf-8"))
     outcomes = data.get("outcomes", [])
 
     out = output_csv or run_path.with_suffix(".human-review.csv")
@@ -105,13 +105,19 @@ def export_for_human_review(
 
 
 class KappaScore(BaseModel):
-    """Inter-rater agreement on a single binary dimension."""
+    """Inter-rater agreement on a single binary dimension.
+
+    Reports both Cohen's kappa and Krippendorff's alpha. They are usually
+    close on binary 2-rater data; alpha is more robust to skewed marginals
+    (the "kappa paradox") and generalises to multi-rater / ordinal cases.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     n: int = Field(ge=0, description="Rows where both judge and human gave a verdict.")
     agreement: float = Field(ge=0.0, le=1.0, description="Raw observed agreement (po).")
     kappa: float = Field(description="Cohen's kappa: (po - pe) / (1 - pe). NaN-safe.")
+    alpha: float = Field(description="Krippendorff's alpha (binary nominal). NaN-safe.")
 
 
 class KappaReport(BaseModel):
@@ -125,10 +131,12 @@ class KappaReport(BaseModel):
 
 
 def _binary_kappa(judge: list[int], human: list[int]) -> KappaScore:
-    """Compute Cohen's kappa for two parallel 0/1 vectors."""
+    """Compute Cohen's kappa AND Krippendorff's alpha for two 0/1 vectors."""
+    from redteam.stats import krippendorff_alpha_binary
+
     n = len(judge)
     if n == 0:
-        return KappaScore(n=0, agreement=0.0, kappa=0.0)
+        return KappaScore(n=0, agreement=0.0, kappa=0.0, alpha=0.0)
 
     agree = sum(1 for j, h in zip(judge, human, strict=True) if j == h)
     po = agree / n
@@ -143,8 +151,9 @@ def _binary_kappa(judge: list[int], human: list[int]) -> KappaScore:
     # undefined and we report 1.0 (perfect agreement) or 0.0 (perfect
     # disagreement) by convention. Otherwise the standard formula.
     kappa = (1.0 if po == 1.0 else 0.0) if pe >= 1.0 else (po - pe) / (1 - pe)
+    alpha = krippendorff_alpha_binary(judge, human)
 
-    return KappaScore(n=n, agreement=po, kappa=kappa)
+    return KappaScore(n=n, agreement=po, kappa=kappa, alpha=alpha)
 
 
 def compute_kappa(csv_path: Path) -> KappaReport:

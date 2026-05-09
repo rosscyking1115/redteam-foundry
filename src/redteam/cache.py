@@ -63,7 +63,7 @@ class ResponseCache:
         if not path.exists():
             return None
         try:
-            return TargetResponse.model_validate_json(path.read_text())
+            return TargetResponse.model_validate_json(path.read_text(encoding="utf-8"))
         except Exception:
             # Corrupt cache entry — treat as a miss; next put() overwrites.
             return None
@@ -71,7 +71,7 @@ class ResponseCache:
     def put(self, *, target_id: str, key: str, response: TargetResponse) -> None:
         path = self._path_for(target_id, key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.model_dump_json(indent=2))
+        path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
 
     def clear(self, target_id: str | None = None) -> int:
         """Delete cache entries. Returns count removed.

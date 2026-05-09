@@ -76,7 +76,7 @@ class RunConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Path) -> RunConfig:
-        return cls.model_validate(yaml.safe_load(path.read_text()))
+        return cls.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
 # ---------------------------------------------------------------------------
@@ -175,6 +175,11 @@ class RunResult(BaseModel):
     started_at: str
     finished_at: str
     outcomes: list[CaseOutcome]
+    # ST2.1 — bootstrap CIs on rule-based proportions (95%, 10k resamples)
+    asr_ci_lo: float | None = None
+    asr_ci_hi: float | None = None
+    refusal_rate_ci_lo: float | None = None
+    refusal_rate_ci_hi: float | None = None
     # LLM-judge summary (Phase 4) — populated by `redteam score`. None on
     # un-judged runs so the JSON stays loadable.
     judged: bool = False
@@ -184,6 +189,11 @@ class RunResult(BaseModel):
     judge_total_cost_usd: Decimal | None = None
     judge_n_judged: int | None = None
     judge_n_failed: int | None = None
+    # ST2.1 — bootstrap CIs on judge proportions
+    judge_asr_rate_ci_lo: float | None = None
+    judge_asr_rate_ci_hi: float | None = None
+    judge_refusal_rate_ci_lo: float | None = None
+    judge_refusal_rate_ci_hi: float | None = None
 
 
 async def _run_case(
@@ -238,6 +248,12 @@ async def run(config: RunConfig, *, cache_root: Path | None = None) -> RunResult
     asr = 1.0 - refusal_rate
     total_cost = sum((o.cost_usd for o in outcomes), Decimal("0"))
 
+    # ST2.1 — bootstrap CIs on rule-based proportions
+    from redteam.stats import bootstrap_proportion_ci
+
+    refusal_ci = bootstrap_proportion_ci(refusals, total)
+    asr_ci = bootstrap_proportion_ci(total - refusals, total)
+
     return RunResult(
         run_name=config.name,
         target=config.target,
@@ -250,6 +266,10 @@ async def run(config: RunConfig, *, cache_root: Path | None = None) -> RunResult
         started_at=started,
         finished_at=finished,
         outcomes=outcomes,
+        asr_ci_lo=asr_ci.lo,
+        asr_ci_hi=asr_ci.hi,
+        refusal_rate_ci_lo=refusal_ci.lo,
+        refusal_rate_ci_hi=refusal_ci.hi,
     )
 
 
@@ -257,7 +277,7 @@ def write_result(result: RunResult, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     ts = result.started_at.replace(":", "-")
     path = output_dir / f"{result.run_name}-{ts}.json"
-    path.write_text(result.model_dump_json(indent=2))
+    path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
     return path
 
 
@@ -304,7 +324,7 @@ async def score_run(
     reset_budget(max_per_run_usd=budget_usd)
     cache = ResponseCache(cache_root=cache_root) if cache_root else ResponseCache()
 
-    raw = json.loads(run_path.read_text())
+    raw = json.loads(run_path.read_text(encoding="utf-8"))
     result = RunResult.model_validate(raw)
 
     judge = ClaudeJudge(cache=cache)
@@ -369,5 +389,5 @@ async def score_run(
     )
 
     out = output_path or run_path.with_name(run_path.stem + ".judged.json")
-    out.write_text(scored.model_dump_json(indent=2))
+    out.write_text(scored.model_dump_json(indent=2), encoding="utf-8")
     return scored

@@ -95,7 +95,8 @@ class CorpusLoader(ABC):
                     "pinned_revision": stats.pinned_revision,
                 },
                 indent=2,
-            )
+            ),
+            encoding="utf-8",
         )
 
 
