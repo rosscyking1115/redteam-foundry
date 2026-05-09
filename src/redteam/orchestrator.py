@@ -160,6 +160,11 @@ class CaseOutcome(BaseModel):
     judge_refusal: int | None = None
     judge_confidence: float | None = None
     judge_reasoning: str | None = None
+    # Cross-judge (ST2.1 closeout) — populated by `redteam cross-judge`.
+    judge2_asr: int | None = None
+    judge2_refusal: int | None = None
+    judge2_confidence: float | None = None
+    judge2_reasoning: str | None = None
 
 
 class RunResult(BaseModel):
@@ -194,6 +199,25 @@ class RunResult(BaseModel):
     judge_asr_rate_ci_hi: float | None = None
     judge_refusal_rate_ci_lo: float | None = None
     judge_refusal_rate_ci_hi: float | None = None
+    # Cross-judge (ST2.1 closeout) — populated by `redteam cross-judge`.
+    cross_judged: bool = False
+    judge2_model_version: str | None = None
+    judge2_asr_rate: float | None = None
+    judge2_refusal_rate: float | None = None
+    judge2_total_cost_usd: Decimal | None = None
+    judge2_n_judged: int | None = None
+    judge2_n_failed: int | None = None
+    judge2_asr_rate_ci_lo: float | None = None
+    judge2_asr_rate_ci_hi: float | None = None
+    judge2_refusal_rate_ci_lo: float | None = None
+    judge2_refusal_rate_ci_hi: float | None = None
+    # Cross-judge inter-rater agreement (judge1 vs judge2). kappa + alpha on the
+    # subset of cases both judges scored.
+    cross_judge_agreement_n: int | None = None
+    cross_judge_asr_kappa: float | None = None
+    cross_judge_asr_alpha: float | None = None
+    cross_judge_refusal_kappa: float | None = None
+    cross_judge_refusal_alpha: float | None = None
 
 
 async def _run_case(
@@ -389,5 +413,132 @@ async def score_run(
     )
 
     out = output_path or run_path.with_name(run_path.stem + ".judged.json")
+    out.write_text(scored.model_dump_json(indent=2), encoding="utf-8")
+    return scored
+
+
+# ---------------------------------------------------------------------------
+# ST2.1 closeout — cross-judge agreement
+# ---------------------------------------------------------------------------
+
+
+async def cross_judge_run(
+    run_path: Path,
+    *,
+    judge2_model: str = "claude-sonnet-4-6",
+    cache_root: Path | None = None,
+    budget_usd: Decimal = Decimal("2.00"),
+    output_path: Path | None = None,
+) -> RunResult:
+    """Read a run that has already been judged once (`redteam score`), run a
+    second judge over the same outcomes, and write a cross-judged JSON
+    including kappa + alpha agreement between the two judges.
+
+    Replaces the human spot-check as the primary judge-validation step.
+    Per kit Lesson L4: "Judges have biases. Use a third judge if you can,
+    or report results with both judges side-by-side."
+    """
+    from redteam.budget import reset_budget
+    from redteam.scorers import ClaudeJudge, JudgeError
+    from redteam.scorers._judge_schema import JudgeVerdict
+    from redteam.scorers.judge_human import _binary_kappa
+    from redteam.stats import bootstrap_proportion_ci
+
+    reset_budget(max_per_run_usd=budget_usd)
+    cache = ResponseCache(cache_root=cache_root) if cache_root else ResponseCache()
+
+    raw = json.loads(run_path.read_text(encoding="utf-8"))
+    result = RunResult.model_validate(raw)
+
+    if not result.judged:
+        raise ValueError(
+            f"{run_path} has not been judged yet. Run `redteam score --run` on it first."
+        )
+    if judge2_model == result.judge_model_version:
+        raise ValueError(
+            f"judge2_model {judge2_model!r} matches judge1 — pick a different model "
+            "to actually measure cross-judge agreement."
+        )
+
+    judge2 = ClaudeJudge(model_version=judge2_model, cache=cache)
+    n_failed = 0
+    new_outcomes: list[CaseOutcome] = []
+    for outcome in result.outcomes:
+        verdict: JudgeVerdict | None
+        try:
+            verdict = await judge2.judge(prompt=outcome.prompt, response_text=outcome.response_text)
+        except JudgeError:
+            n_failed += 1
+            verdict = None
+        if verdict is None:
+            new_outcomes.append(outcome)
+            continue
+        new_outcomes.append(
+            outcome.model_copy(
+                update={
+                    "judge2_asr": verdict.asr,
+                    "judge2_refusal": verdict.refusal,
+                    "judge2_confidence": verdict.confidence,
+                    "judge2_reasoning": verdict.reasoning,
+                }
+            )
+        )
+
+    judged2 = [o for o in new_outcomes if o.judge2_asr is not None]
+    n_judged2 = len(judged2)
+    j2_asr_count = sum(o.judge2_asr or 0 for o in judged2)
+    j2_ref_count = sum(o.judge2_refusal or 0 for o in judged2)
+    j2_asr_rate = (j2_asr_count / n_judged2) if n_judged2 else None
+    j2_ref_rate = (j2_ref_count / n_judged2) if n_judged2 else None
+
+    j2_asr_lo: float | None = None
+    j2_asr_hi: float | None = None
+    j2_ref_lo: float | None = None
+    j2_ref_hi: float | None = None
+    if n_judged2:
+        ci = bootstrap_proportion_ci(j2_asr_count, n_judged2)
+        j2_asr_lo, j2_asr_hi = ci.lo, ci.hi
+        ci = bootstrap_proportion_ci(j2_ref_count, n_judged2)
+        j2_ref_lo, j2_ref_hi = ci.lo, ci.hi
+
+    # Cross-judge agreement: only on outcomes where BOTH judges scored.
+    paired = [o for o in new_outcomes if o.judge_asr is not None and o.judge2_asr is not None]
+    if paired:
+        asr_score = _binary_kappa(
+            [o.judge_asr or 0 for o in paired], [o.judge2_asr or 0 for o in paired]
+        )
+        ref_score = _binary_kappa(
+            [o.judge_refusal or 0 for o in paired], [o.judge2_refusal or 0 for o in paired]
+        )
+        agreement_n = len(paired)
+        asr_kappa, asr_alpha = asr_score.kappa, asr_score.alpha
+        ref_kappa, ref_alpha = ref_score.kappa, ref_score.alpha
+    else:
+        agreement_n = 0
+        asr_kappa = asr_alpha = ref_kappa = ref_alpha = 0.0
+
+    scored = result.model_copy(
+        update={
+            "outcomes": new_outcomes,
+            "cross_judged": True,
+            "judge2_model_version": judge2_model,
+            "judge2_asr_rate": j2_asr_rate,
+            "judge2_refusal_rate": j2_ref_rate,
+            "judge2_total_cost_usd": judge2.stats.total_cost_usd,
+            "judge2_n_judged": n_judged2,
+            "judge2_n_failed": n_failed,
+            "judge2_asr_rate_ci_lo": j2_asr_lo,
+            "judge2_asr_rate_ci_hi": j2_asr_hi,
+            "judge2_refusal_rate_ci_lo": j2_ref_lo,
+            "judge2_refusal_rate_ci_hi": j2_ref_hi,
+            "cross_judge_agreement_n": agreement_n,
+            "cross_judge_asr_kappa": asr_kappa,
+            "cross_judge_asr_alpha": asr_alpha,
+            "cross_judge_refusal_kappa": ref_kappa,
+            "cross_judge_refusal_alpha": ref_alpha,
+        }
+    )
+
+    out = output_path or run_path.with_name(run_path.stem + ".cross-judged.json")
     out.write_text(scored.model_dump_json(indent=2), encoding="utf-8")
     return scored

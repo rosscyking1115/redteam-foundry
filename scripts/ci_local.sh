@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the same checks GitHub Actions runs in .github/workflows/ci.yml.
-# Mirrors the CI job exactly. Run this before `git push` to avoid red CI.
-# Activate the venv first, then: ./scripts/ci_local.sh
+# Tools invoked via `python -m TOOL` so Windows Application Control can't
+# block individual binaries (false-positive on dev tools is common).
 set -euo pipefail
 
 step() {
@@ -10,9 +10,9 @@ step() {
     "$@"
 }
 
-step "ruff check (lint)"           ruff check .
-step "ruff format --check"         ruff format --check .
-step "mypy src/ (typecheck)"       mypy src/
-step "pytest tests/unit"           pytest tests/unit -q
+step "ruff check (lint)"           python -m ruff check .
+step "ruff format --check"         python -m ruff format --check .
+step "mypy src/ (typecheck)"       python -m mypy src/
+step "pytest tests/unit"           python -m pytest tests/unit -q
 
 printf '\nAll local CI parity checks passed. Safe to push.\n'

@@ -3,9 +3,12 @@
     Run the same checks GitHub Actions runs in .github/workflows/ci.yml.
 
 .DESCRIPTION
-    Mirrors the CI job exactly — ruff lint, ruff format --check, mypy, pytest.
-    Run this before `git push` to avoid red CI on PRs. Exit code is non-zero
-    if any check fails.
+    Mirrors the CI job exactly - ruff lint, ruff format --check, mypy, pytest.
+    Run this before `git push` to avoid red CI on PRs.
+
+    Tools are invoked via `python -m TOOL` rather than the bare .exe so
+    Windows Application Control / Smart App Control can't block individual
+    binaries (false-positive on dev tools is a known issue).
 
 .NOTES
     Activate the venv first:
@@ -26,10 +29,10 @@ function Step($name, [scriptblock]$body) {
     }
 }
 
-Step "ruff check (lint)"            { ruff check . }
-Step "ruff format --check"          { ruff format --check . }
-Step "mypy src/ (typecheck)"        { mypy src/ }
-Step "pytest tests/unit"            { pytest tests/unit -q }
+Step "ruff check (lint)"            { python -m ruff check . }
+Step "ruff format --check"          { python -m ruff format --check . }
+Step "mypy src/ (typecheck)"        { python -m mypy src/ }
+Step "pytest tests/unit"            { python -m pytest tests/unit -q }
 
 Write-Host ""
 Write-Host "All local CI parity checks passed. Safe to push." -ForegroundColor Green
