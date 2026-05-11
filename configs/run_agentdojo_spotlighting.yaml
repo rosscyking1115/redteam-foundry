@@ -1,0 +1,14 @@
+# AgentDojo indirect-injection — Spotlighting only.
+# Hines et al. 2024 — wraps untrusted data in [BEGIN UNTRUSTED INPUT]
+# markers and instructs the model to never follow instructions inside.
+# Designed exactly for this attack class.
+name: agentdojo-spotlighting
+target: claude-sonnet-4-6
+defences:
+  - id: spotlighting
+corpora:
+  - source: agentdojo
+    limit: 50
+budget_usd: 0.50
+concurrency: 4
+max_tokens: 256
