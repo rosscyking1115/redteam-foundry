@@ -1,0 +1,13 @@
+# AgentDojo indirect-injection baseline — no defences.
+# Sonnet 4.6 frontier target, 50 cases (first 50 from the workspace suite
+# under deterministic iteration). Headline ASR baseline for comparison
+# against the defended runs.
+name: agentdojo-baseline
+target: claude-sonnet-4-6
+defences: []
+corpora:
+  - source: agentdojo
+    limit: 50
+budget_usd: 0.50
+concurrency: 4
+max_tokens: 256

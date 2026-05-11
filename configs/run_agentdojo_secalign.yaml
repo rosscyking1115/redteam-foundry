@@ -1,0 +1,14 @@
+# AgentDojo indirect-injection — SecAlign-style structured queries only.
+# Chen et al. 2024 / Meta SecAlign 2025 — fenced INSTRUCTION + DATA
+# template; system prompt teaches model to act on INSTRUCTION and treat
+# DATA as inert reference material.
+name: agentdojo-secalign
+target: claude-sonnet-4-6
+defences:
+  - id: secalign
+corpora:
+  - source: agentdojo
+    limit: 50
+budget_usd: 0.50
+concurrency: 4
+max_tokens: 256

@@ -626,3 +626,7 @@ def cross_judge_cmd(
             )
         )
     typer.echo(typer.style(f"Wrote: {out_path}", fg=typer.colors.BRIGHT_BLACK))
+
+
+if __name__ == "__main__":
+    app()

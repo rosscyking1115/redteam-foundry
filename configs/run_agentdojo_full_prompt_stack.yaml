@@ -1,0 +1,16 @@
+# AgentDojo indirect-injection — full prompt-only defence stack.
+# Layers paranoid system prompt + Spotlighting + SecAlign-style queries.
+# (Constitutional excluded here to keep cost ~1x; AgentDojo cases are
+# longer than AdvBench prompts so per-call cost is already higher.)
+name: agentdojo-full-prompt-stack
+target: claude-sonnet-4-6
+defences:
+  - id: system-prompt
+  - id: spotlighting
+  - id: secalign
+corpora:
+  - source: agentdojo
+    limit: 50
+budget_usd: 1.00
+concurrency: 4
+max_tokens: 256
