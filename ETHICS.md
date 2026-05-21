@@ -9,9 +9,10 @@ guarantee.
 - Runs **published** adversarial prompts from peer-reviewed or
   industry-released datasets (AdvBench, JailbreakBench, HarmBench, AgentDojo)
   against target LLMs.
-- Measures attack-success-rate (ASR) and false-refusal-rate (FRR) under
-  combinations of published defences (system prompts, Llama Guard 4,
-  Spotlighting, SecAlign-style structured queries, Constitutional principles).
+- Measures attack-success-rate (ASR) under combinations of published defences
+  (system prompts, Llama Guard 4, Spotlighting, SecAlign-style structured
+  queries, Constitutional principles), with every verdict cross-validated by
+  an independent second judge model.
 - Publishes **aggregate** results, methodology, defence configurations, and
   scoring code openly.
 
@@ -67,6 +68,8 @@ Every result is reported against a **dated** model ID. See
 - `meta-secalign-8b` (Meta SecAlign 8B) — Phase 5+ stretch target
 - Judge: `claude-haiku-4-5-20251001` (Claude Haiku 4.5) — distinct from any
   evaluated target
+- Cross-judge: `claude-sonnet-4-6` — independent second judge used to
+  validate every verdict
 
 ## Responsible disclosure
 
@@ -81,10 +84,13 @@ findings or example transcripts removed, email
 
 This work is for research and educational purposes. Results are reported as:
 
-> "On benchmark X, with defence stack Y, model Z showed ASR = N% / FRR = M%
-> (judged by Haiku-4.5, kappa K with human spot-check)."
+> "On benchmark X, with defence stack Y, model Z showed ASR = N% [95% CI ...],
+> judged by Claude Haiku 4.5 and cross-validated by an independent second
+> judge (Claude Sonnet 4.6)."
 
 Results **do not** imply that any model is "safe" or "unsafe" in general.
+See `METHODOLOGY.md` for how each metric is validated, and which metrics are
+reported as descriptive only.
 
 Do not apply these prompts against systems you do not own or have explicit
 permission to test.
