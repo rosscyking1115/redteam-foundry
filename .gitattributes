@@ -1,0 +1,18 @@
+# Normalise line endings. Without this, Windows + sandbox tooling churn
+# CRLF<->LF and every file shows as fully modified in `git status`/diffs.
+# This stores every text file as LF in the repository, regardless of the
+# checkout platform. Ends the line-ending war for good.
+* text=auto eol=lf
+
+# Shell scripts must stay LF even on Windows checkouts.
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Binary files — never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.parquet binary

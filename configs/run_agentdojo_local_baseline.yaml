@@ -1,0 +1,12 @@
+# AgentDojo indirect-injection on Llama 3.1 8B local (Ollama).
+# Same 50 cases as the Sonnet sweep — local target should show the
+# defence delta that Sonnet 4.6 was too robust to surface.
+name: agentdojo-local-baseline
+target: llama3.1-8b-local
+defences: []
+corpora:
+  - source: agentdojo
+    limit: 50
+budget_usd: 0.00         # local model, no API spend
+concurrency: 1           # 4070 8 GB VRAM — one Ollama call at a time
+max_tokens: 256
