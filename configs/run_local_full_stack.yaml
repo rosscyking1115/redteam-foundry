@@ -1,15 +1,18 @@
 name: local-llama31-full-stack
 target: llama3.1-8b-local
+# Mirrors anthropic-full-stack exactly (prompt-only stack) so the AdvBench
+# Llama cell is apples-to-apples with the Sonnet cell. The Llama Guard 4 12B
+# pre/post layers were dropped here: a 12B guard + the 8B target do not
+# co-fit the 8 GB 4070, and the Sonnet full-stack is prompt-only — including
+# guards would break the cross-model comparison.
 defences:
-  - id: llamaguard4-post   # outermost: catches anything that leaks through
-  - id: llamaguard4-pre    # input gate
+  - id: system-prompt
   - id: spotlighting
   - id: secalign
-  - id: system-prompt
-guard_model: llama-guard4:12b
+  - id: constitutional      # ~3x calls (critique-and-revise) — local, so $0
 corpora:
   - source: advbench
-    limit: 20
+    limit: 100              # match the AdvBench x Sonnet cell (n=100)
 budget_usd: 0.0
-concurrency: 1
+concurrency: 1              # 4070 8 GB VRAM — one Ollama call at a time
 max_tokens: 256
