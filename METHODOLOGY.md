@@ -224,6 +224,9 @@ not in the v1 reported matrix — see §12.
 - Run artifacts in `results/` carry the full per-case record — prompt,
   response, both judges' verdicts and reasoning — so any number in §8 can be
   audited case by case.
+- Any run exports to a **UK AISI Inspect** eval log via `redteam
+  export-inspect`; the output loads with `inspect_ai.log.read_eval_log()` and
+  opens in `inspect view`, for interoperability with the Inspect ecosystem.
 
 ## 11. Limits — what this benchmark does not measure
 
@@ -256,8 +259,6 @@ not in the v1 reported matrix — see §12.
 - **FRR** on a benign control set, to measure the over-refusal cost of each
   defence stack.
 - **Llama Guard 4** pre/post cells on a larger-VRAM machine.
-- **Inspect AI** eval-log export, for compatibility with the UK AI Safety
-  Institute's evaluation framework.
 
 ## 13. Verification log
 

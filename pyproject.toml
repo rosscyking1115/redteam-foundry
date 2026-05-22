@@ -5,7 +5,7 @@ description = "Open-source LLM red-team evaluation harness — measures attack s
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
-authors = [{ name = "Ross", email = "leaffeng1115@gmail.com" }]
+authors = [{ name = "Ross", email = "rosscyking@gmail.com" }]
 keywords = ["llm", "ai-safety", "red-team", "evaluation", "prompt-injection"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -43,6 +43,11 @@ agentdojo = [
   # AGPL-3.0; we use it as a runtime dependency only — no redistribution.
   "agentdojo>=0.1",
 ]
+inspect = [
+  # Enables `redteam export-inspect` — RunResult -> Inspect AI eval log, so
+  # runs can be opened in `inspect view` or loaded with read_eval_log().
+  "inspect-ai>=0.3.224",
+]
 dev = [
   "pytest>=8.3",
   "pytest-asyncio>=1.3",
@@ -50,6 +55,8 @@ dev = [
   "ruff>=0.15,<0.16",  # pin minor — keep in sync with .pre-commit-config.yaml
   "mypy>=1.13",
   "pre-commit>=4.0",
+  # exercised by tests/unit/test_inspect_export.py (CI runs the exporter test)
+  "inspect-ai>=0.3.224",
   # types
   "types-PyYAML",
 ]

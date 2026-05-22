@@ -106,6 +106,19 @@ python -m redteam score --run results/<run>.json
 python -m redteam cross-judge --run results/<run>.judged.json
 ```
 
+## Inspect AI compatibility
+
+Any run exports to a [UK AI Security Institute Inspect](https://inspect.aisi.org.uk/)
+eval log, so results open in `inspect view` or load with `read_eval_log()`:
+
+```bash
+uv pip install -e ".[inspect]"     # optional extra
+python -m redteam export-inspect --run results/<run>.json
+```
+
+Each case maps to an Inspect sample scored by the LLM-judge ASR verdict;
+cross-judge agreement, confidence intervals, and cost travel in the metadata.
+
 ## Running CI locally before pushing
 
 `scripts/ci_local.ps1` (Windows) and `scripts/ci_local.sh` (Linux/macOS) run
@@ -133,7 +146,7 @@ filtered at corpus-load time and verified by a CI test. Results are aggregate �
 no raw harmful outputs are committed to this repo.
 
 If you are a model provider whose model is included and want example
-transcripts removed, email **leaffeng1115@gmail.com** — **24-hour removal
+transcripts removed, email **rosscyking@gmail.com** — **24-hour removal
 commitment**. See [`ETHICS.md`](./ETHICS.md).
 
 ## Citation

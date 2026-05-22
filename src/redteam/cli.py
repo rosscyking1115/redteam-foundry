@@ -8,7 +8,7 @@ download and list (Phase 1). Stubs for Phases 2-7 are still here so
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import typer
 from dotenv import load_dotenv
@@ -626,6 +626,72 @@ def cross_judge_cmd(
             )
         )
     typer.echo(typer.style(f"Wrote: {out_path}", fg=typer.colors.BRIGHT_BLACK))
+
+
+# ---------------------------------------------------------------------------
+# `redteam export-inspect --run <result.json>` (ST2.6)
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="export-inspect")
+def export_inspect_cmd(
+    run: Annotated[
+        Path,
+        typer.Option(
+            "--run", "-r", help="RunResult JSON from `redteam run` / `score` / `cross-judge`."
+        ),
+    ],
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output path. Default: <run>.inspect.eval"),
+    ] = None,
+    fmt: Annotated[
+        str,
+        typer.Option(
+            "--format", "-f", help="Inspect log format: `eval`, `json`, or `auto` (by extension)."
+        ),
+    ] = "auto",
+) -> None:
+    """Export a RunResult to a UK AISI Inspect AI eval log (`.eval` / `.json`).
+
+    The output opens directly in `inspect view` and loads with
+    `inspect_ai.log.read_eval_log()`. `inspect_ai` is an optional dependency —
+    install it with `uv pip install -e ".[inspect]"`.
+    """
+    from redteam.inspect_export import export_inspect_log
+    from redteam.orchestrator import RunResult
+
+    if not run.exists():
+        typer.echo(typer.style(f"Run not found: {run}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+    if fmt not in {"eval", "json", "auto"}:
+        typer.echo(
+            typer.style(f"Invalid --format: {fmt} (use eval, json, or auto)", fg=typer.colors.RED)
+        )
+        raise typer.Exit(code=2)
+
+    ext = ".json" if fmt == "json" else ".eval"
+    out_path = output or run.with_name(run.stem + ".inspect" + ext)
+    try:
+        result = RunResult.model_validate_json(run.read_text(encoding="utf-8"))
+        export_inspect_log(result, out_path, fmt=cast(Literal["eval", "json", "auto"], fmt))
+    except RuntimeError as exc:
+        typer.echo(typer.style(str(exc), fg=typer.colors.RED))
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(
+        typer.style(
+            f"Exported {result.cases_total} cases to an Inspect AI eval log.",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {out_path}", fg=typer.colors.BRIGHT_BLACK))
+    typer.echo(
+        typer.style(
+            f"View it with:  inspect view --log-dir {out_path.parent}",
+            fg=typer.colors.BRIGHT_BLACK,
+        )
+    )
 
 
 if __name__ == "__main__":

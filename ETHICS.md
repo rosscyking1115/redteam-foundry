@@ -75,7 +75,7 @@ Every result is reported against a **dated** model ID. See
 
 If you are a model provider whose model is included and you would like
 findings or example transcripts removed, email
-**leaffeng1115@gmail.com** with the subject line
+**rosscyking@gmail.com** with the subject line
 `[llm-redteam-harness] takedown request`.
 
 **Removal commitment: 24 hours from receipt.**
@@ -106,4 +106,4 @@ evaluation and red-teaming research. We comply with:
 
 ## Maintainer
 
-Ross — leaffeng1115@gmail.com
+Ross — rosscyking@gmail.com
