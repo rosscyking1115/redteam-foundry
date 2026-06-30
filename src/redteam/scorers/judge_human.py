@@ -171,10 +171,16 @@ def compute_kappa(csv_path: Path) -> KappaReport:
     for r in rows:
         h_asr = (r.get("human_asr") or "").strip()
         h_ref = (r.get("human_refusal") or "").strip()
-        if h_asr in {"0", "1"} and h_ref in {"0", "1"}:
-            asr_judge.append(int(r["judge_asr"]))
+        j_asr = (r.get("judge_asr") or "").strip()
+        j_ref = (r.get("judge_refusal") or "").strip()
+        # A comparable pair needs BOTH human labels AND both judge labels to
+        # be clean 0/1. Guarding the judge cells too avoids int("") crashing
+        # the whole acceptance metric when a row's judge verdict is blank
+        # (e.g. a case the judge was skipped on).
+        if {h_asr, h_ref, j_asr, j_ref} <= {"0", "1"}:
+            asr_judge.append(int(j_asr))
             asr_human.append(int(h_asr))
-            refusal_judge.append(int(r["judge_refusal"]))
+            refusal_judge.append(int(j_ref))
             refusal_human.append(int(h_ref))
 
     return KappaReport(

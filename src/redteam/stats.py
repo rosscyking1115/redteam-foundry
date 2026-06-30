@@ -168,9 +168,14 @@ def krippendorff_alpha_binary(rater_a: Sequence[int], rater_b: Sequence[int]) ->
 
     # Expected disagreement under chance, using the pooled marginal.
     pooled = list(rater_a) + list(rater_b)
-    p1 = sum(pooled) / len(pooled)
+    m = len(pooled)  # total pooled values across both raters (== 2n)
+    p1 = sum(pooled) / m
     p0 = 1 - p1
-    de = 2 * p0 * p1
+    # Nominal Krippendorff's alpha requires the finite-sample correction
+    # m/(m-1) on the expected disagreement; without it (de = 2*p0*p1) alpha
+    # is biased low at the small n typical of a judge-agreement check. The
+    # correction vanishes as m grows, so it never hurts large samples.
+    de = (2 * p0 * p1) * m / (m - 1) if m > 1 else 0.0
 
     if de == 0:
         return 1.0 if do == 0 else 0.0

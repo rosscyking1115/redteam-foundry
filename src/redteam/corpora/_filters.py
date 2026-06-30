@@ -48,7 +48,7 @@ _PATTERNS: dict[ExcludedTopic, list[re.Pattern[str]]] = {
     "bio_chem_radiological_nuclear_weapons_synthesis": [
         # Synthesis verbs near WMD agents.
         re.compile(
-            r"\b(synthesi[sz]e|manufactur|produc|mak|creat|build|cook|brew|prepare)"
+            r"\b(synthesi[sz]e?|manufactur|produc|mak|creat|build|cook|brew|prepare)"
             r".{0,60}\b(sarin|tabun|vx\b|novichok|mustard\s*gas|chlorine\s*gas|"
             r"phosgene|ricin|botulinum|anthrax|smallpox|ebola|marburg|"
             r"nerve\s*agent|chemical\s*weapon|biological\s*weapon|bio[\s-]?weapon|"
@@ -56,7 +56,7 @@ _PATTERNS: dict[ExcludedTopic, list[re.Pattern[str]]] = {
             re.I,
         ),
         re.compile(
-            r"\b(synthesi[sz]e|manufactur|produc|mak|creat|build|construct|design)"
+            r"\b(synthesi[sz]e?|manufactur|produc|mak|creat|build|construct|design)"
             r".{0,60}\b(nuclear\s*(?:weapon|bomb|device)|"
             r"fission\s*(?:weapon|bomb|device)|"
             r"dirty\s*bomb|radiological\s*(?:weapon|bomb|device|dispersal))\b",
@@ -64,7 +64,7 @@ _PATTERNS: dict[ExcludedTopic, list[re.Pattern[str]]] = {
         ),
         re.compile(r"\b(enrich|weapons[\s-]?grade)\s+(uranium|plutonium)\b", re.I),
         re.compile(
-            r"\b(nerve\s*agent|toxin)\b.*\b(synthesi[sz]e|recipe|instructions|how[\s-]?to)\b",
+            r"\b(nerve\s*agent|toxin)\b.*\b(synthesi[sz]e?|recipe|instructions|how[\s-]?to)\b",
             re.I,
         ),
     ],
@@ -72,17 +72,26 @@ _PATTERNS: dict[ExcludedTopic, list[re.Pattern[str]]] = {
         # Trailing word boundary intentionally omitted on `suicid` / `overdose`
         # — \b would never match inside "suicide" or "overdosed" (the next
         # char is a word char, so there is no boundary there).
+        # How-to / method framing (group 1) followed by a self-harm act
+        # (group 2). Group 1 MUST precede group 2, which is what keeps
+        # "suicide prevention" and "warning signs ... suicidal" benign —
+        # they have no how-to framing before the term.
         re.compile(
-            r"\b(how\s+to|step[\s-]?by[\s-]?step|instructions|method|guide|tutorial)"
-            r".{0,40}\b(suicid|kill\s+(?:my|one)self|self[\s-]?harm)",
+            r"\b(how\s+(?:to|can|do|could|would)|step[\s-]?by[\s-]?step|instructions?|"
+            r"methods?|ways?|guide|tutorial|easiest|best|quickest|fastest|painless(?:ly)?)"
+            r".{0,40}\b(suicid|kill(?:ing)?\s+(?:my|one|your)self|self[\s-]?harm|overdos|"
+            r"end(?:ing)?\s+(?:my|your|their|one's)\s+life|"
+            r"take\s+(?:my|your|their|one's)\s+(?:own\s+)?life)",
             re.I,
         ),
         re.compile(
-            r"\b(lethal|fatal|effective|painless|quickest)\s+(dose|method|way|technique)\b"
+            r"\b(lethal|fatal|effective|painless|quickest|easiest)\s+(dose|method|way|technique)\b"
             r".{0,40}\b(suicid|kill\s+(?:my|one)self|overdose|self[\s-]?harm)",
             re.I,
         ),
-        re.compile(r"\b(suicide|self[\s-]?harm)\s+(method|technique|recipe|tutorial)\b", re.I),
+        re.compile(
+            r"\b(suicide|self[\s-]?harm)\s+(methods?|techniques?|recipe|tutorial|ways?)\b", re.I
+        ),
     ],
 }
 
@@ -104,6 +113,15 @@ _CATEGORY_EXCLUSIONS: dict[tuple[str, str], ExcludedTopic] = {
     # The category contains a small number of CSAM-adjacent edge cases; the
     # whole category is dropped per ETHICS.md.
     ("jailbreakbench", "Sexual/Adult content"): "csam",
+}
+
+# Normalised lookup so the gate survives upstream relabels that only differ
+# in case or surrounding whitespace (e.g. "Sexual/Adult Content" vs
+# "Sexual/Adult content"). Without this the exact-match gate silently
+# re-admits an excluded category when a dataset revision tweaks a label.
+_CATEGORY_EXCLUSIONS_NORM: dict[tuple[str, str], ExcludedTopic] = {
+    (src.strip().casefold(), cat.strip().casefold()): topic
+    for (src, cat), topic in _CATEGORY_EXCLUSIONS.items()
 }
 
 
@@ -140,9 +158,10 @@ def filter_prompt(
     (e.g. HarmBench's SemanticCategory). Pass None for unlabeled corpora.
     """
     if source_category is not None:
-        key = (source, source_category)
-        if key in _CATEGORY_EXCLUSIONS:
-            return FilterResult(excluded=True, topics=(_CATEGORY_EXCLUSIONS[key],))
+        key = (source.strip().casefold(), source_category.strip().casefold())
+        topic = _CATEGORY_EXCLUSIONS_NORM.get(key)
+        if topic is not None:
+            return FilterResult(excluded=True, topics=(topic,))
     keyword_hits = _scan_text(prompt)
     if keyword_hits:
         return FilterResult(excluded=True, topics=keyword_hits)

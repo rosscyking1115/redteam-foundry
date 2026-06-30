@@ -502,6 +502,10 @@ async def cross_judge_run(
         j2_ref_lo, j2_ref_hi = ci.lo, ci.hi
 
     # Cross-judge agreement: only on outcomes where BOTH judges scored.
+    asr_kappa: float | None
+    asr_alpha: float | None
+    ref_kappa: float | None
+    ref_alpha: float | None
     paired = [o for o in new_outcomes if o.judge_asr is not None and o.judge2_asr is not None]
     if paired:
         asr_score = _binary_kappa(
@@ -514,8 +518,11 @@ async def cross_judge_run(
         asr_kappa, asr_alpha = asr_score.kappa, asr_score.alpha
         ref_kappa, ref_alpha = ref_score.kappa, ref_score.alpha
     else:
+        # No outcome carried BOTH judges' verdicts, so agreement is not
+        # computable. Use None (not 0.0, which is a legitimate "chance-level
+        # agreement" value) to match the CI fields and the unjudged case.
         agreement_n = 0
-        asr_kappa = asr_alpha = ref_kappa = ref_alpha = 0.0
+        asr_kappa = asr_alpha = ref_kappa = ref_alpha = None
 
     scored = result.model_copy(
         update={
