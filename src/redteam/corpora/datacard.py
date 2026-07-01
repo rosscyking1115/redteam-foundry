@@ -60,6 +60,17 @@ def render_quality_report(report: CorpusQualityReport, *, title: str = "Corpus")
         "",
     ]
 
+    out += _kv_table("Language coverage (script-based)", r.language_coverage)
+    if r.n_mixed_script:
+        out += [f"_{r.n_mixed_script} prompt(s) mix scripts — code-switching candidates._", ""]
+
+    out += _kv_table("Attack-family markers (heuristic)", r.attack_family_coverage)
+    out += [
+        f"_{r.n_untagged_family} prompt(s) matched no known family marker "
+        "(a tagging-coverage gap, not necessarily benign)._",
+        "",
+    ]
+
     out += ["### Exact-duplicate groups", ""]
     if r.exact_duplicate_groups:
         out += ["| size | sources | cross-source | preview |", "| ---: | --- | :---: | --- |"]
@@ -130,6 +141,25 @@ def render_datacard(
         f"- Prompt length (chars): min {r.prompt_length.min}, "
         f"median {r.prompt_length.median:g}, mean {r.prompt_length.mean:g}, max {r.prompt_length.max}",
         "",
+        "## Languages",
+        "",
+        "Script-based classification (coarse): distinguishes ja/ko/zh and "
+        "non-Latin scripts, flags code-switching, but does **not** resolve "
+        "languages that share a script (e.g. English vs French, Simplified vs "
+        "Traditional Chinese) — that needs a language-ID model (Phase 4).",
+        "",
+        f"- Coverage: {', '.join(f'{k} ({v})' for k, v in sorted(r.language_coverage.items()))}",
+        f"- Code-switching (mixed-script) prompts: **{r.n_mixed_script}**",
+        "",
+        "## Attack families",
+        "",
+        "Heuristic surface markers (high-precision patterns). A match is a "
+        "strong hint; a non-match means no known marker was found, not that "
+        "the prompt is benign.",
+        "",
+        f"- Markers: {', '.join(f'{k} ({v})' for k, v in sorted(r.attack_family_coverage.items()))}",
+        f"- Prompts with no marker matched: **{r.n_untagged_family}**",
+        "",
         "## Duplicate analysis",
         "",
         f"- Exact-duplicate cases: **{r.n_exact_duplicate_cases}** "
@@ -142,8 +172,9 @@ def render_datacard(
         "## Label quality",
         "",
         f"- Integrity issues found: **{r.n_label_issues}** (empty/trivial prompts, duplicate ids).",
-        "- Language and attack-family tagging are **not yet applied** — see "
-        "`docs/ROADMAP.md` (Phase 1b / Phase 4).",
+        "- Language coverage and attack-family markers are summarised above; "
+        "both are coarse/heuristic (see `docs/ROADMAP.md`, Phase 4 for a "
+        "language-ID model and richer taxonomy).",
         "",
         "## Known limitations",
         "",

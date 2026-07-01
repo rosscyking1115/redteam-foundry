@@ -36,6 +36,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from redteam.corpora.taxonomy import ATTACK_FAMILIES, detect_language, infer_attack_families
 from redteam.schemas import AttackCase
 
 # Tokeniser for near-duplicate Jaccard. Unicode word characters so CJK and
@@ -157,6 +158,15 @@ class CorpusQualityReport(BaseModel):
     n_cross_source_near_duplicate_pairs: int
     near_duplicate_pairs: list[NearDuplicatePair] = Field(default_factory=list)
 
+    # Language / script coverage (Phase 1b — script-based, coarse).
+    language_coverage: dict[str, int] = Field(default_factory=dict)
+    n_mixed_script: int = 0
+
+    # Attack-family surface markers (Phase 1b — heuristic; a case may match
+    # several families or none). `n_untagged_family` is the coverage gap.
+    attack_family_coverage: dict[str, int] = Field(default_factory=dict)
+    n_untagged_family: int = 0
+
     # Label / integrity issues.
     n_label_issues: int
     label_issues: list[LabelIssue] = Field(default_factory=list)
@@ -211,6 +221,23 @@ def audit_corpus(
 
     label_issues = _label_issues(cases)
 
+    # Language/script coverage and attack-family surface markers (Phase 1b).
+    language_coverage: Counter[str] = Counter()
+    n_mixed = 0
+    family_coverage: Counter[str] = Counter({fam: 0 for fam in ATTACK_FAMILIES})
+    n_untagged = 0
+    for case in cases:
+        tag = detect_language(case.prompt)
+        language_coverage[tag.label] += 1
+        if tag.mixed:
+            n_mixed += 1
+        families = infer_attack_families(case.prompt)
+        if families:
+            for fam in families:
+                family_coverage[fam] += 1
+        else:
+            n_untagged += 1
+
     return CorpusQualityReport(
         n_cases=n,
         by_source=by_source,
@@ -226,6 +253,10 @@ def audit_corpus(
         n_near_duplicate_pairs=n_near_total,
         n_cross_source_near_duplicate_pairs=n_near_cross,
         near_duplicate_pairs=near_pairs,
+        language_coverage=dict(language_coverage),
+        n_mixed_script=n_mixed,
+        attack_family_coverage=dict(family_coverage),
+        n_untagged_family=n_untagged,
         n_label_issues=len(label_issues),
         label_issues=label_issues[:max_groups_reported],
     )
