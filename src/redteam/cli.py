@@ -267,6 +267,105 @@ def corpora_audit(
     typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
 
 
+@corpora_app.command("audit-hf")
+def corpora_audit_hf(
+    dataset: Annotated[
+        str,
+        typer.Option("--dataset", help="Hugging Face dataset id, e.g. 'walledai/AdvBench'."),
+    ],
+    prompt_column: Annotated[
+        str,
+        typer.Option("--prompt-column", help="Column holding the prompt text."),
+    ],
+    split: Annotated[str, typer.Option("--split", help="Dataset split.")] = "train",
+    config: Annotated[
+        str | None, typer.Option("--config", help="HF dataset config/subset name.")
+    ] = None,
+    revision: Annotated[
+        str | None, typer.Option("--revision", help="Pin a dataset commit/tag (recommended).")
+    ] = None,
+    limit: Annotated[int | None, typer.Option("--limit", help="Cap rows loaded.")] = None,
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory for the audit artifacts."),
+    ] = Path("reports/hf_audit"),
+    near_dup_threshold: Annotated[
+        float,
+        typer.Option("--near-dup-threshold", help="Jaccard similarity for near duplicates."),
+    ] = 0.85,
+) -> None:
+    """Audit ANY Hugging Face adversarial dataset, not just the built-in four.
+
+    Loads the dataset, runs the safety exclusion filter (so nothing excluded is
+    audited or previewed), then writes the same quality report + data card.
+    """
+    from redteam.corpora._filters import filter_cases
+    from redteam.corpora.datacard import render_datacard, render_quality_report
+    from redteam.corpora.huggingface import load_hf_dataset
+    from redteam.corpora.quality import audit_corpus
+
+    typer.echo(f"-> loading {dataset} (split={split}) ...")
+    try:
+        raw = load_hf_dataset(
+            dataset,
+            prompt_column=prompt_column,
+            split=split,
+            config=config,
+            revision=revision,
+            limit=limit,
+        )
+    except Exception as exc:
+        typer.echo(typer.style(f"   FAILED: {exc}", fg=typer.colors.RED))
+        raise typer.Exit(code=1) from exc
+
+    if not raw:
+        typer.echo(typer.style("No rows loaded — check --prompt-column.", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+
+    kept, excluded = filter_cases(raw)
+    if excluded:
+        typer.echo(
+            typer.style(
+                f"   safety filter excluded {len(excluded)} of {len(raw)} row(s).",
+                fg=typer.colors.YELLOW,
+            )
+        )
+    if not kept:
+        typer.echo(
+            typer.style(
+                "All rows excluded by the safety filter — nothing to audit.", fg=typer.colors.RED
+            )
+        )
+        raise typer.Exit(code=1)
+
+    report = audit_corpus(kept, near_dup_threshold=near_dup_threshold)
+    provenance = f"hf:{dataset}" + (f"@{revision}" if revision else "") + f" (split={split})"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "corpus_quality.json").write_text(
+        report.model_dump_json(indent=2), encoding="utf-8"
+    )
+    (output_dir / "corpus_quality_report.md").write_text(
+        render_quality_report(report, title=dataset), encoding="utf-8"
+    )
+    (output_dir / "corpus_datacard.md").write_text(
+        render_datacard(report, title=dataset, sources_meta={"external": provenance}),
+        encoding="utf-8",
+    )
+
+    typer.echo(
+        typer.style(
+            f"Audited {report.n_cases} kept case(s): "
+            f"{report.n_exact_duplicate_cases} exact-dup ({report.duplicate_rate:.1%}), "
+            f"{report.n_near_duplicate_pairs} near-dup pair(s), "
+            f"languages={sorted(report.language_coverage)}, "
+            f"{report.n_label_issues} label issue(s).",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
+
+
 @corpora_app.command("staleness")
 def corpora_staleness(
     cache_root: Annotated[

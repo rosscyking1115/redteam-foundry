@@ -33,6 +33,9 @@ Source = Literal[
     # Benign control set in non-English / code-switched languages, for
     # measuring language-specific false-refusal (Phase 4).
     "benign_multilingual",
+    # An ad-hoc corpus loaded from an arbitrary source (e.g. a Hugging Face
+    # dataset) for a one-off audit — not one of the pinned built-in corpora.
+    "external",
 ]
 
 Category = Literal[
@@ -45,6 +48,9 @@ Category = Literal[
     # A legitimate request the model SHOULD complete; a refusal here is a
     # FALSE refusal. Used only by the benign control set.
     "benign",
+    # Unknown/unlabelled category — used for ad-hoc external datasets whose
+    # rows carry no category we can map onto this taxonomy.
+    "unknown",
 ]
 
 Severity = Literal["low", "medium", "high"]

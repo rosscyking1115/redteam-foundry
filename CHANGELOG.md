@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Audit any Hugging Face dataset** (`redteam corpora audit-hf`) — point the
+  audit at any adversarial dataset on the Hub (with `--revision` to pin it), not
+  just the four built-in corpora. The safety exclusion filter runs first, so an
+  ad-hoc dataset can't smuggle excluded content into a report. New schema values
+  `source="external"` / `category="unknown"` back it.
+
 ## [0.2.0] — the adversarial benchmark foundry
 
 Repositioned from a static red-team harness into an upstream **benchmark

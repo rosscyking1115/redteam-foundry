@@ -101,6 +101,9 @@ no live model calls.
 # coverage, label issues -> quality report + data card + JSON.
 redteam corpora audit --output reports/corpus_audit/
 
+# Audit ANY Hugging Face adversarial dataset, not just the built-in four.
+redteam corpora audit-hf --dataset owner/name --prompt-column prompt --revision <sha>
+
 # Score benchmark staleness (heuristic). Pass --run for evaluation JSONs to
 # light up the run-based components (universal-low-ASR, defence-insensitivity,
 # judge-disagreement); corpus-only otherwise.
