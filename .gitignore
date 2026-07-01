@@ -42,6 +42,13 @@ coverage.xml
 !/results/.gitkeep
 !/results/samples/
 
+# Corpus-audit outputs (quality reports / data cards). Re-creatable via
+# `redteam corpora audit`, and they quote truncated adversarial prompt
+# previews, so keep them out of git by default.
+/reports/
+!/reports/.gitkeep
+!/reports/samples/
+
 # Streamlit / HF Spaces local cache
 .streamlit/secrets.toml
 .huggingface/
