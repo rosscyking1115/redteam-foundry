@@ -65,11 +65,14 @@ Each phase is one PR with green CI. Phase 0 is complete.
   attack failure and low defence sensitivity, while cross-judge κ=+1.000 confirms
   ASR itself is well-posed.
 
-### Phase 3 — Defence comparison + safe-usefulness
-- Build the **benign control set** → false-refusal rate (defined in the harness,
-  not yet measured — see `METHODOLOGY.md` §9).
-- `safe_usefulness = low ASR + high benign utility`; `redteam compare-defences`
-  report with cost/latency.
+### Phase 3 — Defence comparison + safe-usefulness — **done**
+- Committed **benign control set** (`redteam.benign`, ~45 prompts incl.
+  sensitive-but-legitimate over-block stressors); runnable via
+  `configs/run_benign_control_*.yaml` to measure false-refusal rate (FRR).
+- `redteam compare-defences` matches adversarial + benign runs per config and
+  reports ASR, FRR, `safe_usefulness = (1 - ASR) * (1 - FRR)`, cost, latency.
+- Still TODO here: an actual benign run set (needs live API/Ollama) to populate
+  FRR on the published matrix.
 
 ### Phase 4 — Multilingual adversarial corpus *(distinctive contribution)*
 - zh-Hant / zh-Hans / ja / ko + code-switching + translation-jailbreak items;

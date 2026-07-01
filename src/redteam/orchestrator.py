@@ -120,6 +120,14 @@ def build_stack(config: RunConfig, *, cache: ResponseCache | None = None) -> Sen
 def iter_attack_cases(config: RunConfig) -> list[AttackCase]:
     out: list[AttackCase] = []
     for spec in config.corpora:
+        # The benign control set is not an adversarial loader (see benign.py);
+        # resolve it directly so a run config can measure false-refusal rate.
+        if spec.source == "benign_control":
+            from redteam.benign import BENIGN_CONTROL
+
+            cases = list(BENIGN_CONTROL)
+            out.extend(cases[: spec.limit] if spec.limit is not None else cases)
+            continue
         loader_cls = LOADERS.get(spec.source)
         if loader_cls is None:
             raise ValueError(

@@ -1,0 +1,12 @@
+# Baseline false-refusal measurement: the benign control set with no defence.
+# The refusal rate of this run IS the baseline FRR — every refusal here is a
+# false refusal. Compare against a defended run (see run_benign_control_full_stack)
+# with `redteam compare-defences --benign-run ...`.
+name: benign-control-baseline
+target: claude-sonnet-4-6
+defences: []
+corpora:
+  - source: benign_control
+budget_usd: 1.00
+concurrency: 4
+max_tokens: 256

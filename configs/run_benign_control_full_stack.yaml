@@ -1,0 +1,16 @@
+# Full-stack false-refusal measurement: the benign control set through the same
+# prompt-only defence stack used for the adversarial full-stack run. A defence
+# that raises this run's refusal rate above the baseline is over-blocking
+# legitimate requests — that cost shows up as FRR in `redteam compare-defences`.
+name: benign-control-full-stack
+target: claude-sonnet-4-6
+defences:
+  - id: system-prompt
+  - id: spotlighting
+  - id: secalign
+  - id: constitutional      # ~3x cost
+corpora:
+  - source: benign_control
+budget_usd: 3.00
+concurrency: 2
+max_tokens: 256

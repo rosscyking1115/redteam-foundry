@@ -346,6 +346,98 @@ def corpora_staleness(
 
 
 # ---------------------------------------------------------------------------
+# `redteam benign ...` + `redteam compare-defences` (Phase 3)
+# ---------------------------------------------------------------------------
+
+benign_app = typer.Typer(
+    name="benign",
+    help="Benign control set for false-refusal-rate measurement (Phase 3).",
+    no_args_is_help=True,
+    add_completion=False,
+)
+app.add_typer(benign_app)
+
+
+@benign_app.command("export")
+def benign_export(
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="JSONL path to write the benign control set."),
+    ] = Path("data/benign_control.jsonl"),
+) -> None:
+    """Write the benign control set to JSONL (for FRR runs / inspection)."""
+    from redteam.benign import BENIGN_CONTROL, export_benign_jsonl
+
+    path = export_benign_jsonl(output)
+    typer.echo(
+        typer.style(f"Wrote {len(BENIGN_CONTROL)} benign cases to {path}", fg=typer.colors.GREEN)
+    )
+    typer.echo(
+        typer.style(
+            "Run it per defence config (configs/run_benign_control_*.yaml) and feed the "
+            "results to `redteam compare-defences --benign-run ...`.",
+            fg=typer.colors.BRIGHT_BLACK,
+        )
+    )
+
+
+@app.command(name="compare-defences")
+def compare_defences_cmd(
+    run: Annotated[
+        list[Path],
+        typer.Option("--run", help="Adversarial RunResult JSON(s) (repeatable)."),
+    ],
+    benign_run: Annotated[
+        list[Path] | None,
+        typer.Option("--benign-run", help="RunResult JSON(s) over the benign control set."),
+    ] = None,
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory for the comparison artifacts."),
+    ] = Path("reports/defence_comparison"),
+) -> None:
+    """Compare defence configs on ASR, false-refusal rate, and safe usefulness.
+
+    Adversarial and benign runs are matched by (target, defences). Pass
+    `--benign-run` results (over the benign control set) to populate FRR and
+    the combined safe-usefulness score.
+    """
+    from redteam.compare import compare_defences, render_defence_comparison
+    from redteam.orchestrator import RunResult
+
+    def _load(paths: list[Path]) -> list[RunResult]:
+        loaded: list[RunResult] = []
+        for p in paths:
+            if not p.exists():
+                typer.echo(typer.style(f"Run not found: {p}", fg=typer.colors.RED))
+                raise typer.Exit(code=2)
+            loaded.append(RunResult.model_validate_json(p.read_text(encoding="utf-8")))
+        return loaded
+
+    adversarial = _load(list(run))
+    benign = _load(list(benign_run or []))
+
+    report = compare_defences(adversarial, benign)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "defence_comparison.json").write_text(
+        report.model_dump_json(indent=2), encoding="utf-8"
+    )
+    (output_dir / "defence_comparison.md").write_text(
+        render_defence_comparison(report), encoding="utf-8"
+    )
+
+    typer.echo(
+        typer.style(
+            f"Compared {report.n_adversarial_runs} config(s); "
+            f"{report.n_configs_with_frr} with FRR / safe-usefulness.",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
+
+
+# ---------------------------------------------------------------------------
 # `redteam targets ...` (Phase 2)
 # ---------------------------------------------------------------------------
 

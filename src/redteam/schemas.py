@@ -21,7 +21,16 @@ from pydantic import BaseModel, ConfigDict, Field
 # Enumerations
 # ---------------------------------------------------------------------------
 
-Source = Literal["advbench", "jailbreakbench", "harmbench", "agentdojo"]
+Source = Literal[
+    "advbench",
+    "jailbreakbench",
+    "harmbench",
+    "agentdojo",
+    # Not an adversarial corpus: a benign control set used to measure the
+    # false-refusal (over-blocking) cost of a defence. Kept out of the
+    # adversarial LOADERS registry so `corpora audit/list` stay adversarial-only.
+    "benign_control",
+]
 
 Category = Literal[
     "jailbreak",
@@ -30,6 +39,9 @@ Category = Literal[
     "harmful_content",
     "data_exfiltration",
     "role_play",
+    # A legitimate request the model SHOULD complete; a refusal here is a
+    # FALSE refusal. Used only by the benign control set.
+    "benign",
 ]
 
 Severity = Literal["low", "medium", "high"]
