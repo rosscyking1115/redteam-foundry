@@ -85,9 +85,15 @@ Each phase is one PR with green CI. Phase 0 is complete.
   measurement, not non-English attack generation.
 - Deferred: multilingual judge-reliability (needs live judge runs).
 
-### Phase 5 — Challenge-pack exporter
-- `pack.yaml` + `scenarios.jsonl` + `datacard.md`, redaction rules, safety
-  caveats. Export only — **no** release-decision logic here.
+### Phase 5 — Challenge-pack exporter — **done**
+- `redteam export-pack` writes `pack.yaml` + `scenarios.jsonl` + `datacard.md`.
+  Benign scenarios ship in full; **adversarial scenarios are redacted by default**
+  (SHA-256 + preview, no raw harmful text) — downstream re-materialises them from
+  the pinned corpus. `--include-adversarial-prompts` overrides for trusted use.
+- Every pack carries `safety_notes` ("passing is not proof of safety"),
+  `recommended_use`, and `not_recommended_for`. Export only — **no**
+  release-decision logic here.
+- Committed sample: `challenge_packs/samples/multilingual_benign_v1/`.
 
 ### Phase 6 — Bridge to a release-gate layer *(only once that layer exists)*
 - One sample pack + a docs note on the two-layer workflow.

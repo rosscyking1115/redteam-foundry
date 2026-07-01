@@ -49,6 +49,14 @@ coverage.xml
 !/reports/.gitkeep
 !/reports/samples/
 
+# Exported challenge packs. Re-creatable via `redteam export-pack`; adversarial
+# packs contain prompt previews, so keep them out of git by default. Only a
+# small, safe (benign) sample is committed under challenge_packs/samples/.
+# Note: `/challenge_packs/*` (not `/challenge_packs/`) so the samples/ negation
+# below can re-include — git won't recurse into a wholly-excluded directory.
+/challenge_packs/*
+!/challenge_packs/samples/
+
 # Streamlit / HF Spaces local cache
 .streamlit/secrets.toml
 .huggingface/

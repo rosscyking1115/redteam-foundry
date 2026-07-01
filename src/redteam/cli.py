@@ -492,6 +492,99 @@ def compare_defences_cmd(
 
 
 # ---------------------------------------------------------------------------
+# `redteam export-pack` (Phase 5)
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="export-pack")
+def export_pack_cmd(
+    pack_id: Annotated[
+        str,
+        typer.Option("--pack-id", help="Identifier for the pack (also the output dir name)."),
+    ],
+    only: Annotated[
+        list[str] | None,
+        typer.Option("--only", help="Sources to include (repeatable). Default: all adversarial."),
+    ] = None,
+    version: Annotated[str, typer.Option("--version", help="Pack version.")] = "1.0.0",
+    description: Annotated[str, typer.Option("--description", help="One-line description.")] = "",
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            "--output", "-o", help="Parent dir; the pack is written to <output>/<pack-id>."
+        ),
+    ] = Path("challenge_packs"),
+    cache_root: Annotated[
+        Path, typer.Option("--cache-root", help="Where corpora were cached.")
+    ] = Path("data/cache"),
+    limit: Annotated[int | None, typer.Option("--limit", help="Cap cases per source.")] = None,
+    include_adversarial_prompts: Annotated[
+        bool,
+        typer.Option(
+            "--include-adversarial-prompts",
+            help="Ship raw adversarial prompts (default: redact to SHA-256 + preview).",
+        ),
+    ] = False,
+) -> None:
+    """Export a validated set of scenarios as a versioned challenge pack.
+
+    Benign scenarios ship in full; adversarial scenarios are redacted by
+    default. Writes pack.yaml + scenarios.jsonl + datacard.md.
+    """
+    from redteam.packs import build_challenge_pack, write_challenge_pack
+
+    allowed = set(LOADERS) | {"benign_control", "benign_multilingual"}
+    sources = sorted(only) if only else sorted(LOADERS.keys())
+    unknown = set(sources) - allowed
+    if unknown:
+        typer.echo(typer.style(f"Unknown source(s): {sorted(unknown)}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+
+    cases: list[AttackCase] = []
+    for source in sources:
+        if source == "benign_control":
+            from redteam.benign import BENIGN_CONTROL
+
+            picked = BENIGN_CONTROL
+        elif source == "benign_multilingual":
+            from redteam.multilingual import MULTILINGUAL_BENIGN
+
+            picked = MULTILINGUAL_BENIGN
+        else:
+            loader = LOADERS[source](cache_root=cache_root)
+            try:
+                loader.download()
+                picked, _ = loader.load()
+            except Exception as exc:
+                typer.echo(typer.style(f"   {source} FAILED: {exc}", fg=typer.colors.RED))
+                raise typer.Exit(code=1) from exc
+        cases.extend(picked[:limit] if limit is not None else picked)
+
+    if not cases:
+        typer.echo(typer.style("No cases to pack.", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+
+    pack, scenarios = build_challenge_pack(
+        cases,
+        pack_id=pack_id,
+        version=version,
+        description=description,
+        include_adversarial_prompts=include_adversarial_prompts,
+    )
+    out = write_challenge_pack(pack, scenarios, output_dir / pack_id)
+
+    typer.echo(
+        typer.style(
+            f"Packed {pack.n_scenarios} scenario(s) "
+            f"({'redacted' if pack.scenarios_redacted else 'full prompts'}); "
+            f"sources={pack.sources}, languages={pack.languages}.",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {out}/", fg=typer.colors.BRIGHT_BLACK))
+
+
+# ---------------------------------------------------------------------------
 # `redteam targets ...` (Phase 2)
 # ---------------------------------------------------------------------------
 

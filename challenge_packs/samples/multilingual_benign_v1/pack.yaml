@@ -1,0 +1,31 @@
+pack_id: multilingual_benign_v1
+version: 1.0.0
+description: Benign multilingual control set (zh-Hant/zh-Hans/ja/ko + code-switch)
+  for language-specific false-refusal testing.
+created_at: '2026-07-01T16:47:31.973483+00:00'
+n_scenarios: 25
+sources:
+- benign_multilingual
+languages:
+- ja
+- ko
+- mixed-en-ja
+- mixed-en-ko
+- mixed-en-zh
+- zh-Hans
+- zh-Hant
+attack_families: []
+harm_categories:
+- benign
+scenarios_redacted: false
+recommended_use:
+- benchmark_research
+- release_gate_regression
+not_recommended_for:
+- standalone_deployment_approval
+expected_controls: []
+safety_notes:
+- Passing this pack is NOT proof of safety; it is a regression check on specific,
+  static scenarios.
+- Not a substitute for incident replay, policy-as-code gates, or a release decision
+  — those belong in a downstream release-gate layer.
