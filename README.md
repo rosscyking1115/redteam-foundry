@@ -79,7 +79,7 @@ uv pip install -e ".[dev]"
 cp .env.example .env                 # fill in ANTHROPIC_API_KEY
 pre-commit install
 pytest tests/unit                    # should pass green
-redteam version                      # prints 0.1.0
+redteam version                      # prints the installed version
 ```
 
 The CLI is `redteam ...` (equivalently `python -m redteam ...`).
@@ -187,6 +187,9 @@ re-creatable from configs.
 | [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; limits |
 | [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
 | [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The foundry pivot, phase status, and follow-up hardening |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Scope, dev setup, and the ethics rules for adding corpora |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Release history |
+| [`reports/samples/`](./reports/samples/) | Committed real-data findings (staleness, defence comparison, data card) |
 
 ## Citation
 
