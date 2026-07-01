@@ -51,18 +51,19 @@ Each phase is one PR with green CI. Phase 0 is complete.
   blank-cell guard, cross-judge `None`-vs-`0.0`.
 - **0b:** this positioning/roadmap pass.
 
-### Phase 1 — Corpus quality layer
-- Exact + near-duplicate detection, **cross-corpus** (the loaders share many
-  near-identical goals today with no dedup).
-- Language detection, attack-family / harm-category tagging, label-quality checks.
-- `redteam corpus audit` → `corpus_quality_report.md` + `corpus_datacard.md`.
+### Phase 1 — Corpus quality layer — **done** (1a + 1b)
+- Exact + near-duplicate detection, **cross-corpus**; composition, prompt-length,
+  label-integrity checks. `redteam corpora audit` → quality report + data card.
+- Language/script coverage (code-switching flag) + attack-family surface markers.
 
-### Phase 2 — Staleness & usefulness
-- Compose existing ASR / CI / cross-judge / defence-sensitivity signals into a
-  **heuristic** `staleness_score` (clearly labelled heuristic, components broken
-  out — never a single magic number).
-- `redteam corpus staleness` → per-corpus report. The current 0–4% matrix
-  becomes the worked example.
+### Phase 2 — Staleness & usefulness — **done**
+- `redteam corpora staleness` composes corpus signals (obsolete-meme patterns,
+  duplication) with run signals (universal-low-ASR, defence-insensitivity,
+  judge-disagreement) into a **heuristic**, component-broken-out `staleness_score`
+  — never a single magic number, renormalised over whatever data is available.
+- Worked example: AgentDojo scores ~0.43 ("mixed") — driven by near-universal
+  attack failure and low defence sensitivity, while cross-judge κ=+1.000 confirms
+  ASR itself is well-posed.
 
 ### Phase 3 — Defence comparison + safe-usefulness
 - Build the **benign control set** → false-refusal rate (defined in the harness,

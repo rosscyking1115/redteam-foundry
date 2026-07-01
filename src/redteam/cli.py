@@ -267,6 +267,84 @@ def corpora_audit(
     typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
 
 
+@corpora_app.command("staleness")
+def corpora_staleness(
+    cache_root: Annotated[
+        Path,
+        typer.Option("--cache-root", help="Where corpora were cached."),
+    ] = Path("data/cache"),
+    only: Annotated[
+        list[str] | None,
+        typer.Option("--only", help="Sources to score (repeatable). Default: all, combined."),
+    ] = None,
+    run: Annotated[
+        list[Path] | None,
+        typer.Option("--run", help="RunResult JSON(s) that used this corpus (repeatable)."),
+    ] = None,
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory for the staleness artifacts."),
+    ] = Path("reports/staleness"),
+    near_dup_threshold: Annotated[
+        float,
+        typer.Option("--near-dup-threshold", help="Jaccard similarity for near duplicates."),
+    ] = 0.85,
+) -> None:
+    """Score whether a benchmark still measures real risk (heuristic).
+
+    Composes corpus signals (obsolete jailbreak-meme patterns, duplication)
+    with run signals (universal-low-ASR, defence-insensitivity, judge
+    disagreement) into a single heuristic staleness score. Pass `--run` for
+    each evaluation JSON that used this corpus to enable the run components.
+    """
+    from redteam.orchestrator import RunResult
+    from redteam.staleness import render_staleness_report, score_staleness
+
+    sources = sorted(only) if only else sorted(LOADERS.keys())
+    unknown = set(sources) - set(LOADERS.keys())
+    if unknown:
+        typer.echo(typer.style(f"Unknown source(s): {sorted(unknown)}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+
+    all_cases: list[AttackCase] = []
+    for source in sources:
+        loader = LOADERS[source](cache_root=cache_root)
+        try:
+            loader.download()
+            kept, _ = loader.load()
+        except Exception as exc:
+            typer.echo(typer.style(f"   {source} FAILED: {exc}", fg=typer.colors.RED))
+            raise typer.Exit(code=1) from exc
+        all_cases.extend(kept)
+
+    runs: list[RunResult] = []
+    for run_path in run or []:
+        if not run_path.exists():
+            typer.echo(typer.style(f"Run not found: {run_path}", fg=typer.colors.RED))
+            raise typer.Exit(code=2)
+        runs.append(RunResult.model_validate_json(run_path.read_text(encoding="utf-8")))
+
+    title = sources[0] if len(sources) == 1 else f"combined ({len(sources)} sources)"
+    report = score_staleness(all_cases, runs, title=title, near_dup_threshold=near_dup_threshold)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "staleness.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+    (output_dir / "staleness_report.md").write_text(
+        render_staleness_report(report), encoding="utf-8"
+    )
+
+    score_str = f"{report.staleness_score:.2f}" if report.staleness_score is not None else "n/a"
+    typer.echo(
+        typer.style(
+            f"Staleness {score_str}/1.00 ({report.n_components_available}/"
+            f"{len(report.components)} components, confidence: {report.confidence}). "
+            f"{report.interpretation}",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
+
+
 # ---------------------------------------------------------------------------
 # `redteam targets ...` (Phase 2)
 # ---------------------------------------------------------------------------
