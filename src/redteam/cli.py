@@ -17,6 +17,7 @@ from rich.table import Table
 
 from redteam import __version__
 from redteam.corpora import LOADERS
+from redteam.schemas import AttackCase
 
 # Load .env from the current working directory if present. Best-effort:
 # never fails the CLI if .env is missing. Real auth errors surface later
@@ -185,6 +186,85 @@ def corpora_list(
                 fg=typer.colors.YELLOW,
             )
         )
+
+
+@corpora_app.command("audit")
+def corpora_audit(
+    cache_root: Annotated[
+        Path,
+        typer.Option("--cache-root", help="Where corpora were cached."),
+    ] = Path("data/cache"),
+    only: Annotated[
+        list[str] | None,
+        typer.Option("--only", help="Restrict to specific sources (repeatable). Default: all."),
+    ] = None,
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory for the audit artifacts."),
+    ] = Path("reports/corpus_audit"),
+    near_dup_threshold: Annotated[
+        float,
+        typer.Option("--near-dup-threshold", help="Jaccard similarity for near duplicates."),
+    ] = 0.85,
+) -> None:
+    """Audit corpora for duplicates, overlap, and label issues.
+
+    Loads the post-filter kept cases across the selected sources (combined,
+    so cross-source duplicates surface), then writes a quality report, a data
+    card, and the raw JSON to the output directory.
+    """
+    from redteam.corpora.datacard import render_datacard, render_quality_report
+    from redteam.corpora.quality import audit_corpus
+
+    sources = sorted(only) if only else sorted(LOADERS.keys())
+    unknown = set(sources) - set(LOADERS.keys())
+    if unknown:
+        typer.echo(typer.style(f"Unknown source(s): {sorted(unknown)}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+
+    all_cases: list[AttackCase] = []
+    sources_meta: dict[str, str] = {}
+    for source in sources:
+        loader = LOADERS[source](cache_root=cache_root)
+        typer.echo(f"-> {source}: loading ...")
+        try:
+            loader.download()
+            kept, _ = loader.load()
+        except Exception as exc:
+            typer.echo(typer.style(f"   FAILED: {exc}", fg=typer.colors.RED))
+            raise typer.Exit(code=1) from exc
+        all_cases.extend(kept)
+        sources_meta[source] = f"pinned {loader.pinned_revision[:12]}"
+
+    if not all_cases:
+        typer.echo(typer.style("No cases loaded - nothing to audit.", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+
+    report = audit_corpus(all_cases, near_dup_threshold=near_dup_threshold)
+    title = sources[0] if len(sources) == 1 else f"combined ({len(sources)} sources)"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "corpus_quality.json").write_text(
+        report.model_dump_json(indent=2), encoding="utf-8"
+    )
+    (output_dir / "corpus_quality_report.md").write_text(
+        render_quality_report(report, title=title), encoding="utf-8"
+    )
+    (output_dir / "corpus_datacard.md").write_text(
+        render_datacard(report, title=title, sources_meta=sources_meta), encoding="utf-8"
+    )
+
+    typer.echo(
+        typer.style(
+            f"Audited {report.n_cases} cases: "
+            f"{report.n_exact_duplicate_cases} exact-dup ({report.duplicate_rate:.1%}), "
+            f"{report.n_cross_source_duplicate_groups} cross-source dup group(s), "
+            f"{report.n_near_duplicate_pairs} near-dup pair(s), "
+            f"{report.n_label_issues} label issue(s).",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
 
 
 # ---------------------------------------------------------------------------
