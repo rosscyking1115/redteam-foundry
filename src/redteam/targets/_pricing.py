@@ -32,6 +32,12 @@ PRICING_PER_MTOK: dict[str, dict[str, Decimal]] = {
 _MILLION = Decimal("1000000")
 
 
+def has_pricing(model_version: str) -> bool:
+    """True if a pricing entry exists for the model. Adapters use this to
+    fail loud at construction rather than run un-metered against the budget."""
+    return model_version in PRICING_PER_MTOK
+
+
 def cost_for(model_version: str, input_tokens: int, output_tokens: int) -> Decimal:
     """Compute USD cost for a single call. Raises PricingMissing if unknown."""
     table = PRICING_PER_MTOK.get(model_version)

@@ -58,6 +58,11 @@ class BudgetGuard:
             else _env_decimal("REDTEAM_MAX_USD_PER_CALL", "0.50")
         )
         self._spent = Decimal("0")
+        # In-flight reservations. `check_can_spend` reserves its estimate so
+        # concurrent calls (the orchestrator runs up to `concurrency` at once)
+        # can't all pass the same stale `_spent` and collectively blow the cap.
+        # `record_spend` / `release` unwind the reservation.
+        self._reserved = Decimal("0")
         self._lock = threading.Lock()
 
     @property
@@ -66,28 +71,53 @@ class BudgetGuard:
 
     @property
     def remaining_usd(self) -> Decimal:
-        return self.max_per_run - self._spent
+        """Cap minus realised spend AND in-flight reservations."""
+        return self.max_per_run - self._spent - self._reserved
 
     def check_can_spend(self, estimate_usd: Decimal) -> None:
-        """Raise BudgetExceeded if `estimate_usd` would breach a cap."""
+        """Reserve `estimate_usd` against the cap, or raise BudgetExceeded.
+
+        On success the estimate is *reserved* (counts against the cap for
+        concurrent callers) until a matching `record_spend`/`release` unwinds
+        it. Callers MUST pass the same estimate to `record_spend` (or call
+        `release`) so the reservation is not leaked.
+        """
         if estimate_usd > self.max_per_call:
             raise BudgetExceeded(
                 f"Per-call estimate ${estimate_usd} exceeds cap ${self.max_per_call} "
                 f"(REDTEAM_MAX_USD_PER_CALL). Lower max_tokens or split the request."
             )
         with self._lock:
-            projected = self._spent + estimate_usd
+            projected = self._spent + self._reserved + estimate_usd
             if projected > self.max_per_run:
                 raise BudgetExceeded(
                     f"Projected run total ${projected} would exceed cap ${self.max_per_run} "
-                    f"(REDTEAM_MAX_USD_PER_RUN). Already spent ${self._spent}; "
-                    f"remaining ${self.remaining_usd}."
+                    f"(REDTEAM_MAX_USD_PER_RUN). Already spent ${self._spent}, "
+                    f"reserved ${self._reserved}; remaining "
+                    f"${self.max_per_run - self._spent - self._reserved}."
                 )
+            self._reserved += estimate_usd
 
-    def record_spend(self, actual_usd: Decimal) -> None:
-        """Add an actual cost to the running total. Raises if the realised
-        total breached the per-run cap (catches estimate underruns)."""
+    def _release_locked(self, estimate_usd: Decimal) -> None:
+        self._reserved -= estimate_usd
+        if self._reserved < 0:  # defensive: never go negative
+            self._reserved = Decimal("0")
+
+    def release(self, estimate_usd: Decimal) -> None:
+        """Release a reservation made by `check_can_spend` without booking any
+        spend. Call this when the reserved API call did not happen (e.g. it
+        raised before returning a cost)."""
         with self._lock:
+            self._release_locked(estimate_usd)
+
+    def record_spend(self, actual_usd: Decimal, estimate_usd: Decimal = Decimal("0")) -> None:
+        """Book an actual cost, releasing the reservation held for this call.
+
+        Pass the `estimate_usd` that was reserved by `check_can_spend` so the
+        reservation is reconciled to the realised cost. Raises if the realised
+        run total breached the per-run cap (catches estimate underruns)."""
+        with self._lock:
+            self._release_locked(estimate_usd)
             self._spent += actual_usd
             if self._spent > self.max_per_run:
                 raise BudgetExceeded(

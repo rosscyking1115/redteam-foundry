@@ -20,7 +20,7 @@ References:
 
 from __future__ import annotations
 
-from redteam.defences.base import Defence, merge_system
+from redteam.defences.base import Defence, merge_system, neutralize_markers
 from redteam.schemas import Message, TargetResponse
 
 _INSTRUCTION_OPEN = "<INSTRUCTION>"
@@ -38,15 +38,19 @@ _SYSTEM = (
 )
 
 
+_MARKERS = (_INSTRUCTION_OPEN, _INSTRUCTION_CLOSE, _DATA_OPEN, _DATA_CLOSE)
+
+
 def _wrap_user(content: str) -> str:
-    """Naive split: treat the whole user message as INSTRUCTION; if the
-    message contains a `<DATA>...</DATA>` block already (e.g. tool output),
-    leave it as-is. The orchestrator will eventually inject DATA blocks for
-    indirect-injection scenarios in Phase 5; for direct attacks the wrapper
-    just labels the input as instruction so the model knows the convention."""
-    if _DATA_OPEN in content and _DATA_CLOSE in content:
-        return content  # caller already structured it
-    return f"{_INSTRUCTION_OPEN}\n{content}\n{_INSTRUCTION_CLOSE}\n{_DATA_OPEN}\n{_DATA_CLOSE}"
+    """Wrap the user message as the INSTRUCTION, with an empty DATA section.
+
+    The attacker's content is first neutralised for the four structural
+    markers, so it cannot close the INSTRUCTION fence or forge a DATA block.
+    (An earlier version passed content through unchanged when it already
+    contained `<DATA>...</DATA>` — that was a bypass: any prompt embedding
+    those tags escaped the defence entirely.)"""
+    safe = neutralize_markers(content, _MARKERS)
+    return f"{_INSTRUCTION_OPEN}\n{safe}\n{_INSTRUCTION_CLOSE}\n{_DATA_OPEN}\n{_DATA_CLOSE}"
 
 
 class SecAlignStructuredQueryDefence(Defence):

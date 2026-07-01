@@ -181,15 +181,21 @@ class ClaudeJudge:
         )
         from redteam.targets._pricing import estimate_cost
 
-        self._budget.check_can_spend(estimate_cost(self.model_version, estimated_input, 256))
+        # Reserve the worst-case estimate, then reconcile to actual below.
+        est = estimate_cost(self.model_version, estimated_input, 256)
+        self._budget.check_can_spend(est)
 
         t0 = time.monotonic()
-        msg = await self._client.messages.create(
-            model=self.model_version,
-            system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-            max_tokens=256,
-        )
+        try:
+            msg = await self._client.messages.create(
+                model=self.model_version,
+                system=_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_prompt}],
+                max_tokens=256,
+            )
+        except BaseException:
+            self._budget.release(est)  # call never completed — free the reservation
+            raise
         latency_ms = int((time.monotonic() - t0) * 1000)
         # Anthropic returns a union of block types; only TextBlock has .text.
         text = "".join(
@@ -198,7 +204,7 @@ class ClaudeJudge:
         in_tok = msg.usage.input_tokens
         out_tok = msg.usage.output_tokens
         cost = cost_for(self.model_version, in_tok, out_tok)
-        self._budget.record_spend(cost)
+        self._budget.record_spend(cost, est)
 
         return TargetResponse(
             target_id=self.judge_id,

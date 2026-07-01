@@ -18,7 +18,7 @@ from typing import Any
 from redteam.budget import BudgetGuard
 from redteam.cache import ResponseCache
 from redteam.schemas import Message, TargetResponse
-from redteam.targets._pricing import cost_for
+from redteam.targets._pricing import cost_for, has_pricing
 from redteam.targets.anthropic import ConfigError
 from redteam.targets.base import Target
 
@@ -40,6 +40,15 @@ class OpenAITarget(Target):
             raise ConfigError(
                 "OPENAI_API_KEY is not set. The OpenAI target is opt-in for Phase 2 — "
                 "set the env var to enable it, or stick to the Anthropic + Ollama targets."
+            )
+        # Fail loud if the model has no pricing: running it would silently
+        # record $0 and bypass the budget guard entirely. Add a real entry to
+        # _pricing.py before enabling this target.
+        if not has_pricing(self.model_version):
+            raise ConfigError(
+                f"No pricing configured for OpenAI model {self.model_version!r}. Add it to "
+                "src/redteam/targets/_pricing.py before enabling this target — it must not "
+                "run un-metered against the budget guard."
             )
         # Lazy SDK import so users without an OpenAI key don't pay the import cost.
         from openai import AsyncOpenAI
@@ -71,14 +80,9 @@ class OpenAITarget(Target):
         in_tok = usage.prompt_tokens if usage else 0
         out_tok = usage.completion_tokens if usage else 0
 
-        # OpenAI doesn't ship pricing for every model in our table; fall back to 0
-        # if missing rather than crash the run.
-        try:
-            cost = cost_for(self.model_version, in_tok, out_tok)
-        except KeyError:
-            from decimal import Decimal
-
-            cost = Decimal("0")
+        # Pricing is guaranteed present (checked in __init__), so this never
+        # silently zero-costs — the budget guard always sees a real number.
+        cost = cost_for(self.model_version, in_tok, out_tok)
 
         return TargetResponse(
             target_id=self.id,

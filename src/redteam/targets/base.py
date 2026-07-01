@@ -57,16 +57,22 @@ class Target(ABC):
             if cached is not None:
                 return cached
 
-        # Pre-call budget check using a worst-case estimate.
+        # Pre-call budget check using a worst-case estimate. This RESERVES the
+        # estimate against the cap so concurrent calls can't collectively
+        # overshoot; the reservation is unwound below on success or failure.
         estimated_input = estimate_input_tokens(messages, system)
         est = estimate_cost(self.model_version, estimated_input, max_tokens)
         self.budget.check_can_spend(est)
 
         # The actual API call happens here.
-        response = await self._send_uncached(messages, system, max_tokens)
+        try:
+            response = await self._send_uncached(messages, system, max_tokens)
+        except BaseException:
+            self.budget.release(est)  # call never completed — free the reservation
+            raise
 
-        # Record realised spend (may raise if estimate underran).
-        self.budget.record_spend(response.cost_usd)
+        # Reconcile the reservation to realised spend (may raise if underran).
+        self.budget.record_spend(response.cost_usd, est)
 
         if self.cache is not None:
             self.cache.put(target_id=self.id, key=cache_key, response=response)

@@ -15,8 +15,10 @@ or
     unsafe
     S<n>
 
-where S<n> is the violation category. We treat any response starting
-with "unsafe" as a flag.
+where S<n> is the violation category. We **fail closed**: only a clean
+"safe" verdict passes; anything else — "unsafe...", an empty string, or an
+error/garbled response from the guard — is treated as unsafe. A content
+filter that cannot get a clean read should block, not wave content through.
 
 Lesson L10 / kit notes: ensure `ollama serve` is running before the
 target is constructed. The OllamaTarget.healthcheck() should be called
@@ -30,7 +32,13 @@ from redteam.schemas import Message, TargetResponse
 
 
 def _is_unsafe(verdict: str) -> bool:
-    return verdict.strip().lower().startswith("unsafe")
+    """Fail CLOSED: only a first line of exactly "safe" is treated as safe.
+
+    An empty, error, or unrecognised verdict from the guard counts as unsafe
+    so a broken guard blocks content instead of silently passing it.
+    """
+    first_line = (verdict.strip().splitlines() or [""])[0].strip().lower()
+    return first_line != "safe"
 
 
 async def _classify(guard: SendLike, text: str) -> tuple[bool, str]:

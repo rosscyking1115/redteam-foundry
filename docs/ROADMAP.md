@@ -107,15 +107,25 @@ Each phase is one PR with green CI. Phase 0 is complete.
   project that isn't built here; wiring an actual end-to-end gate is out of scope
   until that repo exists. This side of the bridge stands on its own.
 
-## Known follow-up hardening (not blocking)
+## Follow-up hardening (from the Phase-0 review)
 
-Tracked from the Phase-0 review, to slot in as small PRs:
+Done:
 
-- Budget reservation under concurrency (cap enforceable per-run, not just per-call).
-- Llama Guard pre/post filter should fail **closed** on an empty/errored verdict.
-- OpenAI adapter + pricing (currently an unwired stub).
-- Delimiter-escaping in spotlighting / SecAlign (own-marker injection).
-- Judge cache-hit cost-reporting semantics.
+- ~~Budget reservation under concurrency~~ — `check_can_spend` now reserves its
+  estimate; `record_spend`/`release` unwind it, so concurrent calls can't
+  collectively blow the per-run cap.
+- ~~Llama Guard should fail **closed**~~ — only a clean `safe` verdict passes;
+  empty/errored/garbled output is treated as unsafe.
+- ~~OpenAI adapter runs un-metered~~ — the target now fails loud at construction
+  if its model has no pricing entry (no silent $0 / budget bypass).
+- ~~Delimiter-escaping in spotlighting / SecAlign~~ — untrusted content has the
+  defence's own fence markers neutralised; SecAlign's `<DATA>` passthrough
+  bypass is removed.
+
+Still open:
+
+- Judge cache-hit cost-reporting semantics (a cache re-score re-adds the cached
+  cost to reported judge spend; debatable whether that's wrong).
 
 ## Out of scope (belongs in the release-gate layer)
 

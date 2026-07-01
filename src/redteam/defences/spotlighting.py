@@ -15,7 +15,7 @@ Prompt Injection Attacks With Spotlighting." MSR 2024.
 
 from __future__ import annotations
 
-from redteam.defences.base import Defence, merge_system
+from redteam.defences.base import Defence, merge_system, neutralize_markers
 from redteam.schemas import Message, TargetResponse
 
 _BEGIN = "[BEGIN UNTRUSTED INPUT]"
@@ -43,7 +43,10 @@ class SpotlightingDefence(Defence):
         wrapped: list[Message] = []
         for m in messages:
             if m.role == "user":
-                wrapped.append(Message(role="user", content=f"{_BEGIN}\n{m.content}\n{_END}"))
+                # Defang the fence markers in the untrusted content so the
+                # attacker can't close the spotlight early and escape it.
+                safe = neutralize_markers(m.content, (_BEGIN, _END))
+                wrapped.append(Message(role="user", content=f"{_BEGIN}\n{safe}\n{_END}"))
             else:
                 wrapped.append(m)
         return await self._inner.send(

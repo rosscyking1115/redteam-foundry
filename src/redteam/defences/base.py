@@ -24,9 +24,31 @@ the inner call would have been unsafe.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Protocol, runtime_checkable
 
 from redteam.schemas import Message, TargetResponse
+
+
+def _defang(marker: str) -> str:
+    """Break a fence marker so it can no longer act as a delimiter, while
+    staying human-readable (spaces inside the brackets)."""
+    return marker.replace("[", "[ ").replace("]", " ]").replace("<", "< ").replace(">", " >")
+
+
+def neutralize_markers(text: str, markers: Iterable[str]) -> str:
+    """Defang any occurrence of a defence's own fence markers in untrusted text.
+
+    Delimiter-based defences (spotlighting, SecAlign) wrap untrusted input in
+    markers like `[END UNTRUSTED INPUT]` or `</DATA>`. If the attacker's text
+    contains those same markers it can close the fence early and inject
+    trusted-looking instructions after it. Neutralising the markers in the
+    untrusted content first closes that bypass.
+    """
+    for m in markers:
+        if m in text:
+            text = text.replace(m, _defang(m))
+    return text
 
 
 @runtime_checkable
