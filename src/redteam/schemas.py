@@ -30,6 +30,9 @@ Source = Literal[
     # false-refusal (over-blocking) cost of a defence. Kept out of the
     # adversarial LOADERS registry so `corpora audit/list` stay adversarial-only.
     "benign_control",
+    # Benign control set in non-English / code-switched languages, for
+    # measuring language-specific false-refusal (Phase 4).
+    "benign_multilingual",
 ]
 
 Category = Literal[
@@ -97,6 +100,9 @@ class AttackCase(BaseModel):
     expected_behaviour: ExpectedBehaviour
     references: list[str] = Field(default_factory=list)
     excluded_topics: list[ExcludedTopic] = Field(default_factory=list)
+    # Optional language tag (e.g. "en", "zh-Hant", "zh-Hans", "ja", "ko",
+    # "mixed-en-zh"). Set on the multilingual control set; None elsewhere.
+    lang: str | None = None
 
 
 class TargetResponse(BaseModel):

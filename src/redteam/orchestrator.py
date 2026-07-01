@@ -128,6 +128,12 @@ def iter_attack_cases(config: RunConfig) -> list[AttackCase]:
             cases = list(BENIGN_CONTROL)
             out.extend(cases[: spec.limit] if spec.limit is not None else cases)
             continue
+        if spec.source == "benign_multilingual":
+            from redteam.multilingual import MULTILINGUAL_BENIGN
+
+            ml = list(MULTILINGUAL_BENIGN)
+            out.extend(ml[: spec.limit] if spec.limit is not None else ml)
+            continue
         loader_cls = LOADERS.get(spec.source)
         if loader_cls is None:
             raise ValueError(

@@ -101,6 +101,13 @@ ignore = [
   "E501",            # line length handled by formatter
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# The multilingual benign corpus and its test intentionally contain CJK text.
+# RUF001 flags "ambiguous" Unicode (homoglyph) characters — a false positive
+# for legitimate non-Latin data (e.g. full-width CJK punctuation).
+"src/redteam/multilingual.py" = ["RUF001"]
+"tests/unit/test_multilingual.py" = ["RUF001"]
+
 [tool.ruff.format]
 quote-style = "double"
 

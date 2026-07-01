@@ -361,24 +361,78 @@ app.add_typer(benign_app)
 @benign_app.command("export")
 def benign_export(
     output: Annotated[
-        Path,
-        typer.Option("--output", "-o", help="JSONL path to write the benign control set."),
-    ] = Path("data/benign_control.jsonl"),
+        Path | None,
+        typer.Option("--output", "-o", help="JSONL path (default depends on --multilingual)."),
+    ] = None,
+    multilingual: Annotated[
+        bool,
+        typer.Option("--multilingual", help="Export the multilingual benign set instead."),
+    ] = False,
 ) -> None:
-    """Write the benign control set to JSONL (for FRR runs / inspection)."""
-    from redteam.benign import BENIGN_CONTROL, export_benign_jsonl
+    """Write a benign control set to JSONL (for FRR runs / inspection)."""
+    if multilingual:
+        from redteam.multilingual import MULTILINGUAL_BENIGN, export_multilingual_jsonl
 
-    path = export_benign_jsonl(output)
-    typer.echo(
-        typer.style(f"Wrote {len(BENIGN_CONTROL)} benign cases to {path}", fg=typer.colors.GREEN)
-    )
+        path = export_multilingual_jsonl(output or Path("data/benign_multilingual.jsonl"))
+        count = len(MULTILINGUAL_BENIGN)
+    else:
+        from redteam.benign import BENIGN_CONTROL, export_benign_jsonl
+
+        path = export_benign_jsonl(output or Path("data/benign_control.jsonl"))
+        count = len(BENIGN_CONTROL)
+
+    typer.echo(typer.style(f"Wrote {count} benign cases to {path}", fg=typer.colors.GREEN))
     typer.echo(
         typer.style(
-            "Run it per defence config (configs/run_benign_control_*.yaml) and feed the "
-            "results to `redteam compare-defences --benign-run ...`.",
+            "Run it per defence config (configs/run_benign_*.yaml), then feed the results to "
+            "`redteam compare-defences --benign-run ...` or `redteam frr-by-language --run ...`.",
             fg=typer.colors.BRIGHT_BLACK,
         )
     )
+
+
+@app.command(name="frr-by-language")
+def frr_by_language_cmd(
+    run: Annotated[
+        Path,
+        typer.Option("--run", "-r", help="RunResult JSON over a benign (multilingual) set."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory for the per-language FRR artifacts."),
+    ] = Path("reports/frr_by_language"),
+) -> None:
+    """Break a benign run's false-refusal rate down by language.
+
+    Uses each case's recorded `lang` (exact — distinguishes zh-Hant from
+    zh-Hans) where known, else script-based detection of the prompt.
+    """
+    from redteam.benign import BENIGN_CONTROL
+    from redteam.compare import frr_by_language, render_frr_by_language
+    from redteam.multilingual import MULTILINGUAL_BENIGN
+    from redteam.orchestrator import RunResult
+
+    if not run.exists():
+        typer.echo(typer.style(f"Run not found: {run}", fg=typer.colors.RED))
+        raise typer.Exit(code=2)
+
+    result = RunResult.model_validate_json(run.read_text(encoding="utf-8"))
+    report = frr_by_language(result, [*BENIGN_CONTROL, *MULTILINGUAL_BENIGN])
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "frr_by_language.json").write_text(
+        report.model_dump_json(indent=2), encoding="utf-8"
+    )
+    (output_dir / "frr_by_language.md").write_text(render_frr_by_language(report), encoding="utf-8")
+
+    typer.echo(
+        typer.style(
+            f"Overall FRR {report.overall_frr:.1%} over {report.n_cases} case(s), "
+            f"{len(report.rows)} language(s).",
+            fg=typer.colors.GREEN,
+        )
+    )
+    typer.echo(typer.style(f"Wrote: {output_dir}/", fg=typer.colors.BRIGHT_BLACK))
 
 
 @app.command(name="compare-defences")

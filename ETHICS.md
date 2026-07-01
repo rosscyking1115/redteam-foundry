@@ -25,6 +25,13 @@ guarantee.
   be shown per category, with explicit warnings.
 - **Test categories that are excluded by policy** (see below). These are
   filtered at corpus-load time before any model receives them.
+- **Generate non-English attack content.** The multilingual work
+  (`src/redteam/multilingual.py`) is a **benign** control set only — it
+  measures whether models *over-refuse* harmless non-English and code-switched
+  prompts (false refusal). We do **not** translate harmful prompts into other
+  languages: that would both create new harmful content and bypass the
+  English-only exclusion filter. The multilingual contribution is over-refusal
+  measurement, not non-English jailbreak generation.
 
 ## Excluded categories
 

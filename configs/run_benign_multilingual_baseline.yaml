@@ -1,0 +1,12 @@
+# Baseline language-specific false-refusal: the multilingual benign control set
+# (Traditional/Simplified Chinese, Japanese, Korean, code-switched) with no
+# defence. Score the result with `redteam frr-by-language --run <result>` to see
+# whether the model over-refuses any language. All prompts are benign.
+name: benign-multilingual-baseline
+target: claude-sonnet-4-6
+defences: []
+corpora:
+  - source: benign_multilingual
+budget_usd: 1.00
+concurrency: 4
+max_tokens: 256

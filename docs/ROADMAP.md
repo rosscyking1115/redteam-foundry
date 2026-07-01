@@ -74,9 +74,16 @@ Each phase is one PR with green CI. Phase 0 is complete.
 - Still TODO here: an actual benign run set (needs live API/Ollama) to populate
   FRR on the published matrix.
 
-### Phase 4 — Multilingual adversarial corpus *(distinctive contribution)*
-- zh-Hant / zh-Hans / ja / ko + code-switching + translation-jailbreak items;
-  language-specific false-refusal; multilingual judge reliability.
+### Phase 4 — Multilingual corpus *(distinctive contribution)* — **done**
+- `redteam.multilingual`: benign control set in zh-Hant / zh-Hans / ja / ko +
+  code-switched prompts, each with a precise `lang` tag. `redteam frr-by-language`
+  reports false-refusal broken down by language (exact via recorded `lang`,
+  distinguishing Hant/Hans; else script-detected).
+- **Ethics boundary (see ETHICS.md):** benign-only. We do not translate harmful
+  prompts into other languages — that would create harmful content and bypass
+  the English-only exclusion filter. The contribution is over-refusal
+  measurement, not non-English attack generation.
+- Deferred: multilingual judge-reliability (needs live judge runs).
 
 ### Phase 5 — Challenge-pack exporter
 - `pack.yaml` + `scenarios.jsonl` + `datacard.md`, redaction rules, safety

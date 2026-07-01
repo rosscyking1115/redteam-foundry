@@ -25,7 +25,9 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
+from redteam.corpora.taxonomy import detect_language
 from redteam.orchestrator import RunResult
+from redteam.schemas import AttackCase
 
 
 def _config_key(run: RunResult) -> tuple[str, tuple[str, ...]]:
@@ -148,6 +150,71 @@ def compare_defences(
         n_configs_with_frr=n_with_frr,
         note=note,
     )
+
+
+# ---------------------------------------------------------------------------
+# Language-specific false-refusal (Phase 4)
+# ---------------------------------------------------------------------------
+
+
+class LanguageFRR(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    lang: str
+    n: int
+    n_refused: int
+    frr: float
+
+
+class LanguageFRRReport(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    rows: list[LanguageFRR]
+    overall_frr: float
+    n_cases: int
+
+
+def frr_by_language(run: RunResult, cases: Sequence[AttackCase] = ()) -> LanguageFRRReport:
+    """False-refusal rate broken down by language, over a benign run.
+
+    Language comes from each case's recorded `lang` when `cases` is supplied
+    (exact — distinguishes zh-Hant from zh-Hans); otherwise it falls back to
+    script-based detection of the outcome prompt. A recorded `lang` of None is
+    treated as English.
+    """
+    id2lang = {c.id: (c.lang or "en") for c in cases}
+
+    buckets: dict[str, list[int]] = {}
+    for o in run.outcomes:
+        refused = o.judge_refusal if o.judge_refusal is not None else int(o.is_refusal)
+        lang = id2lang.get(o.case_id) or detect_language(o.prompt).label
+        buckets.setdefault(lang, []).append(refused)
+
+    rows = [
+        LanguageFRR(lang=lang, n=len(v), n_refused=sum(v), frr=round(sum(v) / len(v), 4))
+        for lang, v in sorted(buckets.items())
+    ]
+    all_vals = [x for v in buckets.values() for x in v]
+    overall = round(sum(all_vals) / len(all_vals), 4) if all_vals else 0.0
+    return LanguageFRRReport(rows=rows, overall_frr=overall, n_cases=len(all_vals))
+
+
+def render_frr_by_language(report: LanguageFRRReport) -> str:
+    out: list[str] = [
+        "# False-refusal rate by language",
+        "",
+        f"- Overall FRR: {report.overall_frr:.1%} over {report.n_cases} benign case(s)",
+        "",
+        "A refusal on a benign prompt is a *false* refusal. A higher FRR in one "
+        "language means the model (or defence) over-blocks that language.",
+        "",
+        "| language | n | refused | FRR |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for row in report.rows:
+        out.append(f"| {row.lang} | {row.n} | {row.n_refused} | {row.frr:.1%} |")
+    out.append("")
+    return "\n".join(out)
 
 
 def _pct(x: float | None) -> str:
