@@ -5,6 +5,7 @@
 > over-refusal, and export safe challenge packs — all with judge-validated,
 > reproducible numbers. A measurement tool, not a weapon (see [`ETHICS.md`](./ETHICS.md)).
 
+[![PyPI](https://img.shields.io/pypi/v/redteam-foundry.svg)](https://pypi.org/project/redteam-foundry/)
 [![CI](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
@@ -68,6 +69,16 @@ success is perfect — **Cohen's κ = +1.00 in all 12 cells**.
 > numbers, validation, and limits are in [`METHODOLOGY.md`](./METHODOLOGY.md).
 
 ## Getting started
+
+**Install the CLI** (the offline audit / staleness / dedup path needs no API key):
+
+```bash
+pipx install redteam-foundry     # recommended — puts `redteam` on your PATH
+# or: pip install redteam-foundry
+redteam --help
+```
+
+**Or clone for development:**
 
 ```bash
 git clone https://github.com/rosscyking1115/redteam-foundry.git
