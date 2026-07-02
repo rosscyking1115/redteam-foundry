@@ -163,7 +163,7 @@ def run_result_to_eval_log(run: RunResult) -> EvalLog:
     # EvalSpec.metadata on read, so everything that must survive a
     # write -> read round-trip lives on the spec.
     meta: dict[str, Any] = {
-        "harness": "llm-redteam-harness",
+        "harness": "redteam-foundry",
         "defences": run.defences,
         "headline_scorer": scorer_name,
         "total_cost_usd": float(run.total_cost_usd),

@@ -31,7 +31,7 @@ python -m twine check dist/*      # metadata/readme render check
 python -m twine upload --repository testpypi dist/*
 # then, in a fresh venv:
 pip install --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ llm-redteam-harness
+  --extra-index-url https://pypi.org/simple/ redteam-foundry
 redteam version && redteam --help
 ```
 
@@ -52,13 +52,13 @@ git push origin vX.Y.Z
 
 ## 7. Smoke the published package
 
-- [ ] Fresh venv: `pip install llm-redteam-harness`, then
+- [ ] Fresh venv: `pip install redteam-foundry`, then
       `redteam corpora --help` and `redteam corpora audit --help` (the offline
       path needs no API key).
 
 ## Notes
 
 - `dist/` is build output — do not commit it (add to `.gitignore` if it appears).
-- The heavy dashboard deps are an opt-in extra: `pip install "llm-redteam-harness[dashboard]"`.
+- The heavy dashboard deps are an opt-in extra: `pip install "redteam-foundry[dashboard]"`.
 - Live evaluation needs an `ANTHROPIC_API_KEY` (and/or local Ollama); the
   audit / staleness / dedup commands do not.

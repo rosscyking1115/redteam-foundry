@@ -2,7 +2,7 @@
 
 This document is the forward-looking companion to [`METHODOLOGY.md`](../METHODOLOGY.md)
 (which is the source of truth for everything already *measured*). It describes
-where `llm-redteam-harness` is going and what is — and is **not** — built yet.
+where `redteam-foundry` is going and what is — and is **not** — built yet.
 
 ## The two-layer thesis
 
@@ -13,7 +13,7 @@ Modern LLM safety needs two distinct things, and most projects blur them:
 2. **Production release gates** — incident replay, policy-as-code, ship/warn/block
    evidence. ← a separate deployment layer (`agent-release-gates`, companion project)
 
-`llm-redteam-harness` is the **upstream research layer**. It does not decide
+`redteam-foundry` is the **upstream research layer**. It does not decide
 whether an agent ships; it produces audited adversarial evidence and challenge
 packs that a downstream release gate can consume. See the README's
 [Positioning](../README.md#positioning) section.

@@ -15,7 +15,7 @@ infer from it.
 ## The two-layer workflow
 
 ```
-  llm-redteam-harness (this repo)                 a release-gate layer
+  redteam-foundry (this repo)                 a release-gate layer
   ───────────────────────────────                 ─────────────────────
   audit → validate → score staleness              read pack.yaml + scenarios
   → export-pack  ────────────────────►  pack/  ─► turn scenarios into

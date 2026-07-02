@@ -83,7 +83,7 @@ Every result is reported against a **dated** model ID. See
 If you are a model provider whose model is included and you would like
 findings or example transcripts removed, email
 **rosscyking@gmail.com** with the subject line
-`[llm-redteam-harness] takedown request`.
+`[redteam-foundry] takedown request`.
 
 **Removal commitment: 24 hours from receipt.**
 

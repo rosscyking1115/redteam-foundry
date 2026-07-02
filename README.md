@@ -1,17 +1,17 @@
-# llm-redteam-harness
+# redteam-foundry
 
 > An **adversarial benchmark foundry** for LLM safety: audit attack corpora,
 > measure defence impact, score benchmark *staleness*, test multilingual
 > over-refusal, and export safe challenge packs — all with judge-validated,
 > reproducible numbers. A measurement tool, not a weapon (see [`ETHICS.md`](./ETHICS.md)).
 
-[![CI](https://github.com/rosscyking1115/llm-redteam-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/llm-redteam-harness/actions/workflows/ci.yml)
+[![CI](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 
 ## Positioning
 
-`llm-redteam-harness` is the upstream **research layer** of a two-layer AI-safety
+`redteam-foundry` is the upstream **research layer** of a two-layer AI-safety
 stack. It validates adversarial corpora, measures defence effectiveness, studies
 whether published benchmarks still measure real deployment risk, and exports safe
 challenge packs for downstream release-gating systems to consume.
@@ -70,8 +70,8 @@ success is perfect — **Cohen's κ = +1.00 in all 12 cells**.
 ## Getting started
 
 ```bash
-git clone https://github.com/rosscyking1115/llm-redteam-harness.git
-cd llm-redteam-harness
+git clone https://github.com/rosscyking1115/redteam-foundry.git
+cd redteam-foundry
 uv venv --python 3.13
 source .venv/bin/activate            # macOS/Linux
 # .venv\Scripts\activate             # Windows PowerShell
@@ -153,7 +153,7 @@ exports safe challenge packs. Production release decisions — incident replay,
 policy-as-code gates, deployment evidence, and ship / warn / block
 recommendations — are deliberately out of scope. A useful mental model:
 
-- `llm-redteam-harness` discovers, validates, and packages adversarial scenarios.
+- `redteam-foundry` discovers, validates, and packages adversarial scenarios.
 - a release-gate layer (`agent-release-gates`) consumes selected scenarios as
   regression and release-readiness checks.
 
@@ -198,11 +198,11 @@ re-creatable from configs.
 ## Citation
 
 ```bibtex
-@software{llm_redteam_harness_2026,
-  title  = {llm-redteam-harness: An adversarial benchmark foundry for LLM safety},
+@software{redteam_foundry_2026,
+  title  = {redteam-foundry: An adversarial benchmark foundry for LLM safety},
   author = {Ross},
   year   = {2026},
-  url    = {https://github.com/rosscyking1115/llm-redteam-harness}
+  url    = {https://github.com/rosscyking1115/redteam-foundry}
 }
 ```
 

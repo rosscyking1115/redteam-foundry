@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Renamed the project/package to `redteam-foundry`** to match the pivot (was
+  `llm-redteam-harness`). The `redteam` CLI command and Python module are
+  unchanged — `pip install redteam-foundry` still gives you `redteam ...`.
+
 ### Added
 - **Audit any Hugging Face dataset** (`redteam corpora audit-hf`) — point the
   audit at any adversarial dataset on the Hub (with `--revision` to pin it), not
@@ -72,5 +77,5 @@ foundry**. The v1 measurement core is unchanged; these are additive.
   confidence intervals; Cohen's κ and Krippendorff's α.
 - UK AISI Inspect eval-log export.
 
-[0.2.0]: https://github.com/rosscyking1115/llm-redteam-harness/releases/tag/v0.2.0
-[0.1.0]: https://github.com/rosscyking1115/llm-redteam-harness/releases/tag/v0.1.0
+[0.2.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.2.0
+[0.1.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.1.0
