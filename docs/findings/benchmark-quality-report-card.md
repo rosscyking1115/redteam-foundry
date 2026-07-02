@@ -86,8 +86,8 @@ evidence. The open risk they *under*-measure is the live agentic loop
 - **Staleness is a heuristic**, deliberately component-broken-out — not a verdict.
   A high score flags a benchmark for review; a low ASR is never proof a model is
   safe.
-- The scorecard snapshots are **unpinned** (loaded at generation time); pin a
-  `--revision` for a reproducible audit.
+- The scorecard datasets are **pinned** to specific commits (in
+  `scripts/hf_scorecard.py`), so the table reproduces exactly.
 - Judges are one model family (Haiku + Sonnet); a third-family judge would
   strengthen the agreement claim.
 - Sample sizes are modest; intervals are reported where it matters.

@@ -3,6 +3,28 @@
 Checklist for cutting a release and publishing to PyPI. The build backend is
 hatchling; the wheel packages `src/redteam`.
 
+## Automated releases (recommended) — PyPI Trusted Publishing
+
+`.github/workflows/publish.yml` builds and publishes to PyPI whenever a GitHub
+**Release** is published, using **Trusted Publishing** (OIDC) — **no API token
+is stored anywhere**. After the one-time setup below, releasing is just: bump
+the version + CHANGELOG (§2), then create a GitHub release for the tag (§6).
+
+### One-time setup (do once, on the PyPI website)
+
+1. Go to <https://pypi.org/manage/project/redteam-foundry/settings/publishing/>.
+2. Add a **new trusted publisher** → GitHub, with:
+   - **Owner:** `rosscyking1115`
+   - **Repository:** `redteam-foundry`
+   - **Workflow name:** `publish.yml`
+   - **Environment:** *(leave blank)*
+3. Save. From then on, publishing a GitHub release runs the workflow and uploads
+   to PyPI automatically. (The workflow also fails if the git tag doesn't match
+   the package version, so a mismatched release can't publish.)
+
+The manual, token-based steps below remain valid as a fallback (e.g. for the
+very first upload, or if you prefer to publish locally).
+
 ## 1. Pre-flight
 
 - [ ] `main` is green in CI.
