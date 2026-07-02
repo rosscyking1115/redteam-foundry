@@ -17,13 +17,28 @@ from redteam.corpora.huggingface import load_hf_dataset
 from redteam.corpora.quality import audit_corpus
 from redteam.staleness import score_staleness
 
-# (dataset id, prompt column, HF config or None). All public + non-gated as of
-# writing. Snapshots are unpinned — see the caveat in the generated report.
-DATASETS: list[tuple[str, str, str | None]] = [
-    ("rubend18/ChatGPT-Jailbreak-Prompts", "Prompt", None),
-    ("jackhhao/jailbreak-classification", "prompt", None),
-    ("TrustAIRLab/in-the-wild-jailbreak-prompts", "prompt", "jailbreak_2023_12_25"),
-    ("deadbits/vigil-jailbreak-ada-002", "text", None),
+# (dataset id, prompt column, HF config or None, pinned commit SHA). All public
+# + non-gated. Pinned so re-running reproduces the committed scorecard numbers.
+DATASETS: list[tuple[str, str, str | None, str]] = [
+    (
+        "rubend18/ChatGPT-Jailbreak-Prompts",
+        "Prompt",
+        None,
+        "b93e4982f8f8ad2d82c6d35e3c00d161844ad70a",
+    ),
+    (
+        "jackhhao/jailbreak-classification",
+        "prompt",
+        None,
+        "2f2ceeb39658696fd3f462403562b6eea5306287",
+    ),
+    (
+        "TrustAIRLab/in-the-wild-jailbreak-prompts",
+        "prompt",
+        "jailbreak_2023_12_25",
+        "a10aab8eff1c73165a442d4464dce192bd28b9c5",
+    ),
+    ("deadbits/vigil-jailbreak-ada-002", "text", None, "9e42942ca146a8ac7fd746f6e6e1439a4ac6e2e5"),
 ]
 
 
@@ -49,9 +64,11 @@ def main() -> None:
     args = ap.parse_args()
 
     rows: list[str] = []
-    for name, col, cfg in DATASETS:
+    for name, col, cfg, rev in DATASETS:
         try:
-            raw = load_hf_dataset(name, prompt_column=col, config=cfg, limit=args.limit)
+            raw = load_hf_dataset(
+                name, prompt_column=col, config=cfg, revision=rev, limit=args.limit
+            )
         except Exception as exc:
             rows.append(f"| `{name}` | load failed: {str(exc)[:60]} | | | | | | |")
             continue
@@ -80,8 +97,8 @@ def main() -> None:
         "duplication signals only (no model runs), so it is a **low-confidence**,",
         "corpus-side proxy — a high value flags a dataset for a closer look.",
         "",
-        "> Snapshots are **unpinned** (loaded at generation time). Pin a dataset",
-        "> `--revision` for a reproducible audit. Aggregate counts only; no prompts.",
+        "> Datasets are **pinned** to specific commits (see `scripts/hf_scorecard.py`),",
+        "> so re-running reproduces these numbers. Aggregate counts only; no prompts.",
         "",
         "| dataset | kept | excluded | exact-dup | near-dup pairs | languages | top attack family | obsolete-meme | staleness (corpus) |",
         "| --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |",

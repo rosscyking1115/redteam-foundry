@@ -6,8 +6,8 @@ post-safety-filter). Corpus-only staleness uses the obsolete-meme and
 duplication signals only (no model runs), so it is a **low-confidence**,
 corpus-side proxy — a high value flags a dataset for a closer look.
 
-> Snapshots are **unpinned** (loaded at generation time). Pin a dataset
-> `--revision` for a reproducible audit. Aggregate counts only; no prompts.
+> Datasets are **pinned** to specific commits (see `scripts/hf_scorecard.py`),
+> so re-running reproduces these numbers. Aggregate counts only; no prompts.
 
 | dataset | kept | excluded | exact-dup | near-dup pairs | languages | top attack family | obsolete-meme | staleness (corpus) |
 | --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |

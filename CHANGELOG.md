@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Automated PyPI releases via Trusted Publishing** (`.github/workflows/publish.yml`)
+  — publishing a GitHub Release builds and uploads to PyPI over OIDC, with no
+  stored token; the job also verifies the tag matches the package version.
+
+### Changed
+- The benchmark-quality scorecard datasets are now **pinned to commit SHAs**
+  (`scripts/hf_scorecard.py`), so `docs/findings/benchmark-quality-report-card.md`
+  reproduces exactly.
+
 ## [0.2.0] — 2026-07-02 — the adversarial benchmark foundry
 
 Repositioned from a static red-team harness (`llm-redteam-harness`) into an
