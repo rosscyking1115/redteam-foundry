@@ -1,6 +1,6 @@
 [project]
 name = "redteam-foundry"
-version = "0.2.0"
+version = "0.2.1"
 description = "An adversarial benchmark foundry for LLM safety: audit attack corpora, score benchmark staleness, compare defences (ASR + false-refusal), test multilingual over-refusal, and export safe challenge packs."
 readme = "README.md"
 requires-python = ">=3.13"
