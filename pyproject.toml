@@ -5,7 +5,7 @@ description = "An adversarial benchmark foundry for LLM safety: audit attack cor
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
-authors = [{ name = "Ross", email = "rosscyking@gmail.com" }]
+authors = [{ name = "Cheng-Yuan King", email = "rosscyking1115@gmail.com" }]
 keywords = [
   "llm",
   "ai-safety",

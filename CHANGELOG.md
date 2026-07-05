@@ -15,6 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Covenant 2.1), GitHub issue forms + a PR template.
 
 ### Changed
+- Corrected the package **author / copyright** metadata to `Cheng-Yuan King`
+  (`rosscyking1115@gmail.com`) in `pyproject.toml`, `LICENSE`, and the README
+  citation. The public **contact** address (`rosscyking@gmail.com`) in the
+  security / conduct / disclosure lines is unchanged.
 - The benchmark-quality scorecard datasets are now **pinned to commit SHAs**
   (`scripts/hf_scorecard.py`), so `docs/findings/benchmark-quality-report-card.md`
   reproduces exactly.

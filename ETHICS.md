@@ -113,4 +113,4 @@ evaluation and red-teaming research. We comply with:
 
 ## Maintainer
 
-Ross — rosscyking@gmail.com
+Cheng-Yuan King — rosscyking@gmail.com

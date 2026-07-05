@@ -211,7 +211,7 @@ re-creatable from configs.
 ```bibtex
 @software{redteam_foundry_2026,
   title  = {redteam-foundry: An adversarial benchmark foundry for LLM safety},
-  author = {Ross},
+  author = {Cheng-Yuan King},
   year   = {2026},
   url    = {https://github.com/rosscyking1115/redteam-foundry}
 }
