@@ -1,4 +1,7 @@
-"""Token-pricing tests."""
+"""Token-pricing tests.
+
+Defends: token pricing is correct, so the real-USD cost reported per run is honest.
+"""
 
 from __future__ import annotations
 

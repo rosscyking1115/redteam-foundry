@@ -1,4 +1,7 @@
-"""Budget guard unit tests."""
+"""Budget guard unit tests.
+
+Defends: the hard USD budget cap that stops a run from overspending on paid APIs.
+"""
 
 from __future__ import annotations
 

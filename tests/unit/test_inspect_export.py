@@ -1,5 +1,7 @@
 """Unit tests for the Inspect AI eval-log exporter (`redteam.inspect_export`).
 
+Defends: every run exports to a valid UK AISI Inspect eval log — the interoperability claim in METHODOLOGY §10.
+
 `inspect_ai` ships in the `[dev]` extra, so the test environment always has
 it -- no import guard needed.
 """

@@ -1,4 +1,7 @@
-"""Benchmark staleness scorer tests (Phase 2)."""
+"""Benchmark staleness scorer tests (Phase 2).
+
+Defends: the staleness heuristic and its broken-out components (universal-low-ASR, defence-insensitivity, judge-disagreement) score as documented.
+"""
 
 from __future__ import annotations
 

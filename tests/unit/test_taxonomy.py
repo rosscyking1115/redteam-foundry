@@ -1,4 +1,7 @@
-"""Language/script detection and attack-family inference tests (Phase 1b)."""
+"""Language/script detection and attack-family inference tests (Phase 1b).
+
+Defends: language/script detection and attack-family inference — the coverage axes reported by the corpus audit.
+"""
 
 from __future__ import annotations
 

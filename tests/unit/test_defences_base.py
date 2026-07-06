@@ -1,4 +1,7 @@
-"""Defence composition tests — purely structural, no API calls."""
+"""Defence composition tests — purely structural, no API calls.
+
+Defends: defences compose and wrap a target without changing its send() contract, so stacking them is sound.
+"""
 
 from __future__ import annotations
 

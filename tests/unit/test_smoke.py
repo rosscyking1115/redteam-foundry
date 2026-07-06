@@ -1,4 +1,7 @@
-"""Phase 0 smoke test — confirms the package imports and the CLI is wired."""
+"""Phase 0 smoke test — confirms the package imports and the CLI is wired.
+
+Defends: the package imports and the CLI is wired — the install/version claim.
+"""
 
 from __future__ import annotations
 

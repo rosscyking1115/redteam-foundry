@@ -1,4 +1,7 @@
-"""Human spot-check + Cohen's kappa tests."""
+"""Human spot-check + Cohen's kappa tests.
+
+Defends: the human spot-check export and the Cohen's-kappa helper used as a tertiary validation check.
+"""
 
 from __future__ import annotations
 

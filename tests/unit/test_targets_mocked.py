@@ -1,5 +1,7 @@
 """Target adapter unit tests with mocked transports.
 
+Defends: each target adapter honours the shared cache/budget contract with its transport mocked (no live API).
+
 These tests do NOT hit any real API. The Anthropic and OpenAI adapters
 take a client at construction time, so we patch the SDK class at import
 time. The Ollama adapter goes through httpx, so we use respx to mock.

@@ -1,5 +1,8 @@
 """The single most important test in this repo.
 
+Defends: the ETHICS exclusion filter — the promise that excluded categories are
+dropped at corpus-load time, before any prompt reaches a model or an artifact.
+
 We promised in ETHICS.md to filter out three categories of content at
 corpus-load time. This test asserts:
 

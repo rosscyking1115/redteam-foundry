@@ -1,4 +1,7 @@
-"""Corpus quality audit tests."""
+"""Corpus quality audit tests.
+
+Defends: the corpus-audit metrics (exact/near-duplicate, language, attack-family, label integrity) behind the benchmark-quality scorecard.
+"""
 
 from __future__ import annotations
 

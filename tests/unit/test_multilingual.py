@@ -1,4 +1,7 @@
-"""Multilingual benign control set + per-language FRR tests (Phase 4)."""
+"""Multilingual benign control set + per-language FRR tests (Phase 4).
+
+Defends: the multilingual benign control set and per-language false-refusal breakdown (the multilingual over-refusal result).
+"""
 
 from __future__ import annotations
 

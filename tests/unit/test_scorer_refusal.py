@@ -1,4 +1,7 @@
-"""Refusal-keyword scorer tests."""
+"""Refusal-keyword scorer tests.
+
+Defends: the rule-based refusal pre-screen behaves as a cheap pre-screen only — it is never allowed to be a published number (§6).
+"""
 
 from __future__ import annotations
 

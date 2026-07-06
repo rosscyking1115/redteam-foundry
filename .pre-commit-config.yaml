@@ -6,7 +6,9 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
-        args: ["--maxkb=512"]
+        # 1024 KB so the committed uv.lock (a legitimately large, generated
+        # lockfile) is allowed while still catching stray binaries/data dumps.
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: detect-private-key
 

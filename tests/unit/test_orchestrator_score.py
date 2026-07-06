@@ -1,4 +1,7 @@
-"""Test the score_run orchestrator path with a mocked judge."""
+"""Test the score_run orchestrator path with a mocked judge.
+
+Defends: the scoring path applies the judge to a run and aggregates its verdicts into run-level ASR.
+"""
 
 from __future__ import annotations
 

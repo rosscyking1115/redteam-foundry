@@ -1,4 +1,7 @@
-"""Response cache unit tests."""
+"""Response cache unit tests.
+
+Defends: the response cache is content-addressed and deterministic — the basis for the 're-runs are free and reproduce the numbers exactly' guarantee.
+"""
 
 from __future__ import annotations
 

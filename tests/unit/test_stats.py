@@ -1,4 +1,8 @@
-"""Statistical inference helper tests."""
+"""Statistical inference helper tests.
+
+Defends: the bootstrap confidence intervals and the Krippendorff's-alpha / kappa
+helpers — every CI and agreement number in the results traces here.
+"""
 
 from __future__ import annotations
 

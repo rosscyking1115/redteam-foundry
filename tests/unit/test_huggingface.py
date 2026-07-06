@@ -1,4 +1,7 @@
-"""Hugging Face audit-loader tests (pure row mapping — no network)."""
+"""Hugging Face audit-loader tests (pure row mapping — no network).
+
+Defends: the `corpora audit-hf` row mapping, so any Hugging Face dataset audits into the same canonical schema.
+"""
 
 from __future__ import annotations
 

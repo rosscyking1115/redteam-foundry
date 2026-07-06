@@ -1,4 +1,8 @@
-"""cross_judge_run() integration test with mocked second judge."""
+"""cross_judge_run() integration test with mocked second judge.
+
+Defends: the cross-judge path computes inter-judge agreement (Cohen's kappa /
+Krippendorff's alpha) — the headline validation mechanism (§7).
+"""
 
 from __future__ import annotations
 

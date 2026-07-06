@@ -1,4 +1,7 @@
-"""Challenge-pack exporter tests (Phase 5)."""
+"""Challenge-pack exporter tests (Phase 5).
+
+Defends: the challenge-pack exporter redacts adversarial prompts by default — an ETHICS guarantee and the downstream consume contract.
+"""
 
 from __future__ import annotations
 

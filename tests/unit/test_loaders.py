@@ -1,5 +1,7 @@
 """Loader tests — exercise each corpus loader against a tiny local fixture.
 
+Defends: each corpus loader parses its source into the canonical case schema (the §2 corpora table).
+
 These tests deliberately do NOT hit the network. The synthetic fixtures
 under tests/data/ include both benign cases (must survive the filter) and
 positive cases (must be dropped), so each test doubles as a regression

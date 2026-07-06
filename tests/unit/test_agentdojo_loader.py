@@ -1,5 +1,7 @@
 """AgentDojo loader tests.
 
+Defends: the AgentDojo indirect-injection corpus loads and pins correctly, so the §8 AgentDojo cells run on the intended prompts.
+
 If the `agentdojo` package is installed (via pip install -e .[agentdojo]),
 we exercise the real loader against a small live sample. Otherwise the
 loader is expected to log a warning and yield zero cases — tests assert

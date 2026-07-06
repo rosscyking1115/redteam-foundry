@@ -1,4 +1,7 @@
-"""Defence comparison + safe-usefulness tests (Phase 3)."""
+"""Defence comparison + safe-usefulness tests (Phase 3).
+
+Defends: the defence-comparison table (ASR, false-refusal, safe-usefulness, cost) that backs the 'free but useless defences' finding.
+"""
 
 from __future__ import annotations
 

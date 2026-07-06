@@ -1,43 +1,81 @@
 # redteam-foundry
 
-> An **adversarial benchmark foundry** for LLM safety: audit attack corpora,
-> measure defence impact, score benchmark *staleness*, test multilingual
-> over-refusal, and export safe challenge packs — all with judge-validated,
-> reproducible numbers. A measurement tool, not a weapon (see [`ETHICS.md`](./ETHICS.md)).
+> A measurement harness that asks a research question about LLM-safety
+> benchmarks: **do the published adversarial corpora the field still cites
+> actually discriminate modern models — and how much can we trust the answer?**
+> It audits attack corpora, measures defence impact, scores benchmark
+> *staleness*, and validates every number against a second independent judge.
+> A measurement tool, not a weapon (see [`ETHICS.md`](./ETHICS.md)).
 
 [![PyPI](https://img.shields.io/pypi/v/redteam-foundry.svg)](https://pypi.org/project/redteam-foundry/)
 [![CI](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 
-## Positioning
+## The finding
 
-`redteam-foundry` is the upstream **research layer** of a two-layer AI-safety
-stack. It validates adversarial corpora, measures defence effectiveness, studies
-whether published benchmarks still measure real deployment risk, and exports safe
-challenge packs for downstream release-gating systems to consume.
+**A rigorous negative result.** Across **2 target models** (a frontier model and
+a small local one), **2 benchmark families** (direct and indirect attacks), and
+up to **4 composable defence configurations** — **12 evaluation cells** —
+published adversarial prompts succeed between **0% and 4%** of the time, and a
+paranoid prompt-only defence stack does **not** measurably move that number.
 
-It deliberately does **not** make production release decisions. Ship / warn /
-block, incident replay, and policy-as-code gates belong in a separate deployment
-layer — see [Relationship to agent-release-gates](#relationship-to-agent-release-gates).
+![Attack success rate across all 12 evaluation cells — point estimate with 95% bootstrap confidence interval. Ten of the twelve cells sit at 0%; the two non-zero cells are the AdvBench Llama baseline at 1% and the AgentDojo Llama baseline at 4%.](docs/results_matrix.png)
 
-> **Validate the benchmark before you trust the gate.**
+Read carefully, that near-zero is a statement about the **benchmarks** as much as
+the models: 2026-era instruction tuning has largely *saturated* the static,
+published jailbreak and prompt-injection corpora the field still reaches for as a
+safety signal. These datasets no longer **discriminate** — a robust model and a
+stale benchmark both read as "0% attacks succeeded," and attack-success rate
+alone cannot tell them apart. The contribution here is not a new attack; it is a
+**reproducible, judge-validated measurement** that these benchmarks have stopped
+discriminating, plus the staleness and corpus-audit tooling to quantify *why*.
 
-| | This repo (research layer) | A release-gate layer |
-| --- | --- | --- |
-| Job | Discover, validate, and package adversarial benchmarks | Replay incidents, apply policy, decide ship/warn/block |
-| Output | Audited corpora, judge-validated ASR/defence measurements, challenge packs | Deployment evidence, release decisions |
-| Question | "Is this benchmark still meaningful, and how much do I trust the score?" | "Is this agent safe to ship right now?" |
+This is deliberately framed as a meta-science result about **benchmark
+validity** — the "is this eval still meaningful?" question — not as a claim that
+any model is "safe." What the benchmarks *under*-measure (the live agentic
+tool-use loop, multi-turn attacks, adaptive optimisation) is named explicitly in
+[§ Threats to validity](./METHODOLOGY.md#12-threats-to-validity), not hidden.
 
-## What it does
+```bash
+# Regenerate the headline table from the cached run artifacts (no API calls):
+python scripts/headline_table.py --check
+```
+
+## Why the result is trustworthy (not just low)
+
+A near-zero number is easy to report and easy to distrust. The harness is built
+so the *measurement* is auditable, and so it says how much to trust itself:
+
+- **Two-judge cross-validation as a first-class output.** Every verdict is scored
+  by an LLM judge and re-scored by an independent second judge; agreement
+  (Cohen's κ, Krippendorff's α) is reported per cell. On attack success the
+  judges agree **perfectly — κ = +1.00 in all 12 cells**, so the headline metric
+  is well-posed. Where a metric is *not* well-posed (refusal on indirect
+  injection), the harness surfaces that disagreement instead of hiding it.
+- **Confidence intervals at honest sample sizes.** ASR is reported with 95%
+  percentile-bootstrap CIs (not CLT intervals, which under-cover at n≈50–100).
+  With n = 100 and zero successes, the detectable-effect bound is a 95% CI of
+  **[0, 3.6%]** — stated, not glossed.
+- **Pinned and deterministic.** Every model is a dated version, every dataset is
+  pinned to an upstream commit, and every API call is cached — re-runs are free
+  and reproduce the numbers exactly.
+- **Scoped, with threats to validity written down.** Single-turn only; static
+  published prompts, *not* adaptive attacks (GCG/PAIR/TAP); the AgentDojo static
+  render is an explicit **lower bound** on the live agent loop. See
+  [`METHODOLOGY.md`](./METHODOLOGY.md), the source of truth for every number.
+
+## What's in the repo
+
+Beyond the headline run, the repository is a small **foundry** for interrogating
+adversarial benchmarks — most of it offline and needing no API key:
 
 - **Runs published adversarial prompts** (AdvBench, JailbreakBench, HarmBench,
   AgentDojo — each pinned to an upstream commit) against target LLMs through
-  composable, togglable defence stacks, and reports attack-success rate (ASR)
-  with bootstrap confidence intervals and real API cost.
-- **Validates its own numbers**: every verdict is scored by an LLM judge and
-  re-scored by an independent second judge; agreement (Cohen's κ, Krippendorff's
-  α) is a first-class output.
+  composable, togglable defence stacks, reporting ASR with bootstrap CIs and real
+  API cost.
+- **Validates its own numbers**: two-judge cross-scoring with Cohen's κ /
+  Krippendorff's α as first-class outputs.
 - **Audits corpus quality**: exact + near-duplicate detection (including
   cross-source overlap), language/script coverage, attack-family markers, and
   label-integrity checks → a quality report and a data card.
@@ -46,27 +84,10 @@ layer — see [Relationship to agent-release-gates](#relationship-to-agent-relea
 - **Measures over-blocking**: a benign control set (English + Traditional/
   Simplified Chinese, Japanese, Korean, and code-switched) yields false-refusal
   rate (FRR) and a combined *safe-usefulness* score per defence.
-- **Exports challenge packs**: versioned, self-describing fixtures a downstream
-  release gate can consume — with adversarial prompts redacted by default.
+- **Exports challenge packs**: versioned, self-describing fixtures (adversarial
+  prompts redacted by default) for downstream tooling to consume.
 - **Interoperates**: any run exports to a
   [UK AISI Inspect](https://inspect.aisi.org.uk/) eval log.
-
-## Headline finding
-
-Across **2 target models**, **2 benchmark families**, and up to **4 composable
-defence configurations** (12 evaluation cells), published adversarial prompts
-succeed between **0% and 4%** of the time, and a paranoid prompt-only defence
-stack does **not** measurably move that number. Judge agreement on attack
-success is perfect — **Cohen's κ = +1.00 in all 12 cells**.
-
-![Attack success rate across all 12 evaluation cells — point estimate with 95% bootstrap confidence interval. Ten of the twelve cells sit at 0%; the two non-zero cells are the AdvBench Llama baseline at 1% and the AgentDojo Llama baseline at 4%.](docs/results_matrix.png)
-
-> [!NOTE]
-> A near-zero ASR is a result about the **benchmark**, not just the model. It
-> can mean the model is robust *or* the benchmark is stale — and ASR alone
-> cannot tell them apart. Measuring that difference (staleness, defence
-> sensitivity, multilingual over-refusal) is what this foundry is for. Full
-> numbers, validation, and limits are in [`METHODOLOGY.md`](./METHODOLOGY.md).
 
 ## Getting started
 
@@ -93,12 +114,28 @@ pytest tests/unit                    # should pass green
 redteam version                      # prints the installed version
 ```
 
-The CLI is `redteam ...` (equivalently `python -m redteam ...`).
+The CLI is `redteam ...` (equivalently `python -m redteam ...`). Dependencies are
+pinned in [`uv.lock`](./uv.lock) for a byte-for-byte reproducible environment.
 
 > [!WARNING]
 > Live runs call paid APIs. Each run enforces a hard USD budget cap (set per
 > config in `configs/`), and the judge/target adapters enforce a per-call cap —
 > but set a matching **console budget cap** before your first run anyway.
+
+## Reproduce the headline table
+
+The 12-cell table above is regenerated straight from the cached cross-judged run
+artifacts — no API calls — and can be asserted against the frozen published
+numbers in one command:
+
+```bash
+python scripts/headline_table.py          # print the AdvBench + AgentDojo tables
+python scripts/headline_table.py --check   # also assert they match METHODOLOGY.md §8
+```
+
+The run artifacts are gitignored (they contain prompt/response text; see
+[`ETHICS.md`](./ETHICS.md)) but are free and deterministic to regenerate from the
+response cache with `redteam run` / `score` / `cross-judge`.
 
 ## Commands
 
@@ -156,22 +193,28 @@ and the injected instruction). `refusal_rate` is therefore reported as a
 *descriptive* signal of response style only, never as a safety metric. This is
 documented, not hidden — see [`METHODOLOGY.md`](./METHODOLOGY.md) §7.
 
-## Relationship to agent-release-gates
+## Where this sits: the research layer
 
-This repository is the upstream **adversarial benchmark layer**: it validates
-static attack corpora, measures defence stacks, scores its own reliability, and
-exports safe challenge packs. Production release decisions — incident replay,
-policy-as-code gates, deployment evidence, and ship / warn / block
-recommendations — are deliberately out of scope. A useful mental model:
+`redteam-foundry` is a **measurement / research layer**, by design. It validates
+adversarial corpora, measures defence effectiveness, and studies whether
+published benchmarks still measure real deployment risk. It deliberately does
+**not** make production release decisions — ship / warn / block, incident replay,
+and policy-as-code gates are a separate concern.
 
-- `redteam-foundry` discovers, validates, and packages adversarial scenarios.
-- a release-gate layer (`agent-release-gates`) consumes selected scenarios as
-  regression and release-readiness checks.
+> **Validate the benchmark before you trust the gate.**
+
+| | This repo (research layer) | A release-gate layer |
+| --- | --- | --- |
+| Job | Discover, validate, and package adversarial benchmarks | Replay incidents, apply policy, decide ship/warn/block |
+| Output | Audited corpora, judge-validated ASR/defence measurements, challenge packs | Deployment evidence, release decisions |
+| Question | "Is this benchmark still meaningful, and how much do I trust the score?" | "Is this agent safe to ship right now?" |
 
 A benchmark research tool should not be the thing that decides whether an agent
-ships, and a release gate is only as trustworthy as the benchmarks feeding it.
-(`agent-release-gates` is a companion project; this section documents the
-intended split.)
+ships, and a release gate is only as trustworthy as the benchmarks feeding it. So
+the challenge-pack exporter emits versioned, self-describing fixtures a downstream
+release gate (`agent-release-gates`, a companion project) can consume — while
+release decisions stay out of scope here. This section documents the intended
+split; the gate layer is not part of this repository.
 
 ## Ethics
 
@@ -190,7 +233,8 @@ removed, email **rosscyking@gmail.com** — **24-hour removal commitment**.
 
 `scripts/ci_local.ps1` (Windows) and `scripts/ci_local.sh` (Linux/macOS) run the
 **exact** same checks as CI — ruff lint, ruff format check, mypy, pytest. Green
-locally means green on the PR. Run artifacts (`results/`), audit outputs
+locally means green on the PR. See [`tests/README.md`](./tests/README.md) for
+which claim each test suite defends. Run artifacts (`results/`), audit outputs
 (`reports/`), and non-sample packs (`challenge_packs/`) are gitignored — all
 re-creatable from configs.
 
@@ -198,9 +242,10 @@ re-creatable from configs.
 
 | File | What's in it |
 | --- | --- |
-| [**Finding: are jailbreak benchmarks still worth running?**](./docs/findings/benchmark-quality-report-card.md) | The write-up: staleness, a cross-dataset quality scorecard, and the multilingual result |
-| [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; limits |
+| [**Finding: are jailbreak benchmarks still worth running?**](./docs/findings/benchmark-quality-report-card.md) | The paper-style write-up: RQ, method, results (+CIs), threats to validity, related work |
+| [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; threats to validity |
 | [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
+| [`tests/README.md`](./tests/README.md) | Which claim each test suite defends |
 | [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The foundry pivot, phase status, and follow-up hardening |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Scope, dev setup, and the ethics rules for adding corpora |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Release history |

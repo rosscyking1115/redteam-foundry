@@ -1,4 +1,7 @@
-"""Orchestrator integration test with stub targets — no API calls."""
+"""Orchestrator integration test with stub targets — no API calls.
+
+Defends: the orchestrator runs cases through a stack and aggregates ASR correctly — the core measurement path.
+"""
 
 from __future__ import annotations
 

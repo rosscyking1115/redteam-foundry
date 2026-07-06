@@ -1,4 +1,7 @@
-"""Benign control set tests (Phase 3)."""
+"""Benign control set tests (Phase 3).
+
+Defends: the benign control set is well-formed and labelled, so the false-refusal-rate and safe-usefulness numbers computed over it are meaningful.
+"""
 
 from __future__ import annotations
 

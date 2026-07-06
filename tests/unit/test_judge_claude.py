@@ -1,4 +1,7 @@
-"""ClaudeJudge tests with mocked Anthropic SDK — no API calls."""
+"""ClaudeJudge tests with mocked Anthropic SDK — no API calls.
+
+Defends: the LLM judge returns a well-formed structured verdict — the primary scorer behind every published ASR.
+"""
 
 from __future__ import annotations
 

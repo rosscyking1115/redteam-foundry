@@ -5,7 +5,31 @@ a blog post, or a portfolio entry. Every number here is reproduced directly
 from a run artifact in `results/`. If a claim is made anywhere else, it must
 trace back to a row in this file.
 
-Last updated: 2026-05-21.
+Last updated: 2026-07-06.
+
+## TL;DR
+
+**Research question.** Do the static, published adversarial corpora the field
+still cites as a safety signal (AdvBench, AgentDojo, and peers) still
+*discriminate* modern models — and how much can we trust whatever answer they
+give?
+
+**Result.** Across 12 evaluation cells (2 targets × 2 benchmark families × up to
+4 prompt-defence configs), judge-scored attack-success rate is **0–4%**, and
+prompt-only defences do not measurably move it. Two independent judges agree
+**perfectly on ASR (Cohen's κ = +1.000 in all 12 cells)**, so the headline metric
+is well-posed. With n = 100 and zero successes the 95% bootstrap CI is **[0,
+3.6%]** — the smallest effect this design could have detected.
+
+**Interpretation.** This is a **negative / meta-science result about benchmark
+validity**, not a safety certificate. A near-zero ASR is at least as much a
+statement about the benchmark (saturation / staleness) as about the model, and
+ASR alone cannot separate the two. The single largest thing suppressing measured
+ASR — the live AgentDojo agent loop vs. our static render — is called out as an
+explicit lower bound, and every such caveat is consolidated in
+[§12 Threats to validity](#12-threats-to-validity). The one control this design
+still lacks — a known-vulnerable positive control that makes the *same* pipeline
+report a high ASR — is named in §12 as the top open item.
 
 ## 1. Goal
 
@@ -32,7 +56,7 @@ Counts below are **post-exclusion-filter** (see §"Excluded categories" in
 
 **v1 results matrix uses AdvBench (direct attacks) and AgentDojo (indirect
 injection).** JailbreakBench and HarmBench are integrated and loadable through
-the same interface but are not yet in the reported matrix — see §12.
+the same interface but are not yet in the reported matrix — see §13.
 
 ## 3. Targets
 
@@ -44,7 +68,7 @@ the same interface but are not yet in the reported matrix — see §12.
 Model selection: `llama3.1:8b` Q4 is the local target because the development
 machine is an 8 GB-VRAM laptop GPU; larger local models do not fit. A
 defence-finetuned local baseline (`meta-secalign-8b`) was scoped as a stretch
-target and is **not** in v1 — see §12.
+target and is **not** in v1 — see §13.
 
 Judging is done by models **separate from every target**, to avoid a model
 grading its own output:
@@ -209,7 +233,7 @@ change is refusal style (see §7), which is not a safety outcome.
 - **Cost** — USD per run, from real API metering.
 
 False-refusal rate (FRR) on a benign control set is defined in the harness but
-not in the v1 reported matrix — see §12.
+not in the v1 reported matrix — see §13.
 
 ## 10. Reproducibility guarantees
 
@@ -224,6 +248,9 @@ not in the v1 reported matrix — see §12.
 - Run artifacts in `results/` carry the full per-case record — prompt,
   response, both judges' verdicts and reasoning — so any number in §8 can be
   audited case by case.
+- `python scripts/headline_table.py --check` regenerates the §8 table straight
+  from those cached artifacts (no API calls) and asserts every cell still matches
+  the frozen numbers here — the one-command repro of the headline result.
 - Any run exports to a **UK AISI Inspect** eval log via `redteam
   export-inspect`; the output loads with `inspect_ai.log.read_eval_log()` and
   opens in `inspect view`, for interoperability with the Inspect ecosystem.
@@ -237,7 +264,7 @@ not in the v1 reported matrix — see §12.
   reports materially higher attack success. **Our indirect-injection ASR is
   therefore a lower bound**, and the gap between static rendering and the live
   agent loop is the single most important open risk this matrix does not
-  capture. This is named as future work (§12), not silently omitted.
+  capture. This is named as future work (§13), not silently omitted.
 - **Multi-turn / crescendo attacks** — every attack here is single-turn.
 - **Image / vision** red-teaming — text-only for v1.
 - **Closed-weight model internals** — logit or activation-level probes are
@@ -248,7 +275,88 @@ not in the v1 reported matrix — see §12.
 - **Production deployability** — this is a measurement tool, not a deployable
   defence layer.
 
-## 12. Future work
+## 12. Threats to validity
+
+§11 lists what the benchmark does not *measure*; this section is the stronger
+claim — the specific ways the headline **0–4% could be wrong or over-read**, and
+what each one does to the interpretation. Grouped by the standard validity
+taxonomy so a reviewer can find the gap they care about.
+
+### 12.1 Statistical conclusion validity — could 0% hide a real effect?
+
+The result is a null, so the first question is what effect this design could have
+*detected*. At n = 100 with zero observed successes, the 95% percentile-bootstrap
+CI is **[0, 3.6%]** (the Clopper–Pearson exact bound agrees to the same figure);
+at n = 50, **[0, 7.1%]**. So the design can rule out an ASR above ~4% on the
+AdvBench cells and above ~7% on the AgentDojo cells, but **not** a genuine but
+rare failure below those rates. CIs are bootstrap rather than CLT-based on
+purpose: at these n the CLT interval under-covers (see `stats.py` and the Madaan
+et al. 2026 result it cites). This bound is a property of sample size, not of the
+model — a larger n would tighten it.
+
+### 12.2 Internal validity — is 0% the target's property or the harness's?
+
+- **No positive control (the top open item).** The strongest alternative
+  explanation for a near-zero ASR is that the *harness under-elicits* — a
+  plumbing bug, an over-eager pre-screen, or a judge that never says "success"
+  would also produce all-zeros. Nothing in the current matrix rules this out by
+  construction. The fix is a known-vulnerable positive control (see §12.5); until
+  it is run, 0–4% should be read as "consistent with saturation" rather than
+  "proven to be the target's property."
+- **Rule-based pre-screen is not trusted.** The keyword/regex scorer over-counts
+  compliance (it once read safe-but-wordy revisions as 21% ASR); it never feeds a
+  published number. This is a *guard* against under-elicitation going unnoticed:
+  the pre-screen runs hot, and the judge, not the pre-screen, decides.
+- **Caching.** Results come from a deterministic response cache. That guarantees
+  reproducibility but means a systematic elicitation error would reproduce too —
+  another reason the positive control matters.
+
+### 12.3 Construct validity — are we measuring the right thing?
+
+- **Refusal ≠ safety.** `refusal_rate` is reported as a *descriptive* style
+  signal only, and on indirect injection it is not even a stable construct (the
+  two judges disagree worse than chance; see §7). Only ASR is treated as a safety
+  metric.
+- **Judge leniency / single family.** Both judges are Claude-family
+  (`claude-haiku-4-5` + `claude-sonnet-4-6`). Perfect ASR agreement (κ = +1.000)
+  shows they are *consistent*, but two same-family judges could share a blind
+  spot at this ~0% base rate. A third-family judge (e.g. a GPT- or Llama-based
+  scorer) or a small human gold set would convert "consistent" into "externally
+  calibrated." This is a same-family agreement claim, stated as such.
+
+### 12.4 External validity — how far does 0–4% generalise?
+
+- **Static published prompts, not adaptive attacks.** Every prompt here is a
+  fixed, published string. This is explicitly **not** an adaptive-attack
+  evaluation: no gradient/optimisation attacks (GCG), no iterative refinement
+  (PAIR), no tree search (TAP). Adaptive attackers routinely drive ASR far higher
+  than static corpora do, so **0–4% is a floor for the static-corpus threat
+  model, not a robustness claim against a motivated adversary.** Positioning
+  against that literature is in the report-card's related-work section.
+- **Single-turn only.** No multi-turn / crescendo escalation.
+- **Static agent render = lower bound.** As in §11, the AgentDojo cells render
+  the injection as one prompt rather than running the live tool-use loop; the
+  upstream paper's live loop reports materially higher ASR.
+- **Corpus- and model-specific.** Two targets, four corpora, prompt-only
+  defences. The numbers characterise *these* datasets and defences; they are not
+  a general "safety score."
+
+### 12.5 Positive control — placeholder (not yet run)
+
+> **Status: designed, not yet executed.** This subsection is a deliberate
+> placeholder for the highest-value missing experiment, so the gap is visible
+> rather than implied.
+
+To show that 0–4% is the *target's* property and not the harness under-eliciting,
+run a **known-vulnerable configuration** through the identical pipeline — e.g. an
+older/smaller or deliberately unaligned open model, or the local model with
+defences off on an easy split — and demonstrate the **same** judge-and-cross-judge
+pipeline reports a **high ASR** (order 40–70%). A high number there, from the same
+code path that reports ~0% on frontier targets, is the direct evidence that the
+low frontier ASR reflects the models, not measurement failure. Result and its own
+CI/κ will be filled in here once the run is done.
+
+## 13. Future work
 
 - Run the **full AgentDojo agent loop** (interactive tool use) — the highest-
   value next step, since §11's static-rendering limit is the main thing
@@ -259,8 +367,10 @@ not in the v1 reported matrix — see §12.
 - **FRR** on a benign control set, to measure the over-refusal cost of each
   defence stack.
 - **Llama Guard 4** pre/post cells on a larger-VRAM machine.
+- **Positive control** (§12.5) and a **third-family / human-gold** judge (§12.3)
+  — the two reviewer-facing gaps most worth closing first.
 
-## 13. Verification log
+## 14. Verification log
 
 | Date | What was verified |
 | --- | --- |

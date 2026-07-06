@@ -1,4 +1,7 @@
-"""Schema validation tests."""
+"""Schema validation tests.
+
+Defends: the canonical run/case schemas validate their invariants, so every artifact downstream code reads is well-formed.
+"""
 
 from __future__ import annotations
 

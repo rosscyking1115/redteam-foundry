@@ -1,4 +1,6 @@
 """Phase-0 follow-up hardening tests: budget reservation, guard fail-closed,
+
+Defends: the hardening guarantees: budget reservation under concurrency, guard fail-closed, and defence delimiter neutralisation.
 delimiter neutralization, and the OpenAI pricing guard."""
 
 from __future__ import annotations
