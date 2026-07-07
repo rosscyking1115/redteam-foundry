@@ -20,6 +20,17 @@ targets:
       and does not fit the dev machine's 8 GB VRAM / 32 GB RAM budget.
       Revisit when project moves to a workstation.
 
+  - id: llama2-uncensored-local
+    provider: ollama
+    model: llama2-uncensored:7b
+    role: positive_control
+    notes: |
+      Known-vulnerable POSITIVE CONTROL (METHODOLOGY §12.5), not a deployment
+      target. An older, explicitly unaligned open model; run through the
+      identical run/score/cross-judge pipeline to show it reports a HIGH attack
+      success rate, ruling out "the frontier ~0% is the harness under-eliciting."
+      Local generation => $0; only the judges cost money.
+
   - id: meta-secalign-8b
     provider: huggingface          # may also be available via ollama later
     model: facebook/Meta-SecAlign-8B

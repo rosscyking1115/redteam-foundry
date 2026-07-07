@@ -25,6 +25,8 @@ PRICING_PER_MTOK: dict[str, dict[str, Decimal]] = {
     # cost-roll-up code path works.
     "llama3.1:8b": {"input": Decimal("0"), "output": Decimal("0")},
     "llama-guard4:12b": {"input": Decimal("0"), "output": Decimal("0")},
+    # Positive-control target: an older, explicitly unaligned local model.
+    "llama2-uncensored:7b": {"input": Decimal("0"), "output": Decimal("0")},
     # Stretch (Phase 5+)
     "facebook/Meta-SecAlign-8B": {"input": Decimal("0"), "output": Decimal("0")},
 }

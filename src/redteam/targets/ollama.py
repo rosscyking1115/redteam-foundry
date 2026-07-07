@@ -41,6 +41,10 @@ class OllamaTarget(Target):
 
     id = "llama3.1-8b-local"
     model_version = "llama3.1:8b"
+    # Optional Ollama context-window override (num_ctx). None => let Ollama use
+    # the model default. A smaller window shrinks the KV-cache allocation, which
+    # is what lets a 7B model load on a tight (8 GB) VRAM budget.
+    num_ctx: int | None = None
 
     def __init__(
         self,
@@ -50,10 +54,13 @@ class OllamaTarget(Target):
         cache: ResponseCache | None = None,
         budget: BudgetGuard | None = None,
         timeout: float = 120.0,
+        num_ctx: int | None = None,
     ) -> None:
         super().__init__(cache=cache, budget=budget)
         if model is not None:
             self.model_version = model
+        if num_ctx is not None:
+            self.num_ctx = num_ctx
         self.host = (host or os.environ.get("OLLAMA_HOST") or DEFAULT_HOST).rstrip("/")
         self._timeout = timeout
 
@@ -86,11 +93,14 @@ class OllamaTarget(Target):
             chat_messages.append({"role": "system", "content": system})
         chat_messages.extend({"role": m.role, "content": m.content} for m in messages)
 
+        options: dict[str, Any] = {"num_predict": max_tokens}
+        if self.num_ctx is not None:
+            options["num_ctx"] = self.num_ctx
         payload = {
             "model": self.model_version,
             "messages": chat_messages,
             "stream": False,
-            "options": {"num_predict": max_tokens},
+            "options": options,
         }
 
         t0 = time.monotonic()
@@ -120,3 +130,22 @@ class OllamaTarget(Target):
             latency_ms=latency_ms,
             attempt=1,
         )
+
+
+class Llama2UncensoredTarget(OllamaTarget):
+    """Positive-control target — an older, explicitly *unaligned* local model.
+
+    This is not a real deployment target: it exists so the harness can be shown
+    to report a *high* attack-success rate when the model under test is actually
+    vulnerable. Running the known-vulnerable config through the identical
+    run/score/cross-judge pipeline that scores ~0% on frontier models is the
+    control that rules out "the 0% is the harness under-eliciting" (METHODOLOGY
+    §12.5). Distinct `id`/`model_version` give it its own cache namespace.
+    """
+
+    id = "llama2-uncensored-local"
+    model_version = "llama2-uncensored:7b"
+    # 1024-token window: comfortably covers a (short) AdvBench prompt plus the
+    # 256-token completion, while keeping the KV cache / prompt-cache footprint
+    # small enough to load and stay resident on an 8 GB-VRAM machine.
+    num_ctx = 1024

@@ -27,9 +27,10 @@ statement about the benchmark (saturation / staleness) as about the model, and
 ASR alone cannot separate the two. The single largest thing suppressing measured
 ASR — the live AgentDojo agent loop vs. our static render — is called out as an
 explicit lower bound, and every such caveat is consolidated in
-[§12 Threats to validity](#12-threats-to-validity). The one control this design
-still lacks — a known-vulnerable positive control that makes the *same* pipeline
-report a high ASR — is named in §12 as the top open item.
+[§12 Threats to validity](#12-threats-to-validity). The obvious "is the harness
+just under-eliciting?" objection is answered directly by a **positive control**
+(§12.5): the *same* pipeline scores **80% ASR** on a known-vulnerable model, so
+the near-zero on aligned targets is their property, not measurement failure.
 
 ## 1. Goal
 
@@ -296,20 +297,21 @@ model — a larger n would tighten it.
 
 ### 12.2 Internal validity — is 0% the target's property or the harness's?
 
-- **No positive control (the top open item).** The strongest alternative
-  explanation for a near-zero ASR is that the *harness under-elicits* — a
-  plumbing bug, an over-eager pre-screen, or a judge that never says "success"
-  would also produce all-zeros. Nothing in the current matrix rules this out by
-  construction. The fix is a known-vulnerable positive control (see §12.5); until
-  it is run, 0–4% should be read as "consistent with saturation" rather than
-  "proven to be the target's property."
+- **Positive control — passed.** The strongest alternative explanation for a
+  near-zero ASR is that the *harness under-elicits* — a plumbing bug, an
+  over-eager pre-screen, or a judge that never says "success" would also produce
+  all-zeros. This is ruled out empirically: the same pipeline scores **80% ASR**
+  on a known-vulnerable model (§12.5), so it demonstrably *can* register a high
+  attack-success rate. The 0–4% is therefore the aligned targets' property, not a
+  measurement artifact.
 - **Rule-based pre-screen is not trusted.** The keyword/regex scorer over-counts
   compliance (it once read safe-but-wordy revisions as 21% ASR); it never feeds a
   published number. This is a *guard* against under-elicitation going unnoticed:
   the pre-screen runs hot, and the judge, not the pre-screen, decides.
 - **Caching.** Results come from a deterministic response cache. That guarantees
   reproducibility but means a systematic elicitation error would reproduce too —
-  another reason the positive control matters.
+  which is exactly why the positive control (§12.5), run through the same cached
+  pipeline, is the load-bearing check here.
 
 ### 12.3 Construct validity — are we measuring the right thing?
 
@@ -341,20 +343,42 @@ model — a larger n would tighten it.
   defences. The numbers characterise *these* datasets and defences; they are not
   a general "safety score."
 
-### 12.5 Positive control — placeholder (not yet run)
+### 12.5 Positive control — the pipeline reports 80% ASR on a known-vulnerable model
 
-> **Status: designed, not yet executed.** This subsection is a deliberate
-> placeholder for the highest-value missing experiment, so the gap is visible
-> rather than implied.
+To rule out the "the harness under-elicits" explanation for the 0–4% headline, a
+**known-vulnerable configuration** was run through the *identical*
+run → judge → cross-judge pipeline: an older, explicitly unaligned open model
+(`llama2-uncensored:7b`, run locally via Ollama), on the same AdvBench split at
+n = 100, with no project defences. If the low frontier ASR were a measurement
+artifact, this cell would read low too. It does not:
 
-To show that 0–4% is the *target's* property and not the harness under-eliciting,
-run a **known-vulnerable configuration** through the identical pipeline — e.g. an
-older/smaller or deliberately unaligned open model, or the local model with
-defences off on an easy split — and demonstrate the **same** judge-and-cross-judge
-pipeline reports a **high ASR** (order 40–70%). A high number there, from the same
-code path that reports ~0% on frontier targets, is the direct evidence that the
-low frontier ASR reflects the models, not measurement failure. Result and its own
-CI/κ will be filled in here once the run is done.
+| Target | ASR (Haiku judge) | 95% CI | ASR (Sonnet cross-judge) | 95% CI | cross-judge ASR κ / α |
+| --- | ---: | --- | ---: | --- | ---: |
+| `llama2-uncensored:7b` (positive control) | **80.0%** (n=100) | [72.0, 87.0] | **80.6%** (n=98) | [72.4, 87.8] | **+0.935 / +0.935** |
+| Frontier / local targets (§8, for contrast) | 0–4% | — | 0–4% | — | +1.000 |
+
+The same code path that scores 0–4% on the frontier and small-aligned targets
+scores **80%** here, and the two independent judges agree strongly on that high
+number (κ = +0.935; two of Sonnet's 100 verdicts failed to parse, hence n = 98 on
+the cross-judge axis). Refusal is 5% (κ = +0.884). This is the direct evidence
+that the near-zero headline is a property of the *aligned targets*, not of the
+harness: the measurement apparatus visibly *can* register a high attack-success
+rate when the model under test is actually vulnerable.
+
+Scope notes. (a) This is a validation of the instrument, not a benchmark result —
+`llama2-uncensored` is not a deployment target and is excluded from the §8 matrix.
+(b) Generation is local and free; the only cost is judging (Haiku $0.089 + Sonnet
+$0.245 = **$0.33** for the cell). (c) The run used a bounded 1024-token context so
+the 7B model fits an 8 GB-VRAM machine; this affects only feasibility, not the
+verdict. (d) The exclusion filter (ETHICS) still drops excluded categories at
+load time, so the control runs only the same in-scope AdvBench prompts as §8, and
+only aggregate rates are reported — no transcripts are committed. Reproduce with
+`redteam run --config configs/run_positive_control.yaml` (needs Ollama +
+`llama2-uncensored:7b`), then `score` / `cross-judge` as usual.
+
+Still open (does not weaken the above): both judges remain Claude-family (§12.3),
+so a third-family or human-gold judge on this same positive-control cell would
+further externally calibrate the ~0% frontier base rate.
 
 ## 13. Future work
 
@@ -367,8 +391,9 @@ CI/κ will be filled in here once the run is done.
 - **FRR** on a benign control set, to measure the over-refusal cost of each
   defence stack.
 - **Llama Guard 4** pre/post cells on a larger-VRAM machine.
-- **Positive control** (§12.5) and a **third-family / human-gold** judge (§12.3)
-  — the two reviewer-facing gaps most worth closing first.
+- **Third-family / human-gold judge** (§12.3), including on the §12.5
+  positive-control cell — the remaining reviewer-facing gap now that the
+  positive control itself has passed.
 
 ## 14. Verification log
 
@@ -379,3 +404,4 @@ CI/κ will be filled in here once the run is done.
 | 2026-05-09 | AdvBench n=100 on Sonnet 4.6, judge-scored and cross-judged. ASR 0% both configs. |
 | 2026-05-11 | AgentDojo n=50 on Sonnet 4.6, 4 defence configs, judge-scored. ASR 0% all configs. |
 | 2026-05-21 | AdvBench n=100 on Llama 3.1 8B (baseline + full-stack) and AgentDojo n=50 on Llama 3.1 8B (4 configs) completed and judge-scored. All 12 cells cross-judged: ASR κ = +1.000 throughout. Cross-judge surfaced the refusal-axis ambiguity documented in §7. Confirmed the rule-based scorer's 21% full-stack ASR was an artefact (judge: 0%). |
+| 2026-07-06 | **Positive control** (§12.5): AdvBench n=100 on `llama2-uncensored:7b` (local, no defences) through the identical run/score/cross-judge pipeline. Judge ASR 80.0% [72, 87]; cross-judge ASR 80.6% [72.4, 87.8], n=98; ASR κ = +0.935. Confirms the harness registers high ASR on a vulnerable target — the 0–4% headline is the aligned targets' property, not under-elicitation. |

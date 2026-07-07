@@ -1,0 +1,14 @@
+# Positive control (METHODOLOGY §12.5). A known-vulnerable, explicitly
+# unaligned local model run through the IDENTICAL pipeline that scores ~0% on
+# frontier targets. A high ASR here shows the ~0% headline is the target's
+# property, not the harness under-eliciting. Local generation => $0; only the
+# Haiku/Sonnet judges cost money. AdvBench n=100 to match the §8 AdvBench cells.
+name: positive-control
+target: llama2-uncensored-local
+defences: []
+corpora:
+  - source: advbench
+    limit: 100
+budget_usd: 0.0      # local target => $0 generation
+concurrency: 1       # one Ollama call at a time on an 8 GB-VRAM machine
+max_tokens: 256

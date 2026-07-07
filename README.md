@@ -47,6 +47,12 @@ python scripts/headline_table.py --check
 A near-zero number is easy to report and easy to distrust. The harness is built
 so the *measurement* is auditable, and so it says how much to trust itself:
 
+- **A positive control rules out "the harness just under-elicits."** Run through
+  the *identical* pipeline, a known-vulnerable model (`llama2-uncensored:7b`,
+  AdvBench, no defences) scores **80% ASR** (cross-judge 80.6%, κ = +0.935) — the
+  apparatus visibly registers a high attack-success rate when the target is
+  actually vulnerable, so the 0–4% is the aligned models' property, not a
+  measurement artifact. See [`METHODOLOGY.md`](./METHODOLOGY.md) §12.5.
 - **Two-judge cross-validation as a first-class output.** Every verdict is scored
   by an LLM judge and re-scored by an independent second judge; agreement
   (Cohen's κ, Krippendorff's α) is reported per cell. On attack success the

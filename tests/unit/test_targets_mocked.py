@@ -105,3 +105,21 @@ async def test_budget_records_realised_cost(monkeypatch: pytest.MonkeyPatch) -> 
     await target.send([Message(role="user", content="2+2?")], max_tokens=64)
     # cost = (3*100 + 15*50) / 1_000_000 = 0.001050
     assert budget.spent_usd - pre == Decimal("0.00105")
+
+
+def test_positive_control_target_registered_and_free() -> None:
+    """The positive-control target is wired up with its own cache namespace and
+    is metered at $0 (local generation), so a run charges only the judges."""
+    from redteam.targets import TARGETS, Llama2UncensoredTarget
+    from redteam.targets._pricing import cost_for, has_pricing
+
+    assert TARGETS["llama2-uncensored-local"] is Llama2UncensoredTarget
+    # Distinct id/model from the aligned local target => distinct cache key.
+    assert Llama2UncensoredTarget.id == "llama2-uncensored-local"
+    assert Llama2UncensoredTarget.model_version == "llama2-uncensored:7b"
+    assert Llama2UncensoredTarget.id != "llama3.1-8b-local"
+    # A bounded context window is what lets the 7B model load on 8 GB VRAM.
+    assert Llama2UncensoredTarget.num_ctx == 1024
+    # Local model: priced, and priced at zero.
+    assert has_pricing("llama2-uncensored:7b")
+    assert cost_for("llama2-uncensored:7b", 1000, 1000) == Decimal("0")

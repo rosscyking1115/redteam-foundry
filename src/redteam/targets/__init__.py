@@ -8,12 +8,17 @@ from __future__ import annotations
 
 from redteam.targets.anthropic import AnthropicTarget, ConfigError
 from redteam.targets.base import Target
-from redteam.targets.ollama import OllamaTarget, OllamaUnavailable
+from redteam.targets.ollama import (
+    Llama2UncensoredTarget,
+    OllamaTarget,
+    OllamaUnavailable,
+)
 from redteam.targets.openai_target import OpenAITarget
 
 TARGETS: dict[str, type[Target]] = {
     "claude-sonnet-4-6": AnthropicTarget,
     "llama3.1-8b-local": OllamaTarget,
+    "llama2-uncensored-local": Llama2UncensoredTarget,
     "gpt-5": OpenAITarget,
 }
 
@@ -21,6 +26,7 @@ __all__ = [
     "TARGETS",
     "AnthropicTarget",
     "ConfigError",
+    "Llama2UncensoredTarget",
     "OllamaTarget",
     "OllamaUnavailable",
     "OpenAITarget",

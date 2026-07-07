@@ -138,11 +138,12 @@ or over-read. This mirrors, in brief, the consolidated section in
 - **Detectable-effect floor.** At n=100/0 successes the 95% CI is **[0, 3.6%]**;
   at n=50, **[0, 7.1%]**. The design rules out ASR above roughly those rates, not
   a genuinely rare failure below them.
-- **No positive control (top gap).** A near-zero ASR is also consistent with the
-  *harness* under-eliciting. Nothing here yet proves 0–4% is the target's
-  property rather than a measurement artifact; a known-vulnerable positive
-  control that drives the *same* pipeline to a high ASR is the single most
-  valuable missing experiment (designed, not yet run — METHODOLOGY §12.5).
+- **Positive control — passed.** A near-zero ASR could also mean the *harness*
+  is under-eliciting. Ruled out empirically: run through the *same* pipeline, a
+  known-vulnerable model (`llama2-uncensored:7b`, AdvBench n=100, no defences)
+  scores **80% ASR** (cross-judge 80.6%, κ = +0.935 — METHODOLOGY §12.5). The
+  apparatus registers a high ASR when the target is vulnerable, so the 0–4% is
+  the aligned targets' property, not a measurement artifact.
 - **Same-family judges.** Both judges are Claude-family. Perfect κ shows they are
   *consistent*, not that they are *externally calibrated*; a third-family judge
   or a human gold set would strengthen the claim at this ~0% base rate.
@@ -203,14 +204,15 @@ refusal-boundary and regression testing — but should be reported *with* their
 staleness, not as a bare "attacks succeed 0%." **Validate the benchmark before
 you trust the gate.**
 
-The highest-value next steps, in order:
+The under-elicitation objection is already closed: a positive control shows the
+same pipeline reports **80% ASR** on a known-vulnerable model (§4). The
+highest-value next steps, in order:
 
-1. **Positive control** (§4) — prove the pipeline reports high ASR on a
-   known-vulnerable config, closing the under-elicitation alternative.
-2. **Third-family or human-gold judge** — externally calibrate the ~0% base rate.
-3. **Live AgentDojo agent loop** — replace the static-render lower bound with the
+1. **Third-family or human-gold judge** — externally calibrate the ~0% base rate
+   (both current judges are Claude-family), including on the positive-control cell.
+2. **Live AgentDojo agent loop** — replace the static-render lower bound with the
    real multi-step tool-use measurement.
-4. **Adaptive-attack track** (GCG/PAIR/TAP) — measure the threat model this study
+3. **Adaptive-attack track** (GCG/PAIR/TAP) — measure the threat model this study
    deliberately excludes.
 
 ## Reproduce
