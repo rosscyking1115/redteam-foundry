@@ -82,7 +82,10 @@ dev = [
 redteam = "redteam.cli:app"
 
 [project.urls]
+Homepage = "https://github.com/rosscyking1115/redteam-foundry"
 Repository = "https://github.com/rosscyking1115/redteam-foundry"
+Documentation = "https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md"
+Changelog = "https://github.com/rosscyking1115/redteam-foundry/blob/main/CHANGELOG.md"
 Issues = "https://github.com/rosscyking1115/redteam-foundry/issues"
 
 # ----------------------------------------------------------------------------

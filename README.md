@@ -95,6 +95,22 @@ adversarial benchmarks — most of it offline and needing no API key:
 - **Interoperates**: any run exports to a
   [UK AISI Inspect](https://inspect.aisi.org.uk/) eval log.
 
+## How it fits together
+
+The measurement path is a small pipeline; each stage is a `redteam` sub-command,
+and every API call is cached so re-runs are free and deterministic. The corpus
+**audit** path is entirely offline (no API key).
+
+```mermaid
+flowchart LR
+    A["Pinned corpora<br/>(AdvBench · AgentDojo · …)"] --> B["redteam run<br/>target + defence stack"]
+    B --> C["redteam score<br/>Haiku judge → ASR"]
+    C --> D["redteam cross-judge<br/>Sonnet → κ / α"]
+    D --> E["Analysis<br/>compare-defences · staleness"]
+    D --> F["Exports<br/>challenge packs · Inspect logs"]
+    A -. "offline, no API key" .-> G["corpora audit<br/>dedup · language · staleness"]
+```
+
 ## Getting started
 
 **Install the CLI** (the offline audit / staleness / dedup path needs no API key):

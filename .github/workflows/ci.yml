@@ -39,5 +39,8 @@ jobs:
       - name: Mypy (typecheck)
         run: mypy src/
 
-      - name: Pytest (unit)
-        run: pytest tests/unit
+      - name: Pytest (unit) + coverage
+        # Coverage is printed in the run log; --cov-fail-under gates against
+        # silent regression. Baseline is ~77%; the floor is set a little below
+        # so ordinary fluctuation doesn't fail CI. Raise it as coverage grows.
+        run: pytest tests/unit --cov=src/redteam --cov-report=term-missing --cov-fail-under=75

@@ -37,8 +37,8 @@ targets:
     role: stretch_phase_5
     notes: |
       Llama-3.1-8B fine-tuned with SecAlign preference optimization for
-      prompt-injection robustness. Inclusion gives the project a
-      SOTA-vs-baseline comparison story that recruiters will care about.
+      prompt-injection robustness. Adds a SOTA-vs-baseline defence comparison
+      on the local arm.
 
 judges:
   - id: claude-haiku-4-5

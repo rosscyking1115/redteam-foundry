@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Research-legibility and validation work; documentation and tooling only (no
+change to the published API surface).
+
+### Added
+- **Positive control** — a `llama2-uncensored-local` target
+  (`configs/run_positive_control.yaml`) run through the identical
+  run/score/cross-judge pipeline reports **80% ASR** (cross-judge κ = +0.935),
+  demonstrating the harness registers a high attack-success rate on a vulnerable
+  model. Documented in `METHODOLOGY.md` §12.5.
+- **One-command headline repro** — `scripts/headline_table.py` regenerates the
+  `METHODOLOGY.md` §8 table from cached run artifacts (no API calls); `--check`
+  asserts every cell matches the frozen numbers.
+- **`tests/README.md`** mapping each test suite to the claim it defends, plus a
+  one-line `Defends:` header on every test module.
+- Optional `num_ctx` on the Ollama target adapter (a bounded context window lets
+  a 7B model load on an 8 GB-VRAM machine).
+- `uv.lock` committed for a byte-for-byte reproducible environment.
+
+### Changed
+- **README** re-led around the research question and the negative/meta finding;
+  the positioning / release-gate material moved into a lower "where this sits"
+  section.
+- **`METHODOLOGY.md`** gained a TL;DR/abstract and a consolidated **Threats to
+  validity** section (detectable-effect bound, positive control, static-vs-adaptive
+  scope); the benchmark-quality report card is now a paper-style write-up.
+
 ## [0.2.1] — 2026-07-04
 
 Maintenance release: corrects the package author/copyright metadata (the first

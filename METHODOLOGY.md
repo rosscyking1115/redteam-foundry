@@ -1,7 +1,7 @@
 # Methodology
 
 This document is the **source of truth** for any result claimed in the README,
-a blog post, or a portfolio entry. Every number here is reproduced directly
+a write-up, or any external reference. Every number here is reproduced directly
 from a run artifact in `results/`. If a claim is made anywhere else, it must
 trace back to a row in this file.
 
