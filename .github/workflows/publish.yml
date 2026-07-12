@@ -17,10 +17,12 @@ jobs:
     permissions:
       id-token: write # required for Trusted Publishing (OIDC)
     steps:
-      - uses: actions/checkout@v6
+      # Third-party actions pinned to a full commit SHA (supply-chain hardening);
+      # the trailing comment records the human-readable version.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           version: "latest"
 
@@ -35,4 +37,4 @@ jobs:
           test "$PKG" = "$TAG" || { echo "::error::tag $TAG != package version $PKG"; exit 1; }
 
       - name: Publish to PyPI (Trusted Publishing, no token)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1

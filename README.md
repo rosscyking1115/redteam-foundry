@@ -12,6 +12,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 
+> **Two-repo stack** — upstream companion of
+> [agent-release-gates](https://github.com/rosscyking1115/agent-release-gates), which
+> consumes the challenge packs exported here. Full project map →
+> [profile](https://github.com/rosscyking1115).
+
 ## The finding
 
 **A rigorous negative result.** Across **2 target models** (a frontier model and
