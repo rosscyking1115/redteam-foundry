@@ -76,6 +76,10 @@ def load_hf_dataset(
     """
     from datasets import load_dataset
 
+    # Security: `dataset` is an arbitrary, user-supplied repo id. We load it as
+    # data only — never execute dataset code. `datasets` >= 3 no longer runs
+    # loading scripts by default and >= 4 removed remote-code loading entirely
+    # (there is no `trust_remote_code` to enable), so this stays data-only.
     ds = load_dataset(dataset, name=config, split=split, revision=revision)
 
     columns = list(getattr(ds, "column_names", []) or [])

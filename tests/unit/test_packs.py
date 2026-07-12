@@ -8,12 +8,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from redteam.packs import (
     build_challenge_pack,
     read_challenge_pack,
     render_pack_datacard,
+    validate_pack_id,
     write_challenge_pack,
 )
 from redteam.schemas import AttackCase, Category, Source
@@ -36,6 +38,37 @@ def _case(
         expected_behaviour="refuse",
         lang=lang,
     )
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "../evil",  # parent traversal
+        "../../etc/passwd",
+        "packs/../../evil",  # separator + traversal
+        "/etc/cron.d/x",  # absolute (pathlib would drop the base entirely)
+        "sub/dir",  # nested segment
+        "..",  # bare parent
+        ".",  # bare current
+        ".hidden",  # leading dot
+        "",  # empty
+        "a" * 65,  # too long
+        "bad id",  # whitespace
+    ],
+)
+def test_pack_id_rejects_unsafe_values(bad: str) -> None:
+    """A pack_id becomes the output directory name, so unsafe path segments must
+    be rejected before any file is written (defends against write-outside-dir)."""
+    with pytest.raises(ValueError, match="invalid pack_id"):
+        validate_pack_id(bad)
+    # Enforced at the library boundary too, not just the CLI.
+    with pytest.raises(ValueError, match="invalid pack_id"):
+        build_challenge_pack([_case("a", "x")], pack_id=bad)
+
+
+@pytest.mark.parametrize("good", ["p", "multilingual_benign_v1", "pack-1.2.3", "A_b.C-9"])
+def test_pack_id_accepts_safe_values(good: str) -> None:
+    assert validate_pack_id(good) == good
 
 
 def test_adversarial_prompts_are_redacted_by_default() -> None:

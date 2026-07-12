@@ -630,7 +630,15 @@ def export_pack_cmd(
     Benign scenarios ship in full; adversarial scenarios are redacted by
     default. Writes pack.yaml + scenarios.jsonl + datacard.md.
     """
-    from redteam.packs import build_challenge_pack, write_challenge_pack
+    from redteam.packs import build_challenge_pack, validate_pack_id, write_challenge_pack
+
+    # pack_id becomes the output directory name — reject traversal / absolute
+    # paths up front with a friendly error rather than a traceback.
+    try:
+        validate_pack_id(pack_id)
+    except ValueError as exc:
+        typer.echo(typer.style(str(exc), fg=typer.colors.RED))
+        raise typer.Exit(code=2) from exc
 
     allowed = set(LOADERS) | {"benign_control", "benign_multilingual"}
     sources = sorted(only) if only else sorted(LOADERS.keys())

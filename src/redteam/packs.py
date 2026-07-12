@@ -41,8 +41,30 @@ _ADVERSARIAL_SOURCES = frozenset({"advbench", "jailbreakbench", "harmbench", "ag
 
 _WS = re.compile(r"\s+")
 
+# A pack_id doubles as the output directory name (CLI writes <output>/<pack_id>),
+# so it must be a single safe path segment. This pattern forbids path separators,
+# leading dots, and absolute paths — closing the traversal / absolute-path-
+# substitution that `pathlib`'s `output_dir / pack_id` would otherwise allow.
+_PACK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
 _DEFAULT_RECOMMENDED = ("benchmark_research", "release_gate_regression")
 _DEFAULT_NOT_RECOMMENDED = ("standalone_deployment_approval",)
+
+
+def validate_pack_id(pack_id: str) -> str:
+    """Return `pack_id` unchanged if it is a safe path segment, else raise.
+
+    Guards the `<output>/<pack_id>` write path against directory traversal
+    (`../…`) and absolute-path substitution (`/etc/…`, which `pathlib` treats as
+    replacing the base entirely). Enforced at the library boundary so every
+    caller — CLI or programmatic — gets the same guarantee.
+    """
+    if not _PACK_ID_RE.match(pack_id):
+        raise ValueError(
+            f"invalid pack_id {pack_id!r}: must match {_PACK_ID_RE.pattern} — "
+            "letters/digits/'.'/'_'/'-', starting alphanumeric, no path separators."
+        )
+    return pack_id
 
 
 def _preview(text: str, *, limit: int = 60) -> str:
@@ -104,6 +126,7 @@ def build_challenge_pack(
     include_adversarial_prompts: bool = False,
 ) -> tuple[ChallengePack, list[Scenario]]:
     """Build a pack (metadata + scenarios) from a set of AttackCases. Pure."""
+    validate_pack_id(pack_id)
     scenarios: list[Scenario] = []
     any_redacted = False
     for case in cases:
