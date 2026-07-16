@@ -4,10 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] — 2026-07-16
 
-Research-legibility and validation work; documentation and tooling only (no
-change to the published API surface).
+Research-legibility, validation, and hardening since 0.2.1 — documentation,
+tooling, and reproducibility only (no change to the core measurement API). This
+is the public **freeze** release: a complete, honest, reproducible artifact whose
+headline negative result is validated by a positive control.
 
 ### Added
 - **Positive control** — a `llama2-uncensored-local` target
@@ -23,6 +25,8 @@ change to the published API surface).
 - Optional `num_ctx` on the Ollama target adapter (a bounded context window lets
   a 7B model load on an 8 GB-VRAM machine).
 - `uv.lock` committed for a byte-for-byte reproducible environment.
+- A README **pipeline diagram** ("how it fits together") and a **two-repo stack**
+  pointer to the `agent-release-gates` companion + the project map.
 
 ### Changed
 - **README** re-led around the research question and the negative/meta finding;
@@ -31,6 +35,20 @@ change to the published API surface).
 - **`METHODOLOGY.md`** gained a TL;DR/abstract and a consolidated **Threats to
   validity** section (detectable-effect bound, positive control, static-vs-adaptive
   scope); the benchmark-quality report card is now a paper-style write-up.
+- Recruiter-oriented phrasing neutralised to a neutral reference voice; rounded
+  out `[project.urls]` (Homepage / Documentation / Changelog) for the PyPI sidebar.
+
+### Security
+- Validate `--pack-id` as a safe single path segment (reject `../` traversal and
+  absolute paths) at both the library and CLI boundary.
+- Documented that Hugging Face datasets are loaded **data-only** (no remote code;
+  `datasets` ≥ 4 has no `trust_remote_code`).
+- Pinned all third-party GitHub Actions to full commit SHAs (supply-chain
+  hardening), notably for the OIDC-privileged publish workflow.
+
+### CI
+- Coverage is computed (`--cov=src/redteam`) and gated with `--cov-fail-under=75`
+  so it can't silently regress.
 
 ## [0.2.1] — 2026-07-04
 
