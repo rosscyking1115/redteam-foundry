@@ -19,27 +19,27 @@
 
 ## The finding
 
-**A rigorous negative result.** Across **2 target models** (a frontier model and
-a small local one), **2 benchmark families** (direct and indirect attacks), and
-up to **4 composable defence configurations** — **12 evaluation cells** —
-published adversarial prompts succeed between **0% and 4%** of the time, and a
-paranoid prompt-only defence stack does **not** measurably move that number.
+A rigorous negative result. Across 2 target models (a frontier model and a small
+local one), 2 benchmark families (direct and indirect attacks), and up to 4
+composable defence configurations — 12 evaluation cells in all — published
+adversarial prompts succeed between 0% and 4% of the time, and a paranoid
+prompt-only defence stack does not measurably move that number.
 
 ![Attack success rate across all 12 evaluation cells — point estimate with 95% bootstrap confidence interval. Ten of the twelve cells sit at 0%; the two non-zero cells are the AdvBench Llama baseline at 1% and the AgentDojo Llama baseline at 4%.](docs/results_matrix.png)
 
-Read carefully, that near-zero is a statement about the **benchmarks** as much as
-the models: 2026-era instruction tuning has largely *saturated* the static,
-published jailbreak and prompt-injection corpora the field still reaches for as a
-safety signal. These datasets no longer **discriminate** — a robust model and a
-stale benchmark both read as "0% attacks succeeded," and attack-success rate
-alone cannot tell them apart. The contribution here is not a new attack; it is a
-**reproducible, judge-validated measurement** that these benchmarks have stopped
+Read carefully, that near-zero is a statement about the benchmarks as much as the
+models: 2026-era instruction tuning has largely *saturated* the static, published
+jailbreak and prompt-injection corpora the field still reaches for as a safety
+signal. These datasets no longer discriminate. A robust model and a stale
+benchmark both read as "0% attacks succeeded," and attack-success rate alone
+cannot tell them apart. The contribution here is not a new attack; it is a
+reproducible, judge-validated measurement that these benchmarks have stopped
 discriminating, plus the staleness and corpus-audit tooling to quantify *why*.
 
-This is deliberately framed as a meta-science result about **benchmark
-validity** — the "is this eval still meaningful?" question — not as a claim that
-any model is "safe." What the benchmarks *under*-measure (the live agentic
-tool-use loop, multi-turn attacks, adaptive optimisation) is named explicitly in
+This is framed as a meta-science result about benchmark validity (the "is this
+eval still meaningful?" question), not as a claim that any model is "safe." What
+the benchmarks *under*-measure — the live agentic tool-use loop, multi-turn
+attacks, adaptive optimisation — is named explicitly in
 [§ Threats to validity](./METHODOLOGY.md#12-threats-to-validity), not hidden.
 
 ```bash
@@ -52,52 +52,52 @@ python scripts/headline_table.py --check
 A near-zero number is easy to report and easy to distrust. The harness is built
 so the *measurement* is auditable, and so it says how much to trust itself:
 
-- **A positive control rules out "the harness just under-elicits."** Run through
-  the *identical* pipeline, a known-vulnerable model (`llama2-uncensored:7b`,
-  AdvBench, no defences) scores **80% ASR** (cross-judge 80.6%, κ = +0.935) — the
+- A positive control rules out "the harness just under-elicits". Run through the
+  *identical* pipeline, a known-vulnerable model (`llama2-uncensored:7b`,
+  AdvBench, no defences) scores 80% ASR (cross-judge 80.6%, κ = +0.935): the
   apparatus visibly registers a high attack-success rate when the target is
   actually vulnerable, so the 0–4% is the aligned models' property, not a
   measurement artifact. See [`METHODOLOGY.md`](./METHODOLOGY.md) §12.5.
-- **Two-judge cross-validation as a first-class output.** Every verdict is scored
-  by an LLM judge and re-scored by an independent second judge; agreement
-  (Cohen's κ, Krippendorff's α) is reported per cell. On attack success the
-  judges agree **perfectly — κ = +1.00 in all 12 cells**, so the headline metric
-  is well-posed. Where a metric is *not* well-posed (refusal on indirect
-  injection), the harness surfaces that disagreement instead of hiding it.
-- **Confidence intervals at honest sample sizes.** ASR is reported with 95%
+- Two-judge cross-validation as a first-class output. Every verdict is scored by
+  an LLM judge and re-scored by an independent second judge; agreement (Cohen's
+  κ, Krippendorff's α) is reported per cell. On attack success the judges agree
+  perfectly (κ = +1.00 in all 12 cells), so the headline metric is well-posed.
+  Where a metric is *not* well-posed (refusal on indirect injection), the harness
+  surfaces that disagreement instead of hiding it.
+- Confidence intervals at honest sample sizes. ASR is reported with 95%
   percentile-bootstrap CIs (not CLT intervals, which under-cover at n≈50–100).
   With n = 100 and zero successes, the detectable-effect bound is a 95% CI of
-  **[0, 3.6%]** — stated, not glossed.
-- **Pinned and deterministic.** Every model is a dated version, every dataset is
-  pinned to an upstream commit, and every API call is cached — re-runs are free
+  [0, 3.6%], stated rather than glossed.
+- Pinned and deterministic. Every model is a dated version, every dataset is
+  pinned to an upstream commit, and every API call is cached, so re-runs are free
   and reproduce the numbers exactly.
-- **Scoped, with threats to validity written down.** Single-turn only; static
-  published prompts, *not* adaptive attacks (GCG/PAIR/TAP); the AgentDojo static
-  render is an explicit **lower bound** on the live agent loop. See
+- Scoped, with threats to validity written down. Single-turn only; static
+  published prompts, not adaptive attacks (GCG/PAIR/TAP); the AgentDojo static
+  render is an explicit lower bound on the live agent loop. See
   [`METHODOLOGY.md`](./METHODOLOGY.md), the source of truth for every number.
 
 ## What's in the repo
 
-Beyond the headline run, the repository is a small **foundry** for interrogating
+Beyond the headline run, the repository is a small foundry for interrogating
 adversarial benchmarks — most of it offline and needing no API key:
 
-- **Runs published adversarial prompts** (AdvBench, JailbreakBench, HarmBench,
+- Runs published adversarial prompts (AdvBench, JailbreakBench, HarmBench,
   AgentDojo — each pinned to an upstream commit) against target LLMs through
   composable, togglable defence stacks, reporting ASR with bootstrap CIs and real
   API cost.
-- **Validates its own numbers**: two-judge cross-scoring with Cohen's κ /
+- Validates its own numbers: two-judge cross-scoring with Cohen's κ /
   Krippendorff's α as first-class outputs.
-- **Audits corpus quality**: exact + near-duplicate detection (including
+- Audits corpus quality: exact + near-duplicate detection (including
   cross-source overlap), language/script coverage, attack-family markers, and
   label-integrity checks → a quality report and a data card.
-- **Scores benchmark staleness**: a transparent, component-broken-out heuristic
+- Scores benchmark staleness: a transparent, component-broken-out heuristic
   answering "is this a robust model, or a stale benchmark?".
-- **Measures over-blocking**: a benign control set (English + Traditional/
+- Measures over-blocking: a benign control set (English + Traditional/
   Simplified Chinese, Japanese, Korean, and code-switched) yields false-refusal
   rate (FRR) and a combined *safe-usefulness* score per defence.
-- **Exports challenge packs**: versioned, self-describing fixtures (adversarial
+- Exports challenge packs: versioned, self-describing fixtures (adversarial
   prompts redacted by default) for downstream tooling to consume.
-- **Interoperates**: any run exports to a
+- Interoperates: any run exports to a
   [UK AISI Inspect](https://inspect.aisi.org.uk/) eval log.
 
 ## How it fits together
@@ -212,9 +212,9 @@ Run `redteam --help` for the full command list; every sub-command has `--help`.
 
 ## Why this reports ASR and not refusal rate
 
-The cross-judge layer found that **ASR is well-posed and `refusal_rate` is not**:
-the two judges agree perfectly on whether an attack succeeded, but disagree —
-sometimes worse than chance — on whether a response was a "refusal", because an
+The cross-judge layer found that ASR is well-posed and `refusal_rate` is not:
+the two judges agree perfectly on whether an attack succeeded, but disagree,
+sometimes worse than chance, on whether a response was a "refusal", because an
 indirect-injection task has two things that can be refused (the user's request
 and the injected instruction). `refusal_rate` is therefore reported as a
 *descriptive* signal of response style only, never as a safety metric. This is
@@ -222,11 +222,11 @@ documented, not hidden — see [`METHODOLOGY.md`](./METHODOLOGY.md) §7.
 
 ## Where this sits: the research layer
 
-`redteam-foundry` is a **measurement / research layer**, by design. It validates
+`redteam-foundry` is a measurement and research layer, by design. It validates
 adversarial corpora, measures defence effectiveness, and studies whether
-published benchmarks still measure real deployment risk. It deliberately does
-**not** make production release decisions — ship / warn / block, incident replay,
-and policy-as-code gates are a separate concern.
+published benchmarks still measure real deployment risk. It deliberately does not
+make production release decisions: ship / warn / block, incident replay, and
+policy-as-code gates are a separate concern.
 
 > **Validate the benchmark before you trust the gate.**
 
@@ -246,7 +246,7 @@ split; the gate layer is not part of this repository.
 ## Ethics
 
 > [!IMPORTANT]
-> This project uses **only** published adversarial prompts and does not generate
+> This project uses only published adversarial prompts and does not generate
 > novel jailbreaks in any language. Excluded categories (CSAM,
 > weapons-of-mass-destruction synthesis, detailed self-harm methods) are
 > filtered at corpus-load time and verified by a CI test. Results are aggregate;
@@ -254,13 +254,13 @@ split; the gate layer is not part of this repository.
 > benign-only. Full policy in [`ETHICS.md`](./ETHICS.md).
 
 If you are a model provider whose model is included and want example transcripts
-removed, email **rosscyking@gmail.com** — **24-hour removal commitment**.
+removed, email rosscyking@gmail.com and I'll remove them within 24 hours.
 
 ## Development
 
 `scripts/ci_local.ps1` (Windows) and `scripts/ci_local.sh` (Linux/macOS) run the
-**exact** same checks as CI — ruff lint, ruff format check, mypy, pytest. Green
-locally means green on the PR. See [`tests/README.md`](./tests/README.md) for
+same checks as CI — ruff lint, ruff format check, mypy, pytest. Green locally
+means green on the PR. See [`tests/README.md`](./tests/README.md) for
 which claim each test suite defends. Run artifacts (`results/`), audit outputs
 (`reports/`), and non-sample packs (`challenge_packs/`) are gitignored — all
 re-creatable from configs.
