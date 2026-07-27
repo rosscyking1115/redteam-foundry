@@ -36,7 +36,7 @@
       "available": true,
       "score": 0.0,
       "weight": 0.1,
-      "detail": "mean cross-judge ASR κ +1.000 over 8 run(s)"
+      "detail": "mean cross-judge ASR κ +1.000 over 1 informative run(s); 7/8 degenerate (both judges constant, κ is 0/0)"
     }
   ],
   "n_components_available": 5,

@@ -33,14 +33,14 @@
     },
     {
       "name": "judge_disagreement",
-      "available": true,
-      "score": 0.0,
+      "available": false,
+      "score": null,
       "weight": 0.1,
-      "detail": "mean cross-judge ASR κ +1.000 over 4 run(s)"
+      "detail": "undefined - 4/4 degenerate (both judges constant, κ is 0/0)"
     }
   ],
-  "n_components_available": 5,
-  "staleness_score": 0.3835,
+  "n_components_available": 4,
+  "staleness_score": 0.4261,
   "interpretation": "Mixed - some staleness signals; read the component breakdown before concluding.",
   "confidence": "high",
   "caveat": "Heuristic, not a verdict. A high score flags a benchmark for review; it is not proof the corpus is worthless, nor is a low score proof a model is safe. Run components require runs that used THIS corpus."
