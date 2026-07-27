@@ -150,6 +150,11 @@ def _binary_kappa(judge: list[int], human: list[int]) -> KappaScore:
     # If pe == 1, both raters are constant in the same direction; kappa is
     # undefined and we report 1.0 (perfect agreement) or 0.0 (perfect
     # disagreement) by convention. Otherwise the standard formula.
+    #
+    # A +1.000 produced by this branch is NOT evidence of inter-rater
+    # agreement — it means there was no label variance to agree about. Callers
+    # that publish kappa must say which branch produced it; see METHODOLOGY.md
+    # section 7 and the degenerate/informative split in scripts/headline_table.py.
     kappa = (1.0 if po == 1.0 else 0.0) if pe >= 1.0 else (po - pe) / (1 - pe)
     alpha = krippendorff_alpha_binary(judge, human)
 
