@@ -11,6 +11,7 @@
 [![CI](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
+[![Checked with mypy --strict](https://img.shields.io/badge/mypy-strict-2a6db2.svg)](https://mypy-lang.org/)
 
 > **Two-repo stack** — upstream companion of
 > [agent-release-gates](https://github.com/rosscyking1115/agent-release-gates), which
@@ -61,9 +62,13 @@ so the *measurement* is auditable, and so it says how much to trust itself:
 - Two-judge cross-validation as a first-class output. Every verdict is scored by
   an LLM judge and re-scored by an independent second judge; agreement (Cohen's
   κ, Krippendorff's α) is reported per cell. On attack success the judges agree
-  perfectly (κ = +1.00 in all 12 cells), so the headline metric is well-posed.
-  Where a metric is *not* well-posed (refusal on indirect injection), the harness
-  surfaces that disagreement instead of hiding it.
+  strongly where the labels actually vary — κ = +0.935 on the positive control
+  (n = 98, ~80% base rate). The 12 matrix cells also report κ = +1.000, but in
+  11 of them both judges labelled every case identically and constantly, which
+  makes κ an undefined 0/0 rather than evidence; the repo says so and
+  `headline_table.py --check` enforces it. Where a metric is *not* well-posed
+  (refusal on indirect injection), the harness surfaces that disagreement
+  instead of hiding it.
 - Confidence intervals at honest sample sizes. ASR is reported with 95%
   percentile-bootstrap CIs (not CLT intervals, which under-cover at n≈50–100).
   With n = 100 and zero successes, the detectable-effect bound is a 95% CI of
@@ -213,8 +218,9 @@ Run `redteam --help` for the full command list; every sub-command has `--help`.
 ## Why this reports ASR and not refusal rate
 
 The cross-judge layer found that ASR is well-posed and `refusal_rate` is not:
-the two judges agree perfectly on whether an attack succeeded, but disagree,
-sometimes worse than chance, on whether a response was a "refusal", because an
+where the labels vary, the two judges agree closely on whether an attack
+succeeded (κ = +0.935 on the positive control), but they disagree, sometimes
+worse than chance, on whether a response was a "refusal", because an
 indirect-injection task has two things that can be refused (the user's request
 and the injected instruction). `refusal_rate` is therefore reported as a
 *descriptive* signal of response style only, never as a safety metric. This is
@@ -265,6 +271,18 @@ which claim each test suite defends. Run artifacts (`results/`), audit outputs
 (`reports/`), and non-sample packs (`challenge_packs/`) are gitignored — all
 re-creatable from configs.
 
+**Typing.** `mypy` runs in `strict` mode with `warn_unreachable`
+([`pyproject.toml`](./pyproject.toml)), and CI fails the build on any type
+error — it is a gate, not a report. Coverage today is `src/` (43 modules, clean);
+`tests/` and `scripts/` are linted and formatted but not yet typechecked.
+
+**Result integrity.** `python scripts/headline_table.py --check` recomputes
+every published cell from the cached run artifacts and fails on drift —
+including whether each cross-judge κ is a real measurement or a degenerate 0/0
+(see [`METHODOLOGY.md`](./METHODOLOGY.md) §7). The artifacts are gitignored, so
+this runs locally rather than in CI; `tests/unit/test_headline_table.py` pins
+the classification logic itself, which does run in CI.
+
 ## Documentation
 
 | File | What's in it |
@@ -274,6 +292,8 @@ re-creatable from configs.
 | [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
 | [`tests/README.md`](./tests/README.md) | Which claim each test suite defends |
 | [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The foundry pivot, phase status, and follow-up hardening |
+| [`docs/inspect-evals-port-scoping.md`](./docs/inspect-evals-port-scoping.md) | Scoping (not built): porting the AgentDojo cell to a native Inspect task, and what the `inspect_evals` register now requires |
+| [`docs/preprint-scoping.md`](./docs/preprint-scoping.md) | Scoping (not written): gap analysis from the findings report card to a submittable arXiv preprint, with effort and blockers |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Scope, dev setup, and the ethics rules for adding corpora |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Release history |
 | [`reports/samples/`](./reports/samples/) | Committed real-data findings (staleness, defence comparison, data card) |

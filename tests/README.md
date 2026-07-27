@@ -38,6 +38,7 @@ it honest, without reading the whole suite.
 | [`test_orchestrator_cross_judge.py`](unit/test_orchestrator_cross_judge.py) | The cross-judge path computes inter-judge agreement (Cohen's kappa / Krippendorff's alpha) — the headline validation mechanism (§7). |
 | [`test_stats.py`](unit/test_stats.py) | The bootstrap confidence intervals and the Krippendorff's-alpha / kappa helpers — every CI and agreement number traces here. |
 | [`test_judge_human.py`](unit/test_judge_human.py) | The human spot-check export and the Cohen's-kappa helper used as a tertiary check. |
+| [`test_headline_table.py`](unit/test_headline_table.py) | That a published cross-judge kappa is only claimed as agreement when the labels actually varied — 11 of the 12 matrix cells are degenerate 0/0 and the claim rests on the positive control (§7) — and that the FAILED AgentDojo control stays in the frozen record (§12.6). |
 
 ## Corpus audit & taxonomy — the quality findings (report card §1)
 

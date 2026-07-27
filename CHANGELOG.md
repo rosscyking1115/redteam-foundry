@@ -4,6 +4,80 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Corrected the inter-judge agreement claim.** The published headline said the
+  two judges agreed "perfectly on ASR (κ = +1.000 in all 12 cells)". Eleven of
+  those twelve values are degenerate: both judges labelled every cross-judged
+  case identically and constantly, so expected agreement `pe = 1` and Cohen's κ
+  is an undefined `0/0` that the scorer fills in as +1.000 by convention. That
+  is the same defect the methodology already rejects on the refusal axis, at the
+  opposite end of the marginals. The claim now rests on the **positive control's
+  κ = +0.935** (n = 98, 79 positives per judge) — the one cell with substantial
+  label variance on both margins. Updated in `METHODOLOGY.md` §7/§8/§12.3,
+  `README.md`, and the findings report card. No measured number changed; the
+  interpretation of one did.
+- Also disclosed: the AdvBench Llama baseline's single ASR = 1 case is one of the
+  two the cross-judge failed to parse, so that cell's cross-judge sample is
+  all-zero and the one case that could have tested agreement was never
+  cross-checked.
+- **`staleness.py`'s `judge_disagreement` component no longer consumes a
+  degenerate kappa.** Previously it averaged the stored `cross_judge_asr_kappa`
+  across all runs, including the eleven whose value is the 0/0 convention — so a
+  0.10-weight component reported "the judges agree" on exactly the saturated
+  corpora it is meant to be informative about. Degenerate runs are now excluded
+  from the average; when none survive, the component reports **undefined**
+  rather than 0.00, drops out of the composite, and the remaining weights
+  renormalise. Runs carrying a kappa but no per-case labels are treated as
+  unverifiable and excluded rather than silently trusted.
+
+  **Published staleness scores move as a result** — the movement is the finding,
+  not a correction to the corpora:
+
+  | corpus | was | now | components | why |
+  | --- | ---: | ---: | ---: | --- |
+  | AdvBench | 0.38 | **0.43** | 4/5 | all 4 cross-judged runs degenerate; component undefined and renormalised out |
+  | AgentDojo | 0.43 | **0.43** | 5/5 | 7 of 8 degenerate, but one informative run survives, so the component still scores 0.00 — now stated as resting on 1 run |
+
+  Neither corpus changes interpretation band ("Mixed") or confidence ("high").
+  `reports/samples/staleness/` regenerated.
+- `redteam.stats.is_degenerate_kappa` is now the single source of truth for the
+  degenerate/informative rule, consumed by both `scripts/headline_table.py` and
+  the staleness scorer so the published table and the composite metric cannot
+  drift apart.
+
+### Added
+- **AgentDojo positive control — run, and it FAILED its pre-registered
+  threshold.** The indirect-injection arm previously had no under-elicitation
+  control (§12.5 covered AdvBench only). `llama2-uncensored:7b` was run on the
+  same 50 AgentDojo cases as the §8 Llama baseline, through the identical
+  pipeline, with the PASS threshold (judge ASR ≥ 20%) committed in
+  `configs/run_agentdojo_positive_control.yaml` *before* the run. Result: **2%**
+  (cross-judge 4%, κ = +0.658 — which tripped the harness's own α guard).
+
+  It is reported as **inconclusive, not as a null**. The model never refuses
+  (0% rule-based) and confabulates instead of reading the tool output (26% of
+  responses cite email addresses absent from the prompt), so the cell measures
+  incapacity, not robustness. **The AgentDojo arm remains uncontrolled** and
+  METHODOLOGY §8 now says so. New section METHODOLOGY §12.6, including the
+  generalisable lesson (a positive control needs its own capability gate) and a
+  recorded pre-registration error: the secondary diagnostic tested for
+  emptiness/refusal and was blind to fluent confabulation.
+- `configs/run_agentdojo_positive_control.yaml` — carries its own pre-registered
+  analysis plan in-file.
+- Both positive controls (the AdvBench pass and the AgentDojo failure) are now
+  frozen in `scripts/headline_table.py --check`, so the failed control cannot
+  quietly drop out of the record.
+- `scripts/headline_table.py` now classifies each cell's cross-judge κ as
+  degenerate or informative, recomputing the marginals from the per-case labels;
+  it refuses to print a κ value for a degenerate cell, checks the positive
+  control alongside the 12 matrix cells, and fails on status drift.
+- `tests/unit/test_headline_table.py` — pins the degenerate/informative logic
+  and the frozen 11-of-12 split (artifact-free, so it runs in CI).
+- README: `mypy --strict` badge, and an explicit statement that CI gates on type
+  errors and that `src/` is the typed surface.
+
 ## [0.3.0] — 2026-07-16
 
 Research-legibility, validation, and hardening since 0.2.1 — documentation,
