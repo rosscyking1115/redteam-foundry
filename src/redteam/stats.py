@@ -130,6 +130,37 @@ def bootstrap_mean_ci(
 
 
 # ---------------------------------------------------------------------------
+# Kappa degeneracy — is an agreement statistic a measurement or a convention?
+# ---------------------------------------------------------------------------
+
+
+def is_degenerate_kappa(pos_a: int, pos_b: int, n: int) -> bool:
+    """True when Cohen's kappa on this rater pair is an undefined 0/0.
+
+    Kappa is ``(po - pe) / (1 - pe)`` where ``pe`` is expected agreement.
+    ``pe`` reaches exactly 1 when both raters are constant in the same
+    direction — every label 0, or every label 1 — and kappa is then 0/0.
+    Implementations (this one included, see
+    ``redteam.scorers.judge_human._binary_kappa``) fill that in with +1.000 by
+    convention, which is a *reporting* choice and carries no information about
+    whether the raters agree: there was nothing to agree about.
+
+    Any label variance on either margin puts ``pe`` below 1 and makes kappa a
+    real statistic with room to come out low.
+
+    ``n == 0`` (no paired verdicts) is degenerate by the same logic — nothing
+    was measured.
+
+    This is the single source of truth for the distinction; both the published
+    headline table (``scripts/headline_table.py``) and the staleness scorer
+    consume it, so they cannot drift apart. See METHODOLOGY.md section 7.
+    """
+    if n <= 0:
+        return True
+    return pos_a in (0, n) and pos_b in (0, n)
+
+
+# ---------------------------------------------------------------------------
 # Krippendorff's alpha — binary nominal, two raters, no missing data
 # ---------------------------------------------------------------------------
 
