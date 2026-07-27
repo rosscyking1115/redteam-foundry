@@ -33,6 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from redteam.corpora.quality import CorpusQualityReport, audit_corpus
 from redteam.orchestrator import RunResult
 from redteam.schemas import AttackCase
+from redteam.stats import is_degenerate_kappa
 
 # Component weights (sum to 1.0 across all five). Renormalised over whichever
 # components have data. Mirrors the ratios in docs/ROADMAP.md.
@@ -162,13 +163,81 @@ def _defence_sensitivity_score(runs: Sequence[RunResult]) -> tuple[float, str] |
     )
 
 
-def _judge_disagreement_score(runs: Sequence[RunResult]) -> tuple[float, str] | None:
-    kappas = [r.cross_judge_asr_kappa for r in runs if r.cross_judge_asr_kappa is not None]
-    if not kappas:
+def _run_kappa_is_degenerate(run: RunResult) -> bool | None:
+    """Is this run's stored ASR kappa a measurement, or the 0/0 convention?
+
+    Returns None when it cannot be told — the run carries a kappa but no
+    per-case judge labels to recover the marginals from. Such a run is not
+    silently trusted; see ``_judge_disagreement_score``.
+    """
+    paired = [
+        (o.judge_asr, o.judge2_asr)
+        for o in run.outcomes
+        if o.judge_asr is not None and o.judge2_asr is not None
+    ]
+    if not paired:
         return None
-    mean_kappa = statistics.fmean(kappas)
+    return is_degenerate_kappa(sum(a for a, _ in paired), sum(b for _, b in paired), len(paired))
+
+
+def _judge_disagreement_score(runs: Sequence[RunResult]) -> tuple[float | None, str] | None:
+    """Low score == judges agree on ASR. ``(None, detail)`` == undefined.
+
+    Cohen's kappa is only a measurement when the labels vary. When both judges
+    score every case identically and constantly — the normal situation on a
+    saturated corpus, where ASR is 0 throughout — expected agreement is 1 and
+    kappa is an undefined 0/0 that the scorer fills in as +1.000 by convention
+    (``redteam.scorers.judge_human._binary_kappa``).
+
+    Averaging that convention in would make this component read 0.00, "the
+    judges agree", when the truth is that there was nothing to agree about —
+    and on a stale benchmark that is precisely the case this component is
+    supposed to be informative about. So degenerate runs are excluded from the
+    average, and when nothing informative survives the component reports
+    **undefined** rather than a number. It then drops out of the composite,
+    whose weights renormalise over the components that do have data.
+
+    Reporting "undefined" is the point, not a fallback: a benchmark so
+    saturated that inter-judge agreement stops being measurable is a finding
+    about the benchmark. See METHODOLOGY.md section 7.
+    """
+    cross_judged = [r for r in runs if r.cross_judge_asr_kappa is not None]
+    if not cross_judged:
+        return None
+
+    informative: list[float] = []
+    n_degenerate = 0
+    n_unverifiable = 0
+    for run in cross_judged:
+        degenerate = _run_kappa_is_degenerate(run)
+        if degenerate is None:
+            n_unverifiable += 1
+        elif degenerate:
+            n_degenerate += 1
+        else:
+            assert run.cross_judge_asr_kappa is not None  # narrowed by the filter above
+            informative.append(run.cross_judge_asr_kappa)
+
+    excluded = _describe_excluded(n_degenerate, n_unverifiable, len(cross_judged))
+    if not informative:
+        return None, f"undefined - {excluded}"
+
+    mean_kappa = statistics.fmean(informative)
     score = 1.0 - max(0.0, min(1.0, mean_kappa))
-    return score, f"mean cross-judge ASR κ {mean_kappa:+.3f} over {len(kappas)} run(s)"
+    detail = f"mean cross-judge ASR κ {mean_kappa:+.3f} over {len(informative)} informative run(s)"
+    if excluded:
+        detail = f"{detail}; {excluded}"
+    return score, detail
+
+
+def _describe_excluded(n_degenerate: int, n_unverifiable: int, n_total: int) -> str:
+    """Human-readable note about which runs were left out of the average."""
+    parts: list[str] = []
+    if n_degenerate:
+        parts.append(f"{n_degenerate}/{n_total} degenerate (both judges constant, κ is 0/0)")
+    if n_unverifiable:
+        parts.append(f"{n_unverifiable}/{n_total} unverifiable (no per-case judge labels)")
+    return "; ".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +295,12 @@ def score_staleness(
         )
     )
 
-    run_components: list[tuple[str, tuple[float, str] | None]] = [
+    # A component result is either None (no run data at all), or a
+    # (score, detail) pair. `judge_disagreement` can additionally return
+    # (None, detail) meaning "there was data, but the statistic is undefined on
+    # it" — a distinct and more informative state than "no data", and one that
+    # must not be silently scored as agreement. See METHODOLOGY.md section 7.
+    run_components: list[tuple[str, tuple[float | None, str] | None]] = [
         ("universal_low_asr", _universal_low_asr_score(runs)),
         ("low_defence_sensitivity", _defence_sensitivity_score(runs)),
         ("judge_disagreement", _judge_disagreement_score(runs)),
@@ -247,7 +321,7 @@ def score_staleness(
             components.append(
                 StalenessComponent(
                     name=name,
-                    available=True,
+                    available=score is not None,
                     score=score,
                     weight=_WEIGHTS[name],
                     detail=detail,
