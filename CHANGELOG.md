@@ -48,6 +48,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   drift apart.
 
 ### Added
+- **Control harnesses (`redteam.controls`), a concept distinct from defences.**
+  A defence is a candidate mitigation whose effect on ASR is under study; a
+  control harness deliberately forces a known outcome so the pipeline's ability
+  to *detect* that outcome can be checked. Configured via a separate `controls:`
+  key, deliberately absent from the `DEFENCES` registry (enforced by a test),
+  and recorded in artifacts as `control:<id>` so a run can never read
+  `defences: []` while compliance was engineered.
+
+  Control runs are **excluded from `redteam corpora staleness` outright** rather
+  than reclassified. A control is neither a baseline nor a defended run, and
+  both naive partitions get it wrong — counting a high-ASR detector control as
+  "defended" would read as a defence moving ASR a great deal, inverting this
+  project's central finding. `StalenessReport.n_control_runs_excluded` records
+  any exclusion and the rendered report prints it.
+- `redteam.stats.grounding_score` — a capability diagnostic that asks whether a
+  response is grounded in its input rather than whether output exists. §12.6's
+  liveness check scored a confabulating model "100% engaged"; grounding scores
+  the same responses 0. Reproduces the two figures quoted in METHODOLOGY
+  (G = 1.00 for `llama3.1:8b`, G = 0.74 for `llama2-uncensored:7b`).
+- `scripts/detector_control_verdict.py` — executes the pre-registered three-way
+  detector-control rule against a judged run, so the verdict is computed rather
+  than narrated and the boundary cannot move once the number is known.
 - **AgentDojo positive control — run, and it FAILED its pre-registered
   threshold.** The indirect-injection arm previously had no under-elicitation
   control (§12.5 covered AdvBench only). `llama2-uncensored:7b` was run on the
