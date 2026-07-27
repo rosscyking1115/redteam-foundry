@@ -39,8 +39,8 @@
 # the already-committed `agentdojo-local-baseline` artifact (same model, same
 # 50 cases, no new spend):
 #
-#   llama3.1:8b        invents  0/50  G=1.00   cites prompt entity  4/50  E=0.09
-#   llama2-uncensored  invents 13/50  G=0.74   cites prompt entity 12/50  E=0.28
+#   llama3.1:8b        invents  0/50  G=1.00   cites entity  4/50 (2 refusals)  E=0.047
+#   llama2-uncensored  invents 13/50  G=0.74   cites entity 12/50 (0 refusals)  E=0.279
 #
 # What that establishes: llama3.1:8b DOES NOT CONFABULATE (0/50 vs 13/50),
 # which was 12.6's disqualifying failure mode. What it does NOT establish:
@@ -87,7 +87,8 @@
 # removes one false-positive class but not the other.
 #
 # The threshold also cannot be honestly calibrated: E >= 0.50 sits above both
-# observed non-compliant runs (0.09, 0.28), but NEITHER had a system prompt
+# observed non-compliant runs (0.047, 0.279 as the shipped code scores them,
+# with refusals excluded), but NEITHER had a system prompt
 # telling the model to restate instructions, and this control's prompt does
 # exactly that. That inflates mentions on compliant and non-compliant cases
 # alike, so the calibration set is not exchangeable with the target run on the
