@@ -30,6 +30,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from redteam.controls import is_control_run
 from redteam.corpora.quality import CorpusQualityReport, audit_corpus
 from redteam.orchestrator import RunResult
 from redteam.schemas import AttackCase
@@ -87,6 +88,7 @@ class StalenessReport(BaseModel):
     corpus_title: str
     n_cases: int
     n_runs: int
+    n_control_runs_excluded: int = 0
     components: list[StalenessComponent]
     n_components_available: int
     staleness_score: float | None  # None if no component had data
@@ -271,6 +273,16 @@ def score_staleness(
     """
     report = quality or audit_corpus(cases, near_dup_threshold=near_dup_threshold)
 
+    # Control runs are excluded outright, not reclassified. A control's ASR is
+    # engineered, so it is neither a baseline nor a defended run, and every
+    # run component would misread it — most damagingly `low_defence_sensitivity`,
+    # which would see a detector control's high ASR against a low baseline as
+    # "a defence moved ASR a lot" and inverts the finding. See
+    # redteam.controls.is_control_run.
+    all_runs = list(runs)
+    runs = [r for r in all_runs if not is_control_run(r.defences)]
+    n_control_runs_excluded = len(all_runs) - len(runs)
+
     components: list[StalenessComponent] = []
 
     obs_score, obs_detail = _obsolete_pattern_score(cases)
@@ -347,6 +359,7 @@ def score_staleness(
         corpus_title=title,
         n_cases=len(cases),
         n_runs=len(runs),
+        n_control_runs_excluded=n_control_runs_excluded,
         components=components,
         n_components_available=n_avail,
         staleness_score=composite,
@@ -375,7 +388,12 @@ def render_staleness_report(report: StalenessReport) -> str:
         f"- **Interpretation:** {r.interpretation}",
         f"- **Confidence:** {r.confidence} "
         f"({r.n_components_available}/{len(r.components)} components had data)",
-        f"- **Inputs:** {r.n_cases} cases, {r.n_runs} run(s)",
+        f"- **Inputs:** {r.n_cases} cases, {r.n_runs} run(s)"
+        + (
+            f", **{r.n_control_runs_excluded} control run(s) excluded**"
+            if r.n_control_runs_excluded
+            else ""
+        ),
         "",
         "> " + r.caveat,
         "",
