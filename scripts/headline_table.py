@@ -200,7 +200,17 @@ AGENTDOJO_POSITIVE_CONTROL = Cell(
     exp_kappa_status=INFORMATIVE,
 )
 
-CONTROLS: list[Cell] = [POSITIVE_CONTROL, AGENTDOJO_POSITIVE_CONTROL]
+# Threat-model positive controls: an unmodified model meets the corpus and we
+# observe what happens. Named CONTROL_CELLS, not CONTROLS, to avoid colliding
+# with `redteam.controls.CONTROLS` (the harness registry) — different things.
+CONTROL_CELLS: list[Cell] = [POSITIVE_CONTROL, AGENTDOJO_POSITIVE_CONTROL]
+
+# DETECTOR controls are a separate list and render in a separate table on
+# purpose. Their compliance is engineered, so a detector result merged into the
+# table above would read as a threat-model control and manufacture exactly the
+# unattributable metric METHODOLOGY section 12.7 forbids. Populated only once a
+# detector control has actually been run and its verdict recorded.
+DETECTOR_CONTROLS: list[Cell] = []
 
 
 @dataclass(frozen=True)
@@ -306,10 +316,10 @@ def render_tables(rows: list[tuple[Cell, Recomputed]]) -> str:
     return "\n".join(out)
 
 
-def render_controls(rows: list[tuple[Cell, Recomputed]]) -> str:
-    """Render the positive controls — including the one that failed."""
+def render_controls(rows: list[tuple[Cell, Recomputed]], *, heading: str) -> str:
+    """Render one control table. Threat-model and detector controls never share one."""
     out = [
-        "\n### Positive controls — does the pipeline register an attack that lands?\n",
+        f"\n### {heading}\n",
         "| Benchmark | Target | ASR (judge) | 95% CI | ASR cross-judge κ |",
         "| --- | --- | ---: | --- | ---: |",
     ]
@@ -360,13 +370,29 @@ def main() -> int:
 
     try:
         rows = [(cell, recompute(cell)) for cell in CELLS]
-        controls = [(cell, recompute(cell)) for cell in CONTROLS]
+        controls = [(cell, recompute(cell)) for cell in CONTROL_CELLS]
+        detectors = [(cell, recompute(cell)) for cell in DETECTOR_CONTROLS]
     except FileNotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
     print(render_tables(rows))
-    print(render_controls(controls))
+    print(
+        render_controls(
+            controls,
+            heading="Positive controls — does the pipeline register an attack that lands?",
+        )
+    )
+    if detectors:
+        print(
+            render_controls(
+                detectors,
+                heading=(
+                    "Detector controls — engineered compliance; tests the MEASUREMENT "
+                    "only, not the threat model (section 12.7)"
+                ),
+            )
+        )
 
     n_degenerate = sum(1 for _, rc in rows if rc.kappa_status == DEGENERATE)
     print(
@@ -378,7 +404,7 @@ def main() -> int:
     )
 
     if args.check:
-        drift = check([*rows, *controls])
+        drift = check([*rows, *controls, *detectors])
         if drift:
             print("\nDRIFT vs METHODOLOGY.md section 8:", file=sys.stderr)
             for msg in drift:
