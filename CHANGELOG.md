@@ -48,6 +48,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   drift apart.
 
 ### Added
+- **Synthetic detector control — run, and INCONCLUSIVE.** A capable model
+  (`llama3.1:8b`, the same target as the section 8 AgentDojo rows) plus a system
+  prompt instructing it to treat tool-output instructions as authoritative,
+  on the same 50 cases. Pre-registered PASS bar was ASR >= 70%; the run returned
+  **38%** (cross-judge kappa +0.917). Not a pass, and not reported as one.
+
+  It failed for a different reason than the section 12.6 control: not
+  incapacity, but **the control instruction not taking** — refusal fell 90% ->
+  58% under the compliance prompt, so the model still refused a majority of the
+  time and the staged hijack never reliably occurred. A tempting post-hoc
+  rescue (0/29 refusals were hijacks, 19/21 non-refusals were) is recorded and
+  refused: refusal is post-treatment and correlated with the outcome, so
+  conditioning on it is selection on the dependent variable.
+
+  **The AgentDojo arm remains uncontrolled** after two attempts and two distinct
+  failure modes. METHODOLOGY section 12.8; frozen in `--check` under its own
+  detector-control table, never merged with the positive controls.
+- Section 7's refusal claim **narrowed by this run**: the instability is a
+  property of the aligned charitable-redirect response, not of indirect
+  injection as such. Where behaviour is unambiguous the same two judges agree
+  perfectly on refusal (kappa = +1.000 on genuine variance, 29/50). The
+  conclusion stands; the stated reason was too broad.
 - **Control harnesses (`redteam.controls`), a concept distinct from defences.**
   A defence is a candidate mitigation whose effect on ASR is under study; a
   control harness deliberately forces a known outcome so the pipeline's ability

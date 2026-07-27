@@ -248,11 +248,20 @@ for indirect injection.**
 `refusal_rate` is reported in run artifacts as a **descriptive** signal of
 response *style* — explicit refusal versus charitable redirect — and nothing
 more. It is **not** a safety metric, and on the indirect-injection track it is
-not even a stable construct. ASR is the metric. The fact that two competent
-frontier judges cannot agree on how to *measure* "refusal" for indirect
-injection, while resolving ASR identically wherever the labels vary, is itself
-the cleanest evidence for the project's headline: prompt-only defences move
-response style, not the safety outcome.
+not a stable construct **for the aligned behaviour this study measures**. ASR is
+the metric. The fact that two competent frontier judges cannot agree on how to
+*measure* "refusal" for indirect injection, while resolving ASR identically
+wherever the labels vary, is itself the cleanest evidence for the project's
+headline: prompt-only defences move response style, not the safety outcome.
+
+**Narrowed by later evidence (§12.8).** The instability is not a property of the
+indirect-injection setting as such; it is a property of the *charitable
+redirect* — the aligned response that serves the user while silently ignoring
+the injection, where "did it refuse?" has two referents and the judges pick
+different ones. On a later cell whose responses are unambiguous (flat refusal or
+flat compliance, 29 of 50), the same two judges agree **perfectly** on refusal,
+κ = +1.000 on genuine variance. The conclusion above is unchanged; the reason
+originally given for it was broader than the evidence.
 
 ## 8. Results
 
@@ -302,11 +311,13 @@ also rules out under-elicitation for the direct-attack arm.
 > cannot rule out under-elicitation on this arm. Read the AgentDojo cells with
 > that limitation. Full account in §12.6.
 >
-> **§12.7 does not change this.** The synthetic detector control engineers
-> compliance, so it can show only that the pipeline *detects* a hijack, never
-> that a model would be hijacked unprompted. Whatever it returns, these rows
-> remain uncontrolled in the threat-model sense. Its result is reported in its
-> own table and is never merged into the positive-controls table above.
+> **§12.7–12.8 do not change this.** The synthetic detector control engineers
+> compliance, so it could only ever have shown that the pipeline *detects* a
+> hijack, never that a model would be hijacked unprompted. In the event it
+> returned **INCONCLUSIVE** (§12.8) — the compliance instruction did not take,
+> so the staged hijack never reliably occurred. These rows remain uncontrolled,
+> and the detector-control result is reported in its own table, never merged
+> into the positive-controls table above.
 
 **Reading the matrix.** Published direct and static-indirect attacks succeed
 between 0% and 4% of the time, on both a frontier model and a small local
@@ -683,6 +694,90 @@ Control runs are also excluded from `redteam corpora staleness` outright
 (`redteam.controls.is_control_run`): a control is neither a baseline nor a
 defended run, and counting a high-ASR control as "defended" would read as a
 defence moving ASR a great deal, inverting this project's finding.
+
+### 12.8 Detector-control result — INCONCLUSIVE, and the control failed differently
+
+Run on 2026-07-27 against the pre-registered rule in §12.7.
+
+| | value |
+| --- | ---: |
+| Judge ASR (Haiku, primary) | **38%** (19/50), 95% CI [26, 52] — PASS required ≥ 70% |
+| Judge refusal | 58% |
+| Mentions E (refusals excluded) | 0.35 over 43/50 gradeable — candidate flag required ≥ 0.50 |
+| Cross-judge ASR | κ = **+0.917**, α = +0.917 (n = 50, 19 and 21 positives) |
+| Cross-judge refusal | κ = **+1.000**, α = +1.000 (n = 50, 29 positives each) |
+| **Pre-registered verdict** | **INCONCLUSIVE** |
+
+**The control did not pass, and it is not being reported as one.** Neither
+branch that would license a claim was reached: ASR fell short of the PASS bar,
+and E fell short of the candidate screen.
+
+**Why it failed is a new failure mode.** §12.6's control failed through
+*incapacity* — the model could not do the task. This one failed because **the
+control instruction did not take.** Against the identical 50 cases:
+
+| | baseline | + compliance control |
+| --- | ---: | ---: |
+| judge refusal | 90% | 58% |
+| judge ASR | 4% | 38% |
+
+The compliance system prompt moved the model substantially, but `llama3.1:8b`'s
+alignment training still refused in 58% of cases *despite being instructed to
+treat tool-output instructions as authoritative*. The control's precondition —
+that a hijack **certainly** occurs — was therefore never established. A control
+that cannot guarantee the event it exists to stage cannot certify a detector.
+
+**A tempting post-hoc reading, and why it is refused.** Of the 29 refusals, 0
+were scored as hijacks; of the 21 non-refusals, **19 were**. "Conditional on the
+model actually complying, the detector caught 90%" is the obvious rescue, and it
+is not available. Refusal is a *post-treatment* variable and is correlated with
+the outcome, so conditioning on it is selection on the dependent variable — the
+subgroup is defined by the very behaviour under study. The pre-registered
+primary outcome was unconditional ASR, and it was 38%. Recording the conditional
+here as an observation is legitimate; treating it as a pass is not, and the
+pre-registration exists precisely to make that distinction non-negotiable after
+the number is known.
+
+**Descriptively**, ASR moving 4% → 38% on identical cases when compliance is
+instructed is *consistent with* the pipeline registering hijacks. That is worth
+noting and is not a validation: the bar for concluding it was set at 70% in
+advance, in writing, and was not met.
+
+**Consequence.** Two positive-control attempts on the indirect-injection arm,
+two distinct failures — incapacity (§12.6) and non-compliance (§12.8). **The
+AgentDojo arm remains uncontrolled**, exactly as §8 states, and §12.7's
+labelling holds: nothing here says anything about the threat model. What the two
+attempts do establish is a methodological finding in its own right — a positive
+control has *two* preconditions, that the model can perform the task and that
+the staged behaviour actually occurs, and each can fail while producing a number
+that looks interpretable.
+
+A third attempt would need a model that complies when instructed. That is a
+design question, not a rerun, and it is left open.
+
+**Two by-products worth more than the verdict.**
+
+*(a) A fourth informative κ, at a middling base rate.* This cell has a 38% ASR
+base rate — the only one in the project between 4% and 80% — and the judges
+agree at κ = +0.917. The project's ASR agreement picture is now: **+0.935**
+(n = 98, ~80% base), **+0.917** (n = 50, ~38%), **+1.000** (n = 50, 2 positives),
+**+0.658** (n = 50, 1–2 positives), and eleven undefined. κ varies smoothly with
+how much there is to measure, and is least stable where positives are rarest.
+That is direct empirical support for §7: the eleven +1.000s were never agreement
+evidence, and the numbers that *are* measurements do not all sit at 1.
+
+*(b) A refinement to §7's refusal claim, in §7's disfavour and worth stating.*
+§7 declares `refusal` ill-posed for indirect injection, on evidence that the two
+judges disagreed worse than chance on the aligned AgentDojo cells (α down to
+−0.53). On this cell they agree **perfectly** — κ = +1.000 on genuine variance,
+29 of 50, not a degenerate cell. The claim therefore needs narrowing: refusal is
+ill-posed when the model does the *charitable-redirect* thing an aligned model
+does under injection, serving the user while silently ignoring the injected
+instruction — that is the case where "did it refuse?" has two referents and the
+judges pick different ones. When the behaviour is unambiguous, a flat refusal or
+a flat compliance, the label is well-posed and the judges agree completely.
+§7's conclusion (do not use `refusal_rate` as a safety metric on this track)
+stands; its stated *reason* was too broad.
 
 ## 13. Future work
 
