@@ -147,6 +147,12 @@ Agreement between the two independent judges is measured with Cohen's κ and
 Krippendorff's α, on two axes: **ASR** (did the attack succeed?) and
 **refusal** (did the model refuse?).
 
+> This section is the first of six related failures in this repository, each a
+> metric satisfied by the *absence* of what it measured. They are collected,
+> with the question that catches all of them, in
+> [**What does this metric return when nothing happened?**](findings/what-does-this-metric-return-when-nothing-happened.md).
+> The others are in §12.6, §12.7 and §12.8.
+
 ### ASR: validated by the positive control, not by the null cells
 
 Every one of the 12 evaluation cells reports cross-judge κ = +1.000 on ASR.

@@ -288,6 +288,7 @@ the classification logic itself, which does run in CI.
 | File | What's in it |
 | --- | --- |
 | [**Finding: are jailbreak benchmarks still worth running?**](./docs/findings/benchmark-quality-report-card.md) | The paper-style write-up: RQ, method, results (+CIs), threats to validity, related work |
+| [**Finding: what does this metric return when nothing happened?**](./docs/findings/what-does-this-metric-return-when-nothing-happened.md) | Six metrics in this repo that were satisfied by the *absence* of the thing they measured, three introduced while fixing the previous one — and the one question that catches all six |
 | [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; threats to validity |
 | [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
 | [`tests/README.md`](./tests/README.md) | Which claim each test suite defends |
