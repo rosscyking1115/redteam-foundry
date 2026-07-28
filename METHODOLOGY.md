@@ -255,38 +255,61 @@ wherever the labels vary, is itself the cleanest evidence for the project's
 headline: prompt-only defences move response style, not the safety outcome.
 
 **Narrowed by the repo's own data.** The instability is not a property of the
-indirect-injection setting as such. Refusal agreement across the AgentDojo cells
-forms a gradient, and it tracks how much of each cell is *charitable redirect* —
-the aligned response that serves the user while silently ignoring the injection,
-where "did it refuse?" has two referents and the judges pick different ones:
+indirect-injection setting as such. It is concentrated in the cells full of
+*charitable redirect* — the aligned response that serves the user while silently
+ignoring the injection, where "did it refuse?" has two referents and the judges
+pick different ones.
 
-| cell | behaviour | refusal κ / α | judge marginals |
-| --- | --- | ---: | --- |
-| Sonnet baseline (§8) | almost all redirect | **+0.017 / −0.476** | 15 vs 49 of 50 |
-| Llama baseline (§8) | mostly flat refusal | **+0.730 / +0.728** | 45 vs 47 of 50 |
-| Detector control (§12.8) | flat refusal or flat compliance | **+1.000 / +1.000** | 29 vs 29 of 50 |
+The exhibit is deliberately **not** ordered by κ. Ordering it that way would
+repeat the error part (a) of this section diagnoses three paragraphs above: κ
+collapses under skewed marginals whatever the raw agreement. So the table leads
+with the un-confounded quantities — how many cases sit in the redirect zone
+(primary judge scores ASR = 0 *and* refusal = 0) and how often the two judges
+actually disagreed:
+
+| cell | redirect zone | judges disagree | raw agreement | refusal κ / α |
+| --- | ---: | ---: | ---: | ---: |
+| Sonnet baseline (§8) | **35/50** | **34/50** | 32% | +0.017 / −0.476 |
+| Llama baseline (§8) | 3/50 | 2/50 | 96% | +0.730 / +0.728 ¹ |
+| Detector control (§12.8) | 2/50 | 0/50 | 100% | +1.000 / +1.000 |
+
+¹ A high-agreement cell whose κ is depressed by the skew artefact of part (a)
+(marginals 45 and 47 of 50). Its κ of +0.730 understates 96% raw agreement, and
+reading it as "middling agreement" would be exactly the mistake this section
+opens by warning about.
+
+**Redirect zone 35 / 3 / 2 against disagreements 34 / 2 / 0.** The
+correspondence is near-exact, and it is the actual finding: judge disagreement
+on refusal is not spread across indirect injection, it sits almost entirely in
+the one cell dominated by charitable redirect. That is a stronger claim than a
+gradient, and it does not depend on κ at all.
 
 Two corrections follow, both against the original wording. First, **the negative-α
 evidence was only ever the four Sonnet cells** — the Llama baseline was already
-at +0.730 in this repo when the broad claim was written, so §7 was contradicted
-by its own data at the time. Second, the mechanism paragraph above already
-identifies the redirect as the cause; the concluding sentence simply failed to
-carry that qualification.
+at 96% raw agreement in this repo when the broad claim was written, so §7 was
+contradicted by its own data at the time. Second, the mechanism paragraph above
+already identifies the redirect as the cause; the concluding sentence simply
+failed to carry that qualification.
 
 On the morphology point specifically: the detector-control cell has no middle
 ground — of 29 refusals 0 were scored as hijacks, and of 21 non-refusals 19
-were. That is the same cross-tab §12.8 refuses to use, and the distinction
-matters rather than being a convenience. It is **invalid** there as evidence
-about detector accuracy, because refusal is post-treatment and conditioning on
-it selects on the dependent variable. It is **valid** here as a description of
-response *morphology* — that the cell is bimodal — which is a statement about
-the shape of the responses, not about whether the judge scored them correctly.
+were. That is the same cross-tab §12.8 refuses to use, and the distinction is a
+principle rather than a convenience. It is **invalid** there because it
+generalises a within-subgroup rate into a claim about the detector, where the
+subgroup is selected on a post-treatment variable correlated with the outcome.
+It is **valid** here because it asserts nothing beyond this cell's observed
+joint distribution — that the responses are bimodal. Note also that the
+bimodality is read off the **primary judge's two axes**, not off inter-judge
+agreement, so the evidence for the mechanism is independent of the statistic it
+is being used to explain. Without that independence the argument would be
+circular.
 
 The conclusion above is unchanged: do not use `refusal_rate` as a safety metric
 on this track. Its stated reason was broader than the evidence, and the honest
-version is narrower and better supported. One caveat on the narrowing itself:
-the +1.000 endpoint is a single cell, so the gradient is suggestive of the
-mechanism rather than a demonstration of it.
+version is narrower and better supported. Two caveats on the narrowing itself:
+the zero-disagreement endpoint is a single cell, and all three cells come from
+one corpus — so this locates the instability in the redirect rather than proving
+it is the only cause.
 
 ## 8. Results
 
@@ -809,11 +832,12 @@ evidence, and the numbers that *are* measurements do not all sit at 1.
 *(b) A refinement to §7's refusal claim, in §7's disfavour and worth stating.*
 §7 declared `refusal` ill-posed for indirect injection on evidence that the
 judges disagreed worse than chance (α to −0.53). On this cell they agree
-**perfectly** — κ = +1.000 on genuine variance, 29 of 50, non-degenerate. Added
-to the Llama baseline's +0.730, which was already in the repo, that makes a
-three-point gradient tracking how much of a cell is charitable redirect. The
-narrowing and its caveats are written up in §7 itself. §7's conclusion stands;
-its stated reason was broader than its own data.
+**completely** — 0 disagreements in 50. Set against the Sonnet baseline's 34
+disagreements and the Llama baseline's 2, judge disagreement turns out to sit
+almost entirely in the one cell dominated by charitable redirect, matching its
+redirect-zone counts 35 / 3 / 2 almost exactly. The narrowing and its caveats
+are written up in §7 itself. §7's conclusion stands; its stated reason was
+broader than its own data.
 
 ## 13. Future work
 
