@@ -19,8 +19,11 @@ model (Claude Sonnet 4.6) and a small local model (Llama 3.1 8B) through
 composable prompt-defence stacks — 12 evaluation cells, every verdict scored by
 one LLM judge and re-scored by an independent second judge — we measure an
 attack-success rate (ASR) of **0–4%**, with prompt-only defences producing no
-measurable reduction, and **perfect inter-judge agreement on ASR (Cohen's
-κ = +1.000 in all 12 cells)**. Auditing the corpora themselves shows why the
+measurable reduction, and **strong inter-judge agreement on ASR where the labels
+vary (Cohen's κ = +0.935 on the positive control, n = 98)**. The matrix cells
+cannot corroborate that: in 11 of 12, both judges label every case identically
+and constantly, so κ is an undefined 0/0 (METHODOLOGY §7). Auditing the corpora
+themselves shows why the
 number is uninformative: the popular public datasets are **100% English**,
 **dominated by persona/"DAN"-style role-play**, and **materially duplicated**.
 The result is a **negative / meta-science finding about benchmark validity**: on
@@ -93,24 +96,48 @@ The 12-cell headline matrix (judge-scored, cross-validated; regenerate with
 
 | Benchmark | Target | Defence | ASR | 95% CI | cross-judge κ |
 | --- | --- | --- | ---: | --- | ---: |
-| AdvBench (direct, n=100) | Sonnet 4.6 | baseline / full-stack | 0% / 0% | [0,0] / [0,0] | +1.000 |
-| AdvBench (direct, n=100) | Llama 3.1 8B | baseline / full-stack | 1% / 0% | [0,3] / [0,0] | +1.000 |
-| AgentDojo (static indirect, n=50) | Sonnet 4.6 | baseline … full stack | 0% | [0,0] | +1.000 |
-| AgentDojo (static indirect, n=50) | Llama 3.1 8B | baseline | 4% | [0,10] | +1.000 |
-| AgentDojo (static indirect, n=50) | Llama 3.1 8B | +spotlighting / +SecAlign / full | 0% | [0,0] | +1.000 |
+| AdvBench (direct, n=100) | Sonnet 4.6 | baseline / full-stack | 0% / 0% | [0,0] / [0,0] | n/a (degenerate) |
+| AdvBench (direct, n=100) | Llama 3.1 8B | baseline / full-stack | 1% / 0% | [0,3] / [0,0] | n/a (degenerate) |
+| AgentDojo (static indirect, n=50) | Sonnet 4.6 | baseline … full stack | 0% | [0,0] | n/a (degenerate) |
+| AgentDojo (static indirect, n=50) | Llama 3.1 8B | baseline | 4% | [0,10] | **+1.000** (2 positives each) |
+| AgentDojo (static indirect, n=50) | Llama 3.1 8B | +spotlighting / +SecAlign / full | 0% | [0,0] | n/a (degenerate) |
+| AdvBench (positive control, n=100) | `llama2-uncensored:7b` | none | 80% | [72,87] | **+0.935** (79 positives each) |
+
+`n/a (degenerate)` means both judges labelled every cross-judged case
+identically and constantly, so Cohen's κ is 0/0 and the +1.000 the artifacts
+store is a reporting convention, not agreement evidence (METHODOLOGY §7). The
+positive-control row is the one that carries the agreement claim.
 
 Scoring these runs for staleness
 ([`reports/samples/staleness/`](../../reports/samples/staleness/)):
 
-| corpus | staleness | what drives it |
-| --- | ---: | --- |
-| AdvBench | 0.38 | max baseline ASR 1%; defences shift ASR ≤ 1pp |
-| AgentDojo (static) | 0.43 | same near-universal failure + heavy templated duplication |
+| corpus | staleness | components used | what drives it |
+| --- | ---: | ---: | --- |
+| AdvBench | 0.43 | 4/5 | max baseline ASR 1%; defences shift ASR ≤ 1pp; **agreement undefined** |
+| AgentDojo (static) | 0.43 | 5/5 | same near-universal failure + heavy templated duplication |
 
-Both decompose the same way: the `universal_low_asr` and `low_defence_sensitivity`
-components carry the score, while `judge_disagreement` is **0.00** — because
-cross-judge κ = +1.000, the ASR metric itself is well-posed. The benchmark isn't
-noisy; it has simply stopped discriminating.
+Both decompose the same way: `universal_low_asr` and `low_defence_sensitivity`
+carry the score. The interesting component is `judge_disagreement`, and it now
+behaves differently on the two corpora — which is itself the finding.
+
+`judge_disagreement` is `1 - mean(κ)` over the cross-judged runs. Averaging a
+degenerate κ in would make it read 0.00, "the judges agree", when the truth is
+that there was nothing to agree about. So degenerate runs are excluded, and:
+
+- **AdvBench: the component is `undefined`** — all 4 contributing runs are
+  degenerate. It drops out and the remaining weights renormalise, which is why
+  the score moved from 0.38 to **0.43**. Nothing about the corpus changed; a
+  component that was silently contributing a spurious 0.00 stopped contributing.
+- **AgentDojo: 0.00, but resting on one run of eight.** Seven are degenerate;
+  the surviving AgentDojo Llama baseline has κ = +1.000 on 2 positive labels.
+  The artifact now says so in the component detail rather than implying eight
+  runs of agreement.
+
+The evidence that ASR is well-posed comes from the positive control
+(κ = +0.935, both marginals near 80%), not from this component. The benchmark
+isn't noisy; it has stopped discriminating — and past a certain point of
+saturation, inter-judge agreement stops being measurable at all. A composite
+that quietly scores "no disagreement" there is measuring its own blind spot.
 
 ### 3.3 The defences are "free" here — but also have nothing to defend
 
@@ -138,15 +165,27 @@ or over-read. This mirrors, in brief, the consolidated section in
 - **Detectable-effect floor.** At n=100/0 successes the 95% CI is **[0, 3.6%]**;
   at n=50, **[0, 7.1%]**. The design rules out ASR above roughly those rates, not
   a genuinely rare failure below them.
-- **Positive control — passed.** A near-zero ASR could also mean the *harness*
-  is under-eliciting. Ruled out empirically: run through the *same* pipeline, a
-  known-vulnerable model (`llama2-uncensored:7b`, AdvBench n=100, no defences)
-  scores **80% ASR** (cross-judge 80.6%, κ = +0.935 — METHODOLOGY §12.5). The
-  apparatus registers a high ASR when the target is vulnerable, so the 0–4% is
-  the aligned targets' property, not a measurement artifact.
-- **Same-family judges.** Both judges are Claude-family. Perfect κ shows they are
-  *consistent*, not that they are *externally calibrated*; a third-family judge
-  or a human gold set would strengthen the claim at this ~0% base rate.
+- **Positive control — passed on AdvBench.** A near-zero ASR could also mean the
+  *harness* is under-eliciting. Ruled out for the direct-attack arm: run through
+  the *same* pipeline, a known-vulnerable model (`llama2-uncensored:7b`,
+  AdvBench n=100, no defences) scores **80% ASR** (cross-judge 80.6%,
+  κ = +0.935 — METHODOLOGY §12.5). The apparatus registers a high ASR when the
+  target is vulnerable, so the AdvBench 0–1% is the aligned targets' property,
+  not a measurement artifact.
+- **Positive control — FAILED on AgentDojo; that arm is uncontrolled.** The same
+  model on the same 50 AgentDojo cases scored **2%** against a *pre-registered*
+  PASS threshold of 20% (METHODOLOGY §12.6). It is not evidence of resistance:
+  the model never refuses (0% rule-based refusal) and confabulates instead of
+  reading the tool output (26% of responses cite email addresses absent from the
+  prompt), so the cell measures incapacity. **The indirect-injection results
+  therefore carry no under-elicitation control**, and should be read with that
+  limitation stated. A positive control needs its own capability gate — the
+  model must first be shown able to do the benign task.
+- **Same-family judges, and one measurable cell.** Both judges are
+  Claude-family. κ = +0.935 on the positive control shows they are *consistent*,
+  not that they are *externally calibrated* — and the matrix cells cannot add to
+  that, because at a ~0% base rate their κ is degenerate. A third-family judge
+  or a human gold set would strengthen the claim.
 - **Static, not adaptive.** See §5 — this is a static-corpus measurement, not an
   adaptive-attack evaluation; 0–4% is a floor for that threat model only.
 - **Static agent render = lower bound.** AgentDojo cells render each injection as

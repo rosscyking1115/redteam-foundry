@@ -821,7 +821,10 @@ def run_cmd(
     typer.echo(
         typer.style(
             f"Run: {cfg.name}  target={cfg.target}  "
-            f"defences={[d.id for d in cfg.defences]}  cap=${cfg.budget_usd}",
+            f"defences={[d.id for d in cfg.defences]}  "
+            # Printing controls explicitly: a control run showed `defences=[]`
+            # here, which is the one place it could look undefended.
+            f"controls={cfg.controls}  cap=${cfg.budget_usd}",
             fg=typer.colors.CYAN,
         )
     )

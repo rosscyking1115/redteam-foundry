@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from redteam.budget import reset_budget
 from redteam.cache import ResponseCache
+from redteam.controls import CONTROLS, control_marker
 from redteam.corpora import LOADERS
 from redteam.defences import DEFENCES, NEEDS_GUARD, Defence, SendLike
 from redteam.schemas import AttackCase, Message
@@ -61,6 +62,12 @@ class RunConfig(BaseModel):
     name: str
     target: str
     defences: list[DefenceSpec] = Field(default_factory=list)
+    # Control harnesses (redteam.controls). Deliberately a separate key from
+    # `defences`: a control forces a known outcome to test the measurement, and
+    # labelling one as a defence would invite the misreading it exists to
+    # prevent. Recorded in RunResult.defences with a `control:` prefix so an
+    # artifact can never look undefended when a control was applied.
+    controls: list[str] = Field(default_factory=list)
     corpora: list[CorpusSpec]
     guard_model: str = "llama-guard4:12b"  # used only if a llamaguard4-* defence is configured
     budget_usd: Decimal = Decimal("0.50")
@@ -72,6 +79,13 @@ class RunConfig(BaseModel):
     def _target_known(self) -> RunConfig:
         if self.target not in TARGETS:
             raise ValueError(f"Unknown target {self.target!r}. Known: {sorted(TARGETS.keys())}")
+        return self
+
+    @model_validator(mode="after")
+    def _controls_known(self) -> RunConfig:
+        unknown = [c for c in self.controls if c not in CONTROLS]
+        if unknown:
+            raise ValueError(f"Unknown control(s) {unknown}. Known: {sorted(CONTROLS.keys())}")
         return self
 
     @classmethod
@@ -109,6 +123,11 @@ def build_stack(config: RunConfig, *, cache: ResponseCache | None = None) -> Sen
             stack = cls(stack, guard=guard)  # type: ignore[call-arg]
         else:
             stack = cls(stack)
+    # Control harnesses wrap outermost, so their system prompt is merged last.
+    # A run should not normally carry both a control and a defence; nothing
+    # forbids it, but the result would answer neither question cleanly.
+    for control_id in reversed(config.controls):
+        stack = CONTROLS[control_id](stack)
     return stack
 
 
@@ -295,7 +314,7 @@ async def run(config: RunConfig, *, cache_root: Path | None = None) -> RunResult
     return RunResult(
         run_name=config.name,
         target=config.target,
-        defences=[d.id for d in config.defences],
+        defences=[d.id for d in config.defences] + [control_marker(c) for c in config.controls],
         cases_total=total,
         refusals=refusals,
         asr=asr,

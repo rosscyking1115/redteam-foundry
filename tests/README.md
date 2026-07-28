@@ -36,8 +36,10 @@ it honest, without reading the whole suite.
 | Suite | Defends |
 | --- | --- |
 | [`test_orchestrator_cross_judge.py`](unit/test_orchestrator_cross_judge.py) | The cross-judge path computes inter-judge agreement (Cohen's kappa / Krippendorff's alpha) — the headline validation mechanism (§7). |
-| [`test_stats.py`](unit/test_stats.py) | The bootstrap confidence intervals and the Krippendorff's-alpha / kappa helpers — every CI and agreement number traces here. |
+| [`test_stats.py`](unit/test_stats.py) | The bootstrap confidence intervals, the Krippendorff's-alpha / kappa helpers, and the grounding diagnostic — every CI, agreement and capability-gate number traces here. Includes the case a liveness check scores 100% and grounding scores 0. |
+| [`test_controls.py`](unit/test_controls.py) | That a control harness can never be mistaken for a defence — registries disjoint, the `control:` marker reaching the artifact, and control runs excluded from corpus analysis rather than reclassified (§12.7). |
 | [`test_judge_human.py`](unit/test_judge_human.py) | The human spot-check export and the Cohen's-kappa helper used as a tertiary check. |
+| [`test_headline_table.py`](unit/test_headline_table.py) | That a published cross-judge kappa is only claimed as agreement when the labels actually varied — 11 of the 12 matrix cells are degenerate 0/0 and the claim rests on the positive control (§7) — and that the FAILED AgentDojo control stays in the frozen record (§12.6). |
 
 ## Corpus audit & taxonomy — the quality findings (report card §1)
 

@@ -62,8 +62,11 @@ Each phase is one PR with green CI. Phase 0 is complete.
   judge-disagreement) into a **heuristic**, component-broken-out `staleness_score`
   — never a single magic number, renormalised over whatever data is available.
 - Worked example: AgentDojo scores ~0.43 ("mixed") — driven by near-universal
-  attack failure and low defence sensitivity, while cross-judge κ=+1.000 confirms
-  ASR itself is well-posed.
+  attack failure and low defence sensitivity. AdvBench also scores 0.43, but on
+  4/5 components: every one of its cross-judged runs has both judges constant,
+  so the `judge_disagreement` component is **undefined** rather than 0.00 and
+  drops out (METHODOLOGY §7). Agreement evidence comes from the positive
+  control (κ = +0.935), not from the saturated cells.
 
 ### Phase 3 — Defence comparison + safe-usefulness — **done**
 - Committed **benign control set** (`redteam.benign`, ~45 prompts incl.

@@ -15,6 +15,6 @@
 | duplicate_cluster | 0.20 | 0.50 | exact-dup rate 0.0%, 6038 near-dup pair(s) over 949 cases |
 | universal_low_asr | 0.25 | 0.96 | max baseline ASR 4.0% across 2 baseline run(s) |
 | low_defence_sensitivity | 0.15 | 0.60 | largest baseline→defence ASR shift 4.0% (ref 10%) |
-| judge_disagreement | 0.10 | 0.00 | mean cross-judge ASR κ +1.000 over 8 run(s) |
+| judge_disagreement | 0.10 | 0.00 | mean cross-judge ASR κ +1.000 over 1 informative run(s); 7/8 degenerate (both judges constant, κ is 0/0) |
 
 Scores are in [0, 1]; higher = more stale. The composite is a weight-renormalised average over the components that had data.
