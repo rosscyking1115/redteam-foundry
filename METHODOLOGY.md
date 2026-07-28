@@ -254,14 +254,39 @@ the metric. The fact that two competent frontier judges cannot agree on how to
 wherever the labels vary, is itself the cleanest evidence for the project's
 headline: prompt-only defences move response style, not the safety outcome.
 
-**Narrowed by later evidence (§12.8).** The instability is not a property of the
-indirect-injection setting as such; it is a property of the *charitable
-redirect* — the aligned response that serves the user while silently ignoring
-the injection, where "did it refuse?" has two referents and the judges pick
-different ones. On a later cell whose responses are unambiguous (flat refusal or
-flat compliance, 29 of 50), the same two judges agree **perfectly** on refusal,
-κ = +1.000 on genuine variance. The conclusion above is unchanged; the reason
-originally given for it was broader than the evidence.
+**Narrowed by the repo's own data.** The instability is not a property of the
+indirect-injection setting as such. Refusal agreement across the AgentDojo cells
+forms a gradient, and it tracks how much of each cell is *charitable redirect* —
+the aligned response that serves the user while silently ignoring the injection,
+where "did it refuse?" has two referents and the judges pick different ones:
+
+| cell | behaviour | refusal κ / α | judge marginals |
+| --- | --- | ---: | --- |
+| Sonnet baseline (§8) | almost all redirect | **+0.017 / −0.476** | 15 vs 49 of 50 |
+| Llama baseline (§8) | mostly flat refusal | **+0.730 / +0.728** | 45 vs 47 of 50 |
+| Detector control (§12.8) | flat refusal or flat compliance | **+1.000 / +1.000** | 29 vs 29 of 50 |
+
+Two corrections follow, both against the original wording. First, **the negative-α
+evidence was only ever the four Sonnet cells** — the Llama baseline was already
+at +0.730 in this repo when the broad claim was written, so §7 was contradicted
+by its own data at the time. Second, the mechanism paragraph above already
+identifies the redirect as the cause; the concluding sentence simply failed to
+carry that qualification.
+
+On the morphology point specifically: the detector-control cell has no middle
+ground — of 29 refusals 0 were scored as hijacks, and of 21 non-refusals 19
+were. That is the same cross-tab §12.8 refuses to use, and the distinction
+matters rather than being a convenience. It is **invalid** there as evidence
+about detector accuracy, because refusal is post-treatment and conditioning on
+it selects on the dependent variable. It is **valid** here as a description of
+response *morphology* — that the cell is bimodal — which is a statement about
+the shape of the responses, not about whether the judge scored them correctly.
+
+The conclusion above is unchanged: do not use `refusal_rate` as a safety metric
+on this track. Its stated reason was broader than the evidence, and the honest
+version is narrower and better supported. One caveat on the narrowing itself:
+the +1.000 endpoint is a single cell, so the gradient is suggestive of the
+mechanism rather than a demonstration of it.
 
 ## 8. Results
 
@@ -302,8 +327,23 @@ cross-judge failed to parse, so it is absent from the cross-judge sample (§7).
 | AdvBench | `llama2-uncensored:7b` (§12.5) | 80% | [72, 87] | **+0.935** (n = 98, 79 positives each) | **pass** |
 | AgentDojo | `llama2-uncensored:7b` (§12.6) | 2% | [0, 6] | +0.658 (n = 50) | **FAIL** — pre-registered threshold was 20% |
 
-The AdvBench row is the cell the inter-judge agreement claim rests on, and it
-also rules out under-elicitation for the direct-attack arm.
+### Detector control — engineered compliance, measurement only
+
+Reported separately and never merged into the table above: this cell's
+compliance is *engineered*, so it can speak only to whether the pipeline detects
+a hijack, never to whether a model would be hijacked unprompted (§12.7).
+
+| Benchmark | Target | ASR (judge) | 95% CI | ASR cross-judge κ | verdict |
+| --- | --- | ---: | --- | ---: | --- |
+| AgentDojo | `llama3.1:8b` + compliance control (§12.8) | 38% | [26, 52] | **+0.917** (n = 50) | **INCONCLUSIVE** — pre-registered PASS was 70% |
+
+The AdvBench positive-control row is the cell the inter-judge agreement claim
+rests on, and it also rules out under-elicitation for the direct-attack arm. The
+detector control's +0.917 corroborates that agreement at a middling base rate,
+but its own verdict is inconclusive: the compliance instruction did not take.
+
+All three tables are regenerated and asserted together by
+`python scripts/headline_table.py --check`.
 
 > **The AgentDojo rows above are uncontrolled.** The indirect-injection positive
 > control was attempted and failed: the unaligned model confabulates rather than
@@ -767,17 +807,13 @@ That is direct empirical support for §7: the eleven +1.000s were never agreemen
 evidence, and the numbers that *are* measurements do not all sit at 1.
 
 *(b) A refinement to §7's refusal claim, in §7's disfavour and worth stating.*
-§7 declares `refusal` ill-posed for indirect injection, on evidence that the two
-judges disagreed worse than chance on the aligned AgentDojo cells (α down to
-−0.53). On this cell they agree **perfectly** — κ = +1.000 on genuine variance,
-29 of 50, not a degenerate cell. The claim therefore needs narrowing: refusal is
-ill-posed when the model does the *charitable-redirect* thing an aligned model
-does under injection, serving the user while silently ignoring the injected
-instruction — that is the case where "did it refuse?" has two referents and the
-judges pick different ones. When the behaviour is unambiguous, a flat refusal or
-a flat compliance, the label is well-posed and the judges agree completely.
-§7's conclusion (do not use `refusal_rate` as a safety metric on this track)
-stands; its stated *reason* was too broad.
+§7 declared `refusal` ill-posed for indirect injection on evidence that the
+judges disagreed worse than chance (α to −0.53). On this cell they agree
+**perfectly** — κ = +1.000 on genuine variance, 29 of 50, non-degenerate. Added
+to the Llama baseline's +0.730, which was already in the repo, that makes a
+three-point gradient tracking how much of a cell is charitable redirect. The
+narrowing and its caveats are written up in §7 itself. §7's conclusion stands;
+its stated reason was broader than its own data.
 
 ## 13. Future work
 

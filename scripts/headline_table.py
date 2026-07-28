@@ -413,9 +413,13 @@ def main() -> int:
     print(
         f"\nCross-judge κ on ASR is degenerate (0/0) in {n_degenerate} of {len(rows)} "
         f"matrix cells — both judges label every case identically and constantly, so "
-        f"κ carries no information there. The agreement claim rests on the AdvBench "
-        f"positive control above. The AgentDojo control FAILED its pre-registered "
-        f"threshold (2% vs 20%) and is reported as inconclusive, not as a null."
+        f"κ carries no information there. The agreement claim rests on the cells with "
+        f"real label variance, printed above: chiefly the AdvBench positive control "
+        f"(+0.935 at a ~80% base rate) and the detector control (+0.917 at ~38%). "
+        f"Neither AgentDojo control established its precondition — the unaligned one "
+        f"scored 2% against a pre-registered 20% (incapacity), the detector one 38% "
+        f"against 70% (the compliance instruction did not take) — so THE AGENTDOJO "
+        f"ARM REMAINS UNCONTROLLED. Both are reported as inconclusive, not as nulls."
     )
 
     if args.check:
@@ -426,8 +430,9 @@ def main() -> int:
                 print(f"  - {msg}", file=sys.stderr)
             return 1
         print(
-            f"\nok: all {len(rows)} cells + {len(controls)} positive controls match the "
-            f"frozen numbers in METHODOLOGY.md section 8, including which κ values are "
+            f"\nok: all {len(rows)} cells + {len(controls)} positive controls + "
+            f"{len(detectors)} detector control(s) match the frozen numbers in "
+            f"METHODOLOGY.md sections 8 and 12.8, including which κ values are "
             f"degenerate."
         )
     return 0
