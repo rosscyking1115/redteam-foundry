@@ -63,6 +63,11 @@ inspect = [
   # runs can be opened in `inspect view` or loaded with read_eval_log().
   "inspect-ai>=0.3.224",
 ]
+provenance = [
+  # Enables src/redteam/provenance.py — Simplified/Traditional locale
+  # renderings and their divergence metrics. Apache-2.0.
+  "OpenCC>=1.1",
+]
 dev = [
   "pytest>=8.3",
   "pytest-asyncio>=1.3",
@@ -74,6 +79,9 @@ dev = [
   "inspect-ai>=0.3.224",
   # scripts/plot_results.py — regenerates the README results figure
   "matplotlib>=3.8",
+  # exercised by tests/unit/test_provenance.py. In `dev` as well as its own
+  # extra so the suite never silently shrinks when the extra is absent.
+  "OpenCC>=1.1",
   # types
   "types-PyYAML",
 ]
@@ -125,6 +133,14 @@ ignore = [
 # for legitimate non-Latin data (e.g. full-width CJK punctuation).
 "src/redteam/multilingual.py" = ["RUF001"]
 "tests/unit/test_multilingual.py" = ["RUF001"]
+# Locale-provenance work is entirely about CJK characters that differ by one
+# glyph, so RUF001/2/3 (ambiguous unicode in code / docstrings / comments) fire
+# on the data itself. RUF003 covers the comparison tables in comments.
+"src/redteam/provenance.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/unit/test_provenance.py" = ["RUF001", "RUF002", "RUF003"]
+# The exclusion filter carries CJK blocklist patterns and CJK test fixtures.
+"src/redteam/corpora/_filters.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/unit/test_exclusion_filter.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]
 quote-style = "double"
