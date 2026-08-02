@@ -353,6 +353,19 @@ badly; this is a **verification step** that cannot come out badly:
 > non-zero, and a `grep -v` that finds nothing exits *zero*. A `tail` of a
 > crashed process's output is a successful `tail`.
 
+**The repair is the inverse of the defect, and worth stating as a method.**
+Once the exit code was captured honestly, the cause was established by ruling
+things out in order of cheapness, each with its own exit code: explicit
+single-device placement still segfaulted, which eliminated the auto-dispatch
+and CPU-offload logic; a bare bf16 matmul on the GPU passed, which eliminated
+the driver, the CUDA runtime and the torch build; only then was the library
+version changed, and the same model loaded and generated in under two seconds.
+
+That ordering is what makes the conclusion *established* rather than
+*presumed*. The first diagnosis — memory pressure — was the first plausible
+story reached for, tested against nothing, and it was wrong. A cause you have
+merely explained is not a cause you have isolated.
+
 Concretely: capture the status of the process you care about, not of the
 formatting you wrapped around it. Redirect to a file and read it afterwards,
 use `PIPESTATUS`/`pipefail`, or simply do not pipe the command whose exit code

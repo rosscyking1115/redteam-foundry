@@ -66,7 +66,28 @@ inspect = [
 provenance = [
   # Enables src/redteam/provenance.py — Simplified/Traditional locale
   # renderings and their divergence metrics. Apache-2.0.
+  #
+  # The dictionary CONTENT is the treatment, not the version string: exact
+  # per-file SHA-256 and entry counts are pinned in src/redteam/opencc_pin.py
+  # and verified by tests/unit/test_opencc_pin.py. Upgrading this range without
+  # updating that pin will change conversion results silently.
   "OpenCC>=1.1",
+]
+guard = [
+  # Running a local guard classifier (scripts/run_locale_provenance_guard.py).
+  #
+  # transformers is capped BELOW 5 on purpose. DO NOT RAISE THIS BOUND without
+  # re-testing: transformers 5.14.1's weight-placement path segfaults (SIGSEGV,
+  # exit 139) at roughly 60% of weight loading for an 8B Llama checkpoint under
+  # EVERY device_map — "auto", explicit {"": 0}, quantised and unquantised
+  # alike. It is not a capacity problem (4-bit needs ~5.5GB against 6.6GB free)
+  # and not a driver problem (a bare bf16 GPU matmul passes). transformers
+  # 4.57.6 loads and generates from the same checkpoint on the same GPU in
+  # under two seconds.
+  "transformers>=4.50,<5",
+  "accelerate>=1.0",
+  "bitsandbytes>=0.45",
+  "sentencepiece",
 ]
 dev = [
   "pytest>=8.3",
@@ -144,6 +165,26 @@ ignore = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+# ----------------------------------------------------------------------------
+# Documentation convention
+# ----------------------------------------------------------------------------
+# Docstring style: PEP 257 summary line, then prose. NumPy-style section
+# headers are used only where a module genuinely has sections to name; short
+# functions take a single summary line and nothing more.
+#
+# The split that matters here, applied consistently across these repositories:
+#   - a DOCSTRING says what a thing does and how to use it;
+#   - a COMMENT says why the code is the way it is — a constraint, a rejected
+#     alternative, a bug being worked around.
+# A comment restating what the next line does is noise; a docstring explaining
+# project history belongs in docs/.
+#
+# Priority when retrofitting: module docstrings first (they orient a reader
+# who has never seen the file), then the public surface. Private helpers are
+# documented only where the reason is non-obvious. Coverage is not the goal.
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 
 # ----------------------------------------------------------------------------
 # Mypy

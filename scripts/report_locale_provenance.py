@@ -142,6 +142,27 @@ def section(title: str, items: list[dict[str, Any]]) -> None:
         print(f"  probe    {LABEL[a]:<13}vs {LABEL[b]:<13}{fmt(change_rate(items, a, b))}")
 
 
+def absence_counts(by_item: dict[str, dict[str, Any]], n_conditions: int) -> dict[str, int]:
+    """Count what the instrument returned when it returned nothing.
+
+    Separated from `main` so it can be fired against fixtures. A 0.00% absence
+    rate is only evidence if this counter is capable of returning non-zero, and
+    `tests/unit/test_absence_detector.py` proves it is by feeding it a blank
+    response and an unparseable one.
+    """
+    calls = sum(len(v) for v in by_item.values())
+    return {
+        "calls": calls,
+        "items_missing_a_cell": sum(1 for v in by_item.values() if len(v) != n_conditions),
+        "empty_responses": sum(
+            1 for v in by_item.values() for r in v.values() if not r["raw"].strip()
+        ),
+        "unparseable_verdicts": sum(
+            1 for v in by_item.values() for r in v.values() if r["verdict"] == UNPARSEABLE
+        ),
+    }
+
+
 def _edit(item: dict[str, Any], key: str) -> Any:
     return (item["native"].get("edits") or {}).get(key)
 
@@ -188,7 +209,6 @@ def main() -> None:
 
     header, by_item = load(args.run)
     complete = [v for v in by_item.values() if len(v) == len(CONDITIONS)]
-    partial = len(by_item) - len(complete)
 
     print("=" * 78)
     print("LOCALE PROVENANCE — Breeze-Guard-26 verdicts across four renderings")
@@ -202,18 +222,17 @@ def main() -> None:
         print(f"  {'pin_verified':<16} {pin.get('pin_verified')}")
 
     # ---- absence -------------------------------------------------------
-    total_calls = sum(len(v) for v in by_item.values())
-    unparseable = sum(
-        1 for v in by_item.values() for r in v.values() if r["verdict"] == UNPARSEABLE
-    )
-    empty = sum(1 for v in by_item.values() for r in v.values() if not r["raw"].strip())
+    ab = absence_counts(by_item, len(CONDITIONS))
+    total_calls = ab["calls"]
+    empty, unparseable = ab["empty_responses"], ab["unparseable_verdicts"]
     print()
     print("ABSENCE RATE — what the instrument returned when it returned nothing")
     print(f"  calls made              {total_calls}")
-    print(f"  items missing a cell    {partial}")
+    print(f"  items missing a cell    {ab['items_missing_a_cell']}")
     print(f"  empty responses         {empty}  ({100 * empty / total_calls:.2f}%)")
     print(f"  unparseable verdicts    {unparseable}  ({100 * unparseable / total_calls:.2f}%)")
     print("  (unparseable cells are EXCLUDED from paired tests, never counted as agreement)")
+    print("  detector fired against fixtures: tests/unit/test_absence_detector.py")
 
     # ---- verdict base rates -------------------------------------------
     print()

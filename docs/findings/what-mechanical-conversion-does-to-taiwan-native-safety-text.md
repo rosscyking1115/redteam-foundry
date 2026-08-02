@@ -19,19 +19,26 @@ It is not. Measured against 400 Taiwan-native safety prompts, converting them
 down to Simplified and back with the standard tool:
 
 - changes the text on **66% of items**;
-- restores the **wrong character** on about **17% of one-to-many opportunities**
-  (315 errors across 27 distinct character pairs);
-- mangles **台** — the character in 台灣 *(Taiwan)* and in the gendered slur
-  台女 — on **82 of its 83 opportunities**.
+- restores a **different character than the author wrote** on about 17% of
+  one-to-many opportunities (315 across 27 distinct pairs);
+- replaces **台** — the character in 台灣 *(Taiwan)* and in the gendered slur
+  台女 — with 臺 on **82 of its 83 opportunities**.
 
-Turning on the tool's Taiwan-localisation option (`s2twp`) helps a lot: errors
-fall from 315 to 131. But **79 of those 131 remaining errors are the single
-substitution 台→臺**, and the option separately *introduces* errors by
-"correcting" 聯繫→聯絡 and 數據→資料 where the Taiwanese author had written the
-first form.
+Turning on the Taiwan-localisation option (`s2twp`) helps a great deal: errors
+fall from 315 to 131, and **excluding the 台/臺 pair it is 97.1% accurate, with
+only 52 errors in the whole corpus**. The headline is therefore *not* that
+conversion fails:
 
-The sharpest single result is an accident of dictionary contents: **the Hong Kong
-conversion preserves 台; both Taiwan conversions destroy it.**
+> **Dictionary conversion is accurate. Sixty per cent of what it still gets
+> "wrong" is one character pair on which two Taiwanese standards disagree** —
+> 台 is the common variant, 臺 the Ministry-prescribed one, and which is correct
+> depends on a ground truth that has to be named rather than assumed. §4 names
+> the one used here and reports both figures.
+
+Two results survive that framing. `s2twp` separately *introduces* errors,
+rewriting 聯繫→聯絡 and 數據→資料 where Taiwanese curators wrote the first form.
+And by an accident of dictionary contents, **the Hong Kong conversion preserves
+台 while both Taiwan conversions replace it.**
 
 **What this document does not establish:** whether any of this changes a safety
 classifier's verdict. That measurement is designed and preregistered but not yet
@@ -130,7 +137,7 @@ trivial in total. The remaining 71% carry substantive differences.
 
 ---
 
-## 4. Result: one restoration in six is wrong
+## 4. Result: how often the converter departs from the author
 
 Simplification merged historically distinct characters, so converting back is a
 word-sense disambiguation problem, not a lookup. The pinned `STCharacters`
@@ -138,17 +145,48 @@ dictionary contains **275** source characters with more than one traditional
 target. Each occurrence in a source text is an *opportunity* to pick the wrong
 one.
 
-Scored against the native gold, per position, over the whole corpus:
+### The ground truth, named
 
-| Route | Correct | Wrong |
-|---|---|---:|
-| **A** `s2t` glyph-only | 1,555 / 1,870 — **83.2%** | 315 |
-| **B** `s2twp` dictionary | 1,639 / 1,770 — **92.6%** | 131 |
-| **D** `s2hk` Hong Kong | 1,693 / 1,870 — **90.5%** | 177 |
+"Wrong" is meaningless without saying wrong *against what*. This document uses
+exactly one ground truth:
 
-The Taiwan vocabulary dictionary earns its place: it cuts errors by well over
-half. The denominators differ because `s2twp` fires more phrase rules, and where
-a phrase rule changes a span's length, per-position alignment is invalid — those
+> **Ground truth is what the Taiwanese curators wrote.** An output is scored
+> wrong when it differs from the published TS-Bench text at that position.
+
+That is the right standard for a **provenance** question — did this text reach
+the evaluator as its authors wrote it? — and it is the only one that is
+machine-checkable without an annotator.
+
+It is **not** the Ministry of Education standard, and for one pair the two
+disagree. 台 is the 俗字 (common variant) of 臺; the MOE prescribes 臺 in formal
+registers, and Taiwanese writers use 台 constantly. Under an MOE ground truth,
+台→臺 would be a **correction**, not an error, and every figure below changes.
+Both are reported for that reason.
+
+### The numbers
+
+Scored per position against the native gold, over the whole corpus:
+
+| Route | Errors | of which 台/臺 | Errors excl. 台/臺 | Accuracy incl. | Accuracy excl. |
+|---|---:|---:|---:|---:|---:|
+| **A** `s2t` glyph-only | 315 | 82 | 233 | 83.2% | 87.5% |
+| **B** `s2twp` dictionary | 131 | **79** | **52** | 92.6% | **97.1%** |
+| **D** `s2hk` Hong Kong | 177 | 1 | 176 | 90.5% | 90.6% |
+
+Read the two right-hand columns together, because the difference between them
+*is* the finding:
+
+> **Dictionary conversion is 97.1% accurate on one-to-many restoration. Its
+> residual error is dominated — 79 of 131, 60% — by a single character pair on
+> which two Taiwanese standards disagree.**
+
+That is a sharper and more defensible claim than "conversion fails". `s2twp` is
+not broken; it is accurate, and its one systematic divergence is a prescriptive
+choice rather than a mistake. Anyone auditing this pipeline who did not separate
+the 台/臺 pair would conclude the opposite.
+
+The denominators differ because `s2twp` fires more phrase rules, and where a
+phrase rule changes a span's length, per-position alignment is invalid — those
 opportunities are counted but **not** scored, and the accuracy figure reports
 `None` rather than a flattering number.
 
@@ -179,11 +217,17 @@ And several are **archaic forms no contemporary writer uses**: 喫 for 吃, 纔 
 
 ---
 
-## 5. Result: the Taiwan option leaves one character, and it is the worst one
+## 5. Result: the divergence concentrates on one contested character
 
-Of the **131** errors `s2twp` still makes, **79 are the single substitution
-台→臺** — 60% of its entire residual error budget on one character. Under
-glyph-only conversion, `台` is restored wrongly on **82 of its 83 opportunities**.
+Of the **131** divergences `s2twp` still produces, **79 are the single
+substitution 台→臺** — 60% of its residual budget on one character. Under
+glyph-only conversion, 台 is replaced on **82 of its 83 opportunities**.
+
+This is the pair where the ground truth matters most (§4). Against what the
+curators wrote, these are errors. Against the MOE standard, 臺 is the
+prescribed form and these are corrections. What is *not* in dispute is that the
+two renderings differ, and that a model reading them is reading different
+text — which is all a provenance argument needs.
 
 ```
 native      台灣        台女
@@ -208,8 +252,9 @@ incidentally gets it right.**
 
 ### The dictionary also over-corrects
 
-`s2twp` does not only fail to fix things — it introduces errors of its own, by
-applying Taiwan vocabulary where the native author did not use it:
+Separately from 台/臺, `s2twp` introduces divergences of its own by applying
+Taiwan vocabulary where the native author did not use it. These are not
+standards disagreements — the curators simply wrote the other form:
 
 | Native wrote | `s2twp` produces | Count |
 |---|---|---:|
@@ -285,13 +330,17 @@ Results obtained on master will not match these.
 **Supported by the measurement above:**
 
 - Mechanical conversion changes most Taiwan-native safety text.
-- Glyph-only conversion restores the wrong character on roughly one opportunity
-  in six, concentrating on Taiwan-specific vocabulary and on archaic forms.
-- The Taiwan-localisation configuration cuts that error rate by more than half,
-  but 60% of what it still gets wrong is one character, 台 — which the Hong Kong
-  configuration incidentally gets right.
-- That configuration also over-corrects, changing 聯繫 and 數據 as written by
-  Taiwanese authors into 聯絡 and 資料.
+- Glyph-only conversion departs from what the author wrote on roughly one
+  opportunity in six, concentrating on Taiwan-specific vocabulary and on
+  archaic forms.
+- The Taiwan-localisation configuration is **97.1% accurate once the contested
+  台/臺 pair is set aside** — 52 divergences in the whole corpus. It is not
+  broken, and reporting it as broken would require conflating a prescriptive
+  disagreement with an error.
+- 60% of its residual divergence is that one pair, which the Hong Kong
+  configuration incidentally resolves the author's way.
+- It also over-corrects, changing 聯繫 and 數據 as written by Taiwanese curators
+  into 聯絡 and 資料.
 - Any of these is reproducible offline from the pins in §7.
 
 **Not supported, and not claimed:**
