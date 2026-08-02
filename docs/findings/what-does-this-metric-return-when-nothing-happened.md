@@ -235,44 +235,76 @@ bounded by what it can parse, and "no matches" and "cannot read the input" are
 the same return value.** For any regex, schema, linter or scanner, ask what it
 returns for input outside its alphabet.
 
-### 8. A null result that would have come from a config flag — the near-miss
+### 8. A generalisation from five probes — corrected
 
-This one was caught before it happened, which is why it is here.
+**The first published version of this instance was wrong, and the correction is
+the more useful finding.** It is kept here rather than deleted, because an
+instance in a document about unchecked claims must not itself be an unchecked
+claim.
 
-The locale-provenance study compares three renderings of one prompt: native
-Taiwan text, glyph-only conversion, and dictionary-localised conversion. The
-obvious OpenCC configuration for "convert to Taiwan Traditional" is `s2tw`.
+**What was published.** That `s2tw` "collapses into `s2t`", so choosing it for
+the dictionary condition would have made conditions A and B
+character-for-character identical and produced a clean, well-powered, entirely
+false null. The evidence given was that `s2tw` reproduced `s2t` output on 4 of 5
+vocabulary probes.
 
-`s2tw` applies only *TWVariants* — character-shape preferences such as 裏→裡.
-It does **not** apply *TWPhrases*, the PRC→Taiwan vocabulary dictionary that
-turns 內存 into 記憶體. On vocabulary-bearing probes, `s2tw` reproduced plain
-`s2t` output on 4 of 5 items; `s2twp` differed on 5 of 5.
+**What the configs actually say.** Read directly from the installed files:
 
-Had the study used `s2tw`, condition B would have been character-for-character
-identical to condition A on most items. The guard would have returned the same
-verdict for both — necessarily, because it was reading the same string. The
-result would have been a clean, well-powered, entirely false null: *"locale
-rendering does not affect safety verdicts."* Every check in this document would
-have passed. The metric returns the good value when nothing happened, and here
-"nothing happened" would have been caused by a three-character configuration
-choice rather than by the world.
+```
+s2t    = STPhrases, STCharacters
+s2tw   = STPhrases, STCharacters, TWVariantsPhrases, TWVariants
+s2twp  = STPhrases, STCharacters, TWPhrases, TWVariantsPhrases, TWVariants
+```
 
-The pre-run divergence gate is what caught it: measuring how far the renderings
-differ *before* running any model showed A and B were the same text. That check
-exists only because the conditions were required to be distinct by construction.
+`s2tw` runs a genuine Taiwan character-variant stage and differs from `s2t` on
+any text containing 裏, 爲 or 麪 — 裏面→裡面, 爲了→為了, 麪條→麵條 all verified.
+What it lacks is *TWPhrases*, the word-level vocabulary dictionary. The
+conclusion — use `s2twp` — survives. The stated reason was false.
 
-Two lessons:
+**How the error was made.** The five probes were chosen to be
+*vocabulary*-bearing, so they had no variant-bearing characters in them. Four
+matched, and "matched on these five" became "is structurally identical". The
+disconfirming evidence was already in hand: an earlier probe in the same
+session had recorded `s2tw` → 哪**裡** against `s2t` → 哪**裏**, flagged
+`same as A: False`. It was not reconciled against the claim.
 
-- **Configuration belongs in the pre-registration**, not only in the code. A
-  tool's default is a hypothesis about what the tool does, and defaults are
-  chosen for the common case, not for yours.
-- **A null result needs its own positive control.** Before believing "no
-  difference between conditions", verify the conditions actually differed. That
-  is the same question as #2 and #3, asked one layer earlier — of the
-  *stimulus* rather than of the response.
+That is the failure this instance is really about, and it is a different one
+from #1–#7:
 
-Recorded in `docs/locale-provenance-preregistration.md` §3 and pinned by
-`tests/unit/test_provenance.py::test_s2twp_applies_vocabulary_where_s2tw_does_not`.
+> **A metric can be satisfied by a sample that had no opportunity to disconfirm.**
+> Four of five agreeing is only evidence if at least one of the five could have
+> disagreed. A test set selected for one property is silent about another, and
+> its silence reads exactly like confirmation.
+
+It also demonstrates the failure mode surviving *into the correction*: the
+project caught the near-miss it was looking for and shipped a false explanation
+of it in the same breath. Being alert to one pattern is not protection against
+committing it.
+
+**What still stands.** Configuration belongs in the preregistration. A tool's
+default encodes an assumption about the common case, and `s2tw` versus `s2twp`
+is the difference between measuring vocabulary localisation and not. And before
+believing any null, verify the conditions differed — the same question as #2 and
+#3, asked of the *stimulus* rather than the response.
+
+**What was added because of the error.** The treatment is now frozen by content,
+not by name: `src/redteam/opencc_pin.py` records the package version, upstream
+commit `81223ed`, and the SHA-256 of every dictionary in every chain used, with
+`verify_pin()` failing loudly on drift. This matters beyond bookkeeping — OpenCC
+master carries an August 2026 fix to greedy `s2twp` matching that is not in the
+pinned release, and several dictionaries have gained entries since. A run
+reporting "converted with OpenCC" is not reproducible.
+
+A second claim from the same session was also wrong and is corrected here:
+`TWPhrases` proper-name coverage is **sparse and uneven, not absent**.
+奧巴馬→歐巴馬, 新西蘭→紐西蘭 and 老撾→寮國 are present; 布什→布希, 悉尼→雪梨
+and 里根→雷根 are not. At 775 entries against 4,800+ groups in Taiwan's official
+cross-strait difference list, `s2twp` is a partial mapping and must never be
+described as comprehensive Taiwan localisation.
+
+Pinned by `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`,
+`::test_s2twp_adds_vocabulary_that_s2tw_lacks`, and
+`tests/unit/test_opencc_pin.py`.
 
 ## What the six have in common
 
@@ -336,7 +368,18 @@ reliably self-detectable, and needs structure:
     out to be the same thing will produce a confident, well-powered nothing.
 11. **Pre-register the configuration, not just the thresholds.** A library
     default encodes an assumption about the common case, which may not be
-    yours; `s2tw` versus `s2twp` was the whole experiment.
+    yours; `s2tw` versus `s2twp` was the whole experiment. Freeze it by
+    *content* — version, commit, per-file hash — not by name.
+12. **Could this sample have disconfirmed the claim?** Agreement across N
+    probes is evidence only if at least one probe had the property that would
+    have broken it. A set selected for one feature is silent about another,
+    and its silence is indistinguishable from confirmation. #8 was published
+    from five probes chosen for vocabulary, none of which contained the
+    variant characters that would have refuted it.
+13. **Reconcile new claims against evidence already collected.** #8's
+    disconfirming case was in an earlier probe in the same session, correctly
+    recorded and never re-read. Search your own prior output for the claim
+    before publishing it.
 
 ## Provenance
 
@@ -361,7 +404,7 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 5 | METHODOLOGY §12.8 | `scripts/detector_control_verdict.py` |
 | 6 | METHODOLOGY §7 | the redirect-zone table |
 | 7 | `ETHICS.md` (script exception), `_filters.py` module docstring | `tests/unit/test_exclusion_filter.py::test_the_english_patterns_alone_cannot_see_chinese`, `::test_both_chinese_scripts_are_covered` |
-| 8 | `docs/locale-provenance-preregistration.md` §3 | `tests/unit/test_provenance.py::test_s2twp_applies_vocabulary_where_s2tw_does_not`, `::test_dictionary_condition_is_pinned_to_s2twp` |
+| 8 | `docs/locale-provenance-preregistration.md` §3, `src/redteam/opencc_pin.py` | `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`, `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, `tests/unit/test_opencc_pin.py` |
 
 ## A note on what this is not
 

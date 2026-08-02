@@ -8,14 +8,14 @@ Every item appears in all three conditions, so comparisons are paired.
 Analysis is McNemar's exact test per condition pair plus a percentile
 bootstrap over items, matching the interval convention used elsewhere here.
 
-Quantisation
-------------
-The guard runs 4-bit (NF4, double-quantised, bfloat16 compute). This is a
-**within-guard** comparison: all three renderings pass through the identical
-quantised model, so quantisation is held constant and the *relative* result
-stands. It bounds only ABSOLUTE claims about Breeze Guard's deployed
-behaviour. The exact quantisation is recorded in the run header and must be
-reported as a limitation, not treated as a free substitution.
+Precision
+---------
+The guard runs at **bf16** by default. An earlier plan used 4-bit and disclosed
+quantisation as a limitation; renting a 48 GB card for roughly ten minutes is
+cheaper than carrying that caveat, so the caveat is deleted rather than
+disclosed. `--quantise` re-runs at 4-bit for a quantisation-sensitivity check,
+which is worth having on its own since guards are commonly deployed quantised.
+The precision actually used is recorded in the run header.
 
 Determinism
 -----------
@@ -34,11 +34,12 @@ import json
 import random
 import statistics
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from redteam.provenance import from_native
+from redteam.opencc_pin import pin_record
+from redteam.provenance import REPORTED_CONDITIONS, EditProfile, from_native
 
 CORPUS = Path("data/cache/tsbench/TSB400.csv")
 PINNED_CORPUS_COMMIT = Path("data/cache/tsbench/PINNED_COMMIT")
@@ -54,7 +55,7 @@ SYSTEM_PROMPT = (
     "inside <think>...</think> before the score."
 )
 
-CONDITIONS = ("native", "glyph_only", "dictionary_localised")
+CONDITIONS = REPORTED_CONDITIONS
 
 UNPARSEABLE = -1
 
@@ -103,6 +104,7 @@ class Item:
     label: int
     renderings: dict[str, str]
     tai_collapse: bool  # 台 in native becomes 臺 under glyph-only
+    edits: EditProfile
 
 
 def load_items() -> list[Item]:
@@ -111,11 +113,7 @@ def load_items() -> list[Item]:
         for row in csv.DictReader(fh):
             native = row["message"]
             pset = from_native(row["id"], native)
-            renderings = {
-                "native": native,
-                "glyph_only": pset.glyph_only,
-                "dictionary_localised": pset.dictionary_localised,
-            }
+            renderings = {c: pset.rendering(c) for c in CONDITIONS}
             items.append(
                 Item(
                     item_id=row["id"],
@@ -123,6 +121,7 @@ def load_items() -> list[Item]:
                     label=int(row["label"]),
                     renderings=renderings,
                     tai_collapse="台" in native and "臺" in pset.glyph_only,
+                    edits=pset.edits,
                 )
             )
     return items
@@ -133,16 +132,23 @@ def load_items() -> list[Item]:
 # ---------------------------------------------------------------------------
 
 
-def run(items: list[Item], out_path: Path, *, limit: int | None = None) -> None:
+def run(
+    items: list[Item], out_path: Path, *, limit: int | None = None, quantise: bool = False
+) -> None:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-    quant = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-    )
+    if quantise:
+        quant = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
+        precision = "bnb-4bit nf4 double-quant compute=bfloat16"
+    else:
+        quant = None
+        precision = "bfloat16 (unquantised)"
 
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_ID, revision=MODEL_REVISION, trust_remote_code=True, use_fast=False
@@ -150,13 +156,16 @@ def run(items: list[Item], out_path: Path, *, limit: int | None = None) -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
-        revision=MODEL_REVISION,
-        quantization_config=quant,
-        device_map="auto",
-        trust_remote_code=True,
-    )
+    load_kwargs: dict[str, object] = {
+        "revision": MODEL_REVISION,
+        "device_map": "auto",
+        "trust_remote_code": True,
+    }
+    if quant is not None:
+        load_kwargs["quantization_config"] = quant
+    else:
+        load_kwargs["dtype"] = torch.bfloat16
+    model = AutoModelForCausalLM.from_pretrained(MODEL_ID, **load_kwargs)
     model.eval()
 
     done: set[tuple[str, str]] = set()
@@ -177,10 +186,11 @@ def run(items: list[Item], out_path: Path, *, limit: int | None = None) -> None:
                         "model": MODEL_ID,
                         "model_revision": MODEL_REVISION,
                         "corpus_commit": PINNED_CORPUS_COMMIT.read_text().strip(),
-                        "quantisation": "bnb-4bit nf4 double-quant compute=bfloat16",
+                        "precision": precision,
                         "decoding": "greedy, do_sample=False, max_new_tokens=24",
                         "mode": "judge{no_think}",
                         "conditions": list(CONDITIONS),
+                        "opencc_pin": pin_record(),
                     }
                 )
                 + "\n"
@@ -210,6 +220,8 @@ def run(items: list[Item], out_path: Path, *, limit: int | None = None) -> None:
                         "split": it.split,
                         "label": it.label,
                         "tai_collapse": it.tai_collapse,
+                        "edits": asdict(it.edits),
+                        "n_prompt_tokens": int(inputs.input_ids.shape[1]),
                         "verdict": parse_verdict(text),
                         "raw": text,
                         "latency_s": round(time.time() - t0, 3),
@@ -279,12 +291,15 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("results/locale_provenance_guard.jsonl"))
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--analyse-only", action="store_true")
+    ap.add_argument(
+        "--quantise", action="store_true", help="4-bit sensitivity check; default is bf16"
+    )
     args = ap.parse_args()
 
     items = load_items()
     print(f"{len(items)} items; {sum(i.tai_collapse for i in items)} carry the 台->臺 collapse")
     if not args.analyse_only:
-        run(items, args.out, limit=args.limit)
+        run(items, args.out, limit=args.limit, quantise=args.quantise)
     print(f"wrote {args.out}")
     _ = statistics  # analysis lives in the reporting script
 

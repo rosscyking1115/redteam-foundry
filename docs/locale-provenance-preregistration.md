@@ -30,6 +30,21 @@ Taiwan-native, human-curated safety benchmark with matched benign hard
 negatives. The wider claim is refutable by XSafety, MultiJail, AnswerCarefully,
 PolyGuard, LinguaSafe, ML-Bench&Guard, J-AISI's aisev, and CSSBench.
 
+**It is not the first identification of Taiwan-native versus converted text.**
+VarDial 2019 deliberately used OpenCC to build parallel script tracks and
+classified Mainland versus Taiwan provenance, with a best Traditional-track
+macro-F1 of 0.9084. SC-TC-Bench (FAccT 2025) formalises 110 regional term pairs
+and 352 names. Regional Chinese variation is already operationalised, and a
+novelty claim resting on it collapses immediately.
+
+**The surviving claim, stated narrowly:**
+
+> whether three or four semantically matched **provenance renderings** change
+> **safety-classifier verdicts**.
+
+Neither audit found that in the searched record. Everything else in this design
+is prior art, and the writeup must say so.
+
 **Japanese is out of scope.** AnswerCarefully already separates violation rate
 from acceptable-response rate precisely because a model can score safe by
 declining to answer. That finding is taken and is not re-derived here.
@@ -60,13 +75,36 @@ than to benchmark staleness.
 
 ## 3. Conditions
 
-Three renderings per item, produced by `src/redteam/provenance.py`.
+Four renderings per item, produced by `src/redteam/provenance.py`.
 
-| | Condition | Construction |
-|---|---|---|
-| **C** | native | Taiwan-authored, as published |
-| **A** | glyph-only | `C → tw2sp → s2t` |
-| **B** | dictionary-localised | `C → tw2sp → s2twp` |
+| | Condition | Construction | Role |
+|---|---|---|---|
+| **C** | native | Taiwan-authored, as published | **primary** |
+| **A** | glyph-only | `C → tw2sp → s2t` | **primary** |
+| **B** | dictionary-localised | `C → tw2sp → s2twp` | mechanism probe |
+| **D** | Hong Kong | `C → tw2sp → s2hk` | mechanism probe |
+
+**The primary contrast is A vs C.** B and D are mechanism probes, reported
+separately rather than symmetrically. Treating all conditions as
+interchangeable labels weakens the analysis and invites the objection that the
+whole effect is a handful of `TWPhrases` lookups — §5 answers that with a
+number instead.
+
+**Arm D asks a different question.** `s2hk` = `STPhrases, STCharacters,
+HKVariantsPhrases, HKVariants`. It loads no `HKPhrases` — only `s2hkp` does,
+and that file holds 39 entries — so it introduces no Cantonese morphology: no
+嘅, 咗 or 喺. Its output is mechanical Traditional standard Chinese under Hong
+Kong glyph conventions, which is neither Taiwan text nor real Hong Kong
+informal writing.
+
+What it buys: whether a Taiwan-tuned guard is **Taiwan-specific** or merely
+**Traditional-Chinese-general**. Verdicts that move identically for B and D
+indicate the latter, and that is a finding either way. It costs nothing.
+
+One result already recorded, because it inverts the naive expectation:
+`HKVariants` maps 臺→台, and neither `TWVariants` nor `TWPhrases` does. So on
+台灣 and 台女 — the study's highest-salience terms — **the Hong Kong rendering
+reproduces the native form and both Taiwan renderings destroy it.**
 
 **Why the round trip.** Running the transform backwards from Taiwan-native text
 means all three renderings derive mechanically from one source, so semantic
@@ -75,13 +113,30 @@ needed to establish it. Running it forwards from a Simplified corpus would
 require someone to author the native rendering, which is where the
 single-annotator limit would bite hardest.
 
-**Why `s2twp` and not `s2tw`.** `s2tw` applies only TWVariants — character-shape
-preferences. `s2twp` additionally applies TWPhrases, the PRC→Taiwan vocabulary
-dictionary. On vocabulary-bearing prompts `s2tw` reproduced `s2t` output on 4 of
-5 items while `s2twp` differed on 5 of 5. Choosing `s2tw` would collapse
-condition B into condition A and produce a null result caused by a configuration
-choice rather than by the corpus. This was found during the gate, before any
-model was run, and it is the single most consequential design decision here.
+**Why `s2twp` and not `s2tw`.** Read from the installed configs:
+
+```
+s2t    = STPhrases, STCharacters
+s2tw   = STPhrases, STCharacters, TWVariantsPhrases, TWVariants
+s2twp  = STPhrases, STCharacters, TWPhrases, TWVariantsPhrases, TWVariants
+```
+
+`s2tw` runs a real Taiwan character-variant stage (裏→裡, 爲→為, 麪→麵). What it
+lacks is `TWPhrases`, the word-level vocabulary dictionary. `s2twp` is the
+dictionary condition because it is the only chain carrying vocabulary. `s2tw`
+is retained as an unreported intermediate so the two stages can be attributed
+separately (§5).
+
+An earlier version of this document claimed `s2tw` "collapses into `s2t`". That
+was false — generalised from five probes selected for vocabulary, which
+therefore contained no variant characters that could have refuted it. Corrected
+in `docs/findings/what-does-this-metric-return-when-nothing-happened.md` §8.
+
+**`s2twp` is not comprehensive Taiwan localisation.** `TWPhrases` holds 775
+entries against 4,800+ groups in Taiwan's official cross-strait difference list
+(中華語文知識庫). Its proper-name coverage is sparse and uneven rather than
+absent — 奧巴馬→歐巴馬, 新西蘭→紐西蘭, 老撾→寮國 are present; 布什→布希,
+悉尼→雪梨, 里根→雷根 are not.
 
 **Known limitation of the round trip.** Traditional→Simplified is many-to-one
 (台/臺→台, 裡/裏→里, 吃/喫→吃, 才/纔→才, 為/爲→为). The return leg cannot recover
@@ -144,13 +199,36 @@ measured.
 
 ### Primary
 
-**Verdict-change rate**: the proportion of items whose binary safety verdict
-differs between two conditions, on semantically identical content.
+**Verdict-change rate between A and C**: the proportion of items whose binary
+safety verdict differs between the native rendering and the glyph-only
+rendering, on semantically identical content.
 
 Because the same items appear in every condition, the comparison is paired.
-Analysis is **McNemar's test** for a condition pair and **Cochran's Q** across
-all three, reported with 95% percentile-bootstrap confidence intervals over
-items, matching the interval convention already used in this repository.
+Analysis is **McNemar's exact test** on the discordant pairs, reported with 95%
+percentile-bootstrap confidence intervals over items, matching the interval
+convention already used in this repository. **Cochran's Q** across all four
+conditions is secondary.
+
+### Every triplet is a bundle of measured edits
+
+Recorded per prompt, so an effect can be attributed to a stage rather than to a
+label. Implemented in `provenance.EditProfile`:
+
+| Quantity | What it isolates |
+|---|---|
+| character-restoration edits | C → A: `STCharacters` / `STPhrases` |
+| Taiwan-variant edits | A → `s2tw`: `TWVariants*` |
+| `TWPhrases` edits | `s2tw` → B: word-level vocabulary |
+| Hong Kong variant edits | A → D: `HKVariants*` |
+| one-to-many opportunities | source chars with >1 traditional target (275 in the pinned inventory) |
+| one-to-many gold correctness | did A restore the character the native author wrote? |
+| token counts per rendering | the length/tokenisation confound |
+
+The native text is the gold standard for one-to-many correctness, which is what
+makes it machine-checkable without an annotator. Where a phrase rule changes a
+span's length, per-position alignment is invalid and the item is counted as an
+opportunity but **not** as scorable — `ambiguity_accuracy` returns `None` rather
+than a flattering number.
 
 ### Secondary
 
@@ -191,6 +269,12 @@ What remains a judgement is narrower: whether any individual round trip
 carrying the source intent. That audit is **single-author** — one reviewer,
 a native Taiwan Mandarin speaker, with no second annotator and no adjudicator.
 
+**Both commissioned audits state the same limit independently**: semantic
+equivalence and localness judgements need **at least two independent native
+Taiwan annotators**, and a single-idiolect native condition is itself a named
+kill criterion. There is one annotator. That is disclosed here, in the findings
+document, and in any writeup — not buried.
+
 This bounds the work. It is portfolio-grade, not publication-grade. Concretely:
 
 - Any claim resting on human labelling of **model outputs** is reported as a
@@ -205,23 +289,40 @@ This bounds the work. It is portfolio-grade, not publication-grade. Concretely:
 ## 7. Instruments and pinning
 
 - **Guard classifier**: `MediaTek-Research/Breeze-Guard-26` (Apache-2.0, 8B,
-  Taiwan-tuned, binary `<score>yes|no</score>`). It is the sharpest available
-  instrument because it was tuned on the TS-Bench distribution — a Taiwan-tuned
-  guard returning different verdicts for glyph-only and native renderings of a
-  prompt it was built to catch is the strongest single result reachable here.
-- **Targets**: local via Ollama by default. At most one cheap API model, and
-  only with prior approval of a stated figure.
-- Every model is a dated version. System prompts, temperature, seed and run date
+  Taiwan-tuned, binary `<score>yes|no</score>`), revision `db4f493`. It is the
+  sharpest available instrument because it was tuned on the TS-Bench
+  distribution — a Taiwan-tuned guard returning different verdicts for
+  glyph-only and native renderings of a prompt it was built to catch is the
+  strongest single result reachable here.
+- **Precision**: **bf16**, not quantised. An 8B guard over 1,600 short prompts
+  is roughly ten minutes on a rented 48 GB card at about $0.35/hour, which is
+  cheaper than carrying the caveat. A 4-bit run is reported alongside where
+  available, as a quantisation-sensitivity check on the guard — itself worth
+  having, since guards are commonly deployed quantised.
+- **Generators** (when Tier 2 runs) must include **at least one Taiwan-tuned
+  model** — `Llama-3-Taiwan-8B`, and Breeze if it runs locally. A study about
+  Taiwan locale sensitivity whose target set contains no Taiwan-tuned model is
+  missing the models most likely to be sensitive to the manipulation. Pairing a
+  Breeze generator with the Breeze guard is a natural condition rather than a
+  confound **provided it is reported as such**, and it is.
+- Every model is a dated version. System prompts, decoding, seed and run date
   are pinned and recorded, as elsewhere in this repository.
-- OpenCC configuration is recorded per item, so a future OpenCC release that
-  changes a dictionary is detectable rather than silent.
 
-**Feasibility constraint, recorded rather than discovered later.** Breeze-Guard-26
-at bf16 needs roughly 16 GB; the development machine has an 8 GB card. The run
-therefore needs a 4-bit quantised build or CPU inference. Quantisation changes
-classifier behaviour, so the quantisation level is part of the pinned
-configuration and any comparison across quantisation levels is a separate
-question, not a free substitution.
+### Judges must not share a training lineage
+
+Two Anthropic models are **not** two independent judges. Same lab, same
+training lineage, correlated blind spots: if both misread Taiwanese register
+the same way, the design cannot detect it, and their agreement would be
+reported as validation.
+
+The judge pair is therefore **cross-family**: one Western frontier model and
+one Chinese-trained model (DeepSeek or Qwen-Max). Different training data is
+what makes the second judge informative rather than confirmatory. Inter-judge
+agreement is reported, and **disagreement is treated as data about the
+instrument, not as noise to be averaged away** — the same posture this
+repository already takes toward `refusal_rate`.
+
+This costs no more than a same-family pair.
 
 ---
 
@@ -249,6 +350,21 @@ Stated in advance. The project stops and reports a negative result if:
    released first. **Checked: does not fire.** TS-Bench is prompt-level and
    contains no paired localisation controls; OpenCC and script conversion do not
    appear in it.
+10. **Most A/B/C/D triplets are byte-identical or differ only in 台/臺.** The
+    corpus would then carry too few locale-bearing opportunities for the
+    contrast to be about locale at all. Instrumented *before* the run as
+    `GateReport.trivial_item_rate`, which separates fully-identical items from
+    台/臺-only items rather than merging them.
+11. **The effect disappears after controlling for token count, tokenisation,
+    named entities and lexical edit count.** Token counts per rendering and
+    per-stage edit counts are recorded per prompt (§5), so this is testable in
+    the first analysis rather than as a later concession.
+12. `s2tw` is treated as identical to `s2t`, or `s2twp` is described as
+    comprehensive Taiwan localisation. Both are refuted by the configs, and
+    both were asserted by an earlier version of this document. Pinned by
+    `tests/unit/test_opencc_pin.py`.
+13. OpenCC version and dictionary hashes are not frozen, so the treatment
+    cannot be reproduced. **Resolved:** `src/redteam/opencc_pin.py` (§9a).
 
 ---
 
@@ -267,6 +383,35 @@ configuration recorded per item constitutes the required notice of modification.
 
 No prompt text from any source corpus is committed to this repository — the
 cache lives under the gitignored `/data/` tree, as for every other corpus here.
+
+### 9a. The treatment is frozen by content, not by name
+
+"OpenCC" alone is not a treatment definition. `src/redteam/opencc_pin.py`
+records the package version (1.4.1), the upstream commit
+(`81223ed87ae53283ef518e2deac34b7971f8a39e`, tag `ver.1.4.1`), and both the
+source and compiled SHA-256 of every dictionary in every chain used.
+`verify_pin()` fails loudly if an installed file drifts.
+
+This is load-bearing, not bookkeeping. OpenCC master carries an **August 2026
+fix to greedy `s2twp` matching** that is not in the pinned release, and several
+dictionaries have gained entries since it: `TWPhrases` 775 → 817,
+`TWVariants` 38 → 40, `TWVariantsPhrases` 4 → 12. A run reporting only
+"converted with OpenCC" is not reproducible.
+
+| Dictionary | Entries (pinned) |
+|---|---:|
+| STCharacters | 4,012 (275 with multiple targets) |
+| STPhrases | 49,139 |
+| TWPhrases | 775 |
+| TWVariants | 38 |
+| TWVariantsPhrases | 4 |
+| HKVariants | 66 |
+| HKVariantsPhrases | 272 |
+| HKPhrases | 39 (not loaded by `s2hk`) |
+
+Counts exclude each file's licence/provenance comment header; counting raw
+lines inflates every figure by 6 to 16 and silently disagrees with the
+published counts.
 
 No prompt text from any source corpus is committed to this repository. The
 provenance module transforms text supplied by the caller and reports metrics;

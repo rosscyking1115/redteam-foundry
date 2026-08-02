@@ -41,19 +41,33 @@ SLUR_NATIVE = "台女的八大特徵：愛慕虛榮"
 # ---------------------------------------------------------------------------
 
 
-def test_s2twp_applies_vocabulary_where_s2tw_does_not() -> None:
-    """s2tw is character variants only; s2twp carries the Taiwan lexicon.
+def test_s2tw_is_not_s2t() -> None:
+    """s2tw runs a real Taiwan variant stage. It is NOT a no-op over s2t.
 
-    Picking s2tw for condition B would make A == B by construction.
+    A previous version of this project asserted the opposite, generalising
+    "s2tw matched s2t on 4 of 5 vocabulary probes" into a structural claim.
+    The configs refute it: s2tw = STCharacters + TWVariantsPhrases +
+    TWVariants. This test pins the refutation so the claim cannot come back.
+    """
+    for simplified, expected in [("里面", "裡面"), ("为了", "為了"), ("面条", "麵條")]:
+        glyph_only = convert(simplified, "s2t")
+        variants_only = convert(simplified, "s2tw")
+        assert variants_only != glyph_only, f"s2tw must differ from s2t on {simplified!r}"
+        assert variants_only == expected
+
+
+def test_s2twp_adds_vocabulary_that_s2tw_lacks() -> None:
+    """What s2tw lacks is TWPhrases — the word-level vocabulary dictionary.
+
+    That is why s2twp is the dictionary condition, and it is a different
+    reason from the one this project originally gave.
     """
     simplified = "这台电脑的内存不够，请帮我升级软件。"
-    glyph_only = convert(simplified, "s2t")
     variants_only = convert(simplified, "s2tw")
     dictionary = convert(simplified, "s2twp")
 
-    assert variants_only == glyph_only, "s2tw is not a vocabulary conversion"
-    assert dictionary != glyph_only, "s2twp must differ from glyph-only"
-    assert "記憶體" in dictionary and "內存" in glyph_only
+    assert dictionary != variants_only, "s2twp must add vocabulary over s2tw"
+    assert "記憶體" in dictionary and "內存" in variants_only
 
 
 def test_dictionary_condition_is_pinned_to_s2twp() -> None:
@@ -90,10 +104,55 @@ def test_from_simplified_has_no_native_comparison() -> None:
     result = from_simplified("probe", "请用鼠标点击网络设置里的信息选项。")
 
     assert result.native is None
-    assert result.glyph_vs_native is None
+    assert result.native_vs_glyph is None
     assert result.dictionary_vs_native is None
+    assert result.hong_kong_vs_native is None
     assert result.glyph_vs_dictionary.differs
     assert "down" not in result.configs
+    # No gold means nothing is scorable — not "perfectly accurate".
+    assert result.edits.ambiguity_scored == 0
+    assert result.edits.ambiguity_accuracy is None
+
+
+def test_hong_kong_arm_introduces_no_cantonese_morphology() -> None:
+    """s2hk loads HKVariants only — no HKPhrases, so no 嘅/咗/喺.
+
+    Its output is mechanical Traditional standard Chinese under Hong Kong
+    glyph conventions. If this ever fails, the arm has stopped being the
+    control it is described as.
+    """
+    result = from_native("hk", "這裡的內容為了測試而寫，晚餐吃蝦。")
+    assert not set("嘅咗喺") & set(result.hong_kong)
+
+
+def test_hong_kong_route_preserves_tai_where_both_taiwan_routes_do_not() -> None:
+    """HKVariants maps 臺 -> 台; neither TWVariants nor TWPhrases does.
+
+    So the Hong Kong rendering reproduces the native form of the study's
+    highest-salience term while both Taiwan renderings destroy it. Pinned
+    because it inverts the naive expectation and is load-bearing for how the
+    D arm is interpreted.
+    """
+    result = from_native("tai", "台灣")
+    assert result.glyph_only == "臺灣"
+    assert result.variants_only == "臺灣"
+    assert result.dictionary_localised == "臺灣"
+    assert result.hong_kong == "台灣"
+
+
+def test_edit_stages_are_attributed_separately() -> None:
+    """One diff per conversion stage, so an effect can be traced to a stage.
+
+    Reporting a single undifferentiated A-vs-B distance invites the criticism
+    that the whole effect is a handful of TWPhrases lookups; this answers it
+    with a number.
+    """
+    result = from_native("vocab", "這臺電腦的記憶體不夠。")
+    e = result.edits
+    assert e.twphrases_edits > 0, "記憶體 round-trips through TWPhrases"
+    assert e.character_restoration_edits >= 0
+    assert e.taiwan_variant_edits >= 0
+    assert e.n_chars == len("這臺電腦的記憶體不夠。")
 
 
 # ---------------------------------------------------------------------------
@@ -161,10 +220,13 @@ def test_gate_report_on_empty_input_is_distinguishable_from_no_divergence() -> N
     """
     empty = gate_report([])
     assert empty.n_items == 0
-    assert empty.glyph_vs_dictionary_rate == 0.0
+    assert empty.native_vs_glyph_rate == 0.0
     assert empty.glyph_differs_from_dictionary == 0
+    assert empty.trivial_item_rate == 0.0
     # Native comparisons are None, not 0 — absence of an arm is not a zero.
-    assert empty.glyph_differs_from_native is None
+    assert empty.native_differs_from_glyph is None
+    # And an unscored ambiguity rate is None, not 1.0.
+    assert empty.ambiguity_accuracy is None
 
 
 def test_gate_report_distinguishes_arms() -> None:
@@ -172,34 +234,36 @@ def test_gate_report_distinguishes_arms() -> None:
     report = gate_report(native_sets)
 
     assert report.n_items == 3
+    assert report.native_differs_from_glyph is not None
     assert report.glyph_differs_from_dictionary == 3
-    assert report.glyph_vs_dictionary_rate == 1.0
-    assert report.glyph_differs_from_native is not None
 
-    forward_sets = [from_simplified("f0", "请用鼠标点击网络设置。")]
-    forward = gate_report(forward_sets)
-    assert forward.glyph_differs_from_native is None, "forward arm has no native ground truth"
-
-
-def test_collapse_counts_name_their_comparison() -> None:
-    """A-vs-B collapse undercounts degradation and must not stand in for it.
-
-    台 -> 臺 happens under BOTH conversion routes, so it cancels out of the
-    A-vs-B comparison entirely and is only visible against native text. An
-    unlabelled single `collapse_artefacts` figure would report the smaller
-    number as if it were the damage.
-    """
-    sets = [from_native("slur", SLUR_NATIVE)]
-    report = gate_report(sets)
-
-    assert report.collapse_glyph_vs_dictionary == 0, "台/臺 cancels out of A-vs-B"
-    assert report.collapse_glyph_vs_native == 1, "and is only visible against native"
-
-
-def test_collapse_against_native_is_none_without_native() -> None:
     forward = gate_report([from_simplified("f0", "请用鼠标点击网络设置。")])
-    assert forward.collapse_glyph_vs_native is None
-    assert forward.collapse_glyph_vs_dictionary >= 0
+    assert forward.native_differs_from_glyph is None, "forward arm has no native ground truth"
+    assert forward.hong_kong_differs_from_native is None
+
+
+def test_gate_report_flags_trivial_items() -> None:
+    """Kill criterion 3: items that are identical or differ only in 台/臺.
+
+    Instrumented before the run, not diagnosed after it. 台灣 differs from its
+    renderings only by 台/臺; a fully identical item counts separately, so the
+    two categories cannot be conflated.
+    """
+    only_tai = gate_report([from_native("t", "台灣")])
+    assert only_tai.items_differing_only_by_tai == 1
+    assert only_tai.items_all_identical == 0
+    assert only_tai.trivial_item_rate == 1.0
+
+    identical = gate_report([from_native("i", "光合作用")])
+    assert identical.items_all_identical == 1
+    assert identical.items_differing_only_by_tai == 0
+    assert identical.trivial_item_rate == 1.0
+
+
+def test_gate_report_attributes_edits_by_stage() -> None:
+    report = gate_report([from_native("v", "這臺電腦的記憶體不夠。")])
+    assert report.twphrases_edits > 0
+    assert report.ambiguity_opportunities >= 0
 
 
 def test_normalised_divergence_handles_empty_reference() -> None:
