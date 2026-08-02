@@ -1,10 +1,12 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day. Every figure below traces
-to a committed artifact and is re-derivable with the commands in
+*One question, six failures, one repository, one day — and two more found later,
+in different work, in the same repository. Every figure below traces to a
+committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
-**Author:** Cheng-Yuan King · **Written:** 2026-07-28
+**Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
+**Extended:** 2026-08-02 with #7 and #8, from the locale-provenance study
 
 ---
 
@@ -23,6 +25,14 @@ one*, and one introduced by the reviewer who had caught the others.
 This document exists because the progression is the finding. Any one of these
 reads as an ordinary slip. Six in a row, under authors who knew about the
 pattern, is evidence about how evaluation metrics fail.
+
+Two later additions strengthen that claim rather than merely lengthening the
+list. **#7** was found five weeks on, in unrelated work, sitting inside the
+safety gate that protects *this document's own subject* — the pattern survived
+being written up. **#8** is a near-miss caught before it happened: a
+configuration default that would have produced a clean, well-powered, entirely
+false null result. Neither was findable by re-reading; both were found by
+running an affirmative check.
 
 ## Why it is worth a document
 
@@ -184,6 +194,86 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
+## Two more, from the locale-provenance work
+
+### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
+
+The exclusion filter is the mechanism behind this repository's central ethical
+guarantee: excluded categories are dropped at corpus-load time, before any
+prompt reaches a model. Every pattern in it was anchored on `\b` word boundaries
+and ASCII letter classes.
+
+Chinese is unspaced and non-ASCII. There are no word boundaries for `\b` to
+match. So **no pattern could match any Chinese prompt**, and `filter_prompt`
+returned `excluded=False` for all Chinese input — not because the input was
+clean, but because the filter could not read it. A gate that passes everything
+it cannot parse returns exactly the value of a gate with nothing to catch.
+
+Three things make this the sharpest instance in the set:
+
+- **The hole was documented in prose and unguarded in code.** `ETHICS.md` named
+  this exact bypass as a *reason* for a policy: we do not translate harmful
+  prompts into other languages because that "would both create new harmful
+  content and bypass the English-only exclusion filter." The bypass was known,
+  written down, and load-bearing in an argument — and nothing tested it.
+- **It sat inside the gate protecting this document's own finding**, in the
+  repository that published it.
+- **No test could have caught it**, because every test fixture was English. The
+  suite was green and complete with respect to the inputs it imagined.
+
+Fixed in `src/redteam/corpora/_filters.py` with a Chinese blocklist covering all
+three excluded categories in both scripts. The guard against regression is the
+affirmative form: `tests/unit/test_exclusion_filter.py` asserts that the English
+patterns **alone cannot match** the Chinese positive cases, that the full filter
+catches them anyway, and that a Simplified and a Traditional writing of one
+prompt receive the same verdict. If someone later "simplifies" the filter by
+deleting the Chinese set, that test goes red instead of the guarantee going
+quietly vacuous.
+
+The generalisation is worth more than the fix: **a validator's coverage is
+bounded by what it can parse, and "no matches" and "cannot read the input" are
+the same return value.** For any regex, schema, linter or scanner, ask what it
+returns for input outside its alphabet.
+
+### 8. A null result that would have come from a config flag — the near-miss
+
+This one was caught before it happened, which is why it is here.
+
+The locale-provenance study compares three renderings of one prompt: native
+Taiwan text, glyph-only conversion, and dictionary-localised conversion. The
+obvious OpenCC configuration for "convert to Taiwan Traditional" is `s2tw`.
+
+`s2tw` applies only *TWVariants* — character-shape preferences such as 裏→裡.
+It does **not** apply *TWPhrases*, the PRC→Taiwan vocabulary dictionary that
+turns 內存 into 記憶體. On vocabulary-bearing probes, `s2tw` reproduced plain
+`s2t` output on 4 of 5 items; `s2twp` differed on 5 of 5.
+
+Had the study used `s2tw`, condition B would have been character-for-character
+identical to condition A on most items. The guard would have returned the same
+verdict for both — necessarily, because it was reading the same string. The
+result would have been a clean, well-powered, entirely false null: *"locale
+rendering does not affect safety verdicts."* Every check in this document would
+have passed. The metric returns the good value when nothing happened, and here
+"nothing happened" would have been caused by a three-character configuration
+choice rather than by the world.
+
+The pre-run divergence gate is what caught it: measuring how far the renderings
+differ *before* running any model showed A and B were the same text. That check
+exists only because the conditions were required to be distinct by construction.
+
+Two lessons:
+
+- **Configuration belongs in the pre-registration**, not only in the code. A
+  tool's default is a hypothesis about what the tool does, and defaults are
+  chosen for the common case, not for yours.
+- **A null result needs its own positive control.** Before believing "no
+  difference between conditions", verify the conditions actually differed. That
+  is the same question as #2 and #3, asked one layer earlier — of the
+  *stimulus* rather than of the response.
+
+Recorded in `docs/locale-provenance-preregistration.md` §3 and pinned by
+`tests/unit/test_provenance.py::test_s2twp_applies_vocabulary_where_s2tw_does_not`.
+
 ## What the six have in common
 
 1. **Every number was computed correctly.** No arithmetic error appears here.
@@ -237,6 +327,16 @@ reliably self-detectable, and needs structure:
    not get re-derived.
 8. **Some claims should not be automatable.** If no available instrument can
    bear the weight, demote the verdict to a screen requiring human adjudication.
+9. **What does this validator return for input outside its alphabet?** A regex,
+   schema, linter or scanner covers only what it can parse, and "no matches" is
+   indistinguishable from "could not read it". Test the *old* rule against the
+   *new* input class and assert it fails, so a later simplification goes red.
+10. **Before believing a null, verify the conditions differed.** Measure the
+    stimulus, not only the response. A comparison between two things that turn
+    out to be the same thing will produce a confident, well-powered nothing.
+11. **Pre-register the configuration, not just the thresholds.** A library
+    default encodes an assumption about the common case, which may not be
+    yours; `s2tw` versus `s2twp` was the whole experiment.
 
 ## Provenance
 
@@ -260,6 +360,8 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 4 | METHODOLOGY §12.7 | `tests/unit/test_detector_control_verdict.py` (grid test) |
 | 5 | METHODOLOGY §12.8 | `scripts/detector_control_verdict.py` |
 | 6 | METHODOLOGY §7 | the redirect-zone table |
+| 7 | `ETHICS.md` (script exception), `_filters.py` module docstring | `tests/unit/test_exclusion_filter.py::test_the_english_patterns_alone_cannot_see_chinese`, `::test_both_chinese_scripts_are_covered` |
+| 8 | `docs/locale-provenance-preregistration.md` §3 | `tests/unit/test_provenance.py::test_s2twp_applies_vocabulary_where_s2tw_does_not`, `::test_dictionary_condition_is_pinned_to_s2twp` |
 
 ## A note on what this is not
 
