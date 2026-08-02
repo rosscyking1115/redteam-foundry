@@ -133,7 +133,12 @@ def load_items() -> list[Item]:
 
 
 def run(
-    items: list[Item], out_path: Path, *, limit: int | None = None, quantise: bool = False
+    items: list[Item],
+    out_path: Path,
+    *,
+    limit: int | None = None,
+    quantise: bool = False,
+    device: str = "auto",
 ) -> None:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
@@ -148,7 +153,7 @@ def run(
         precision = "bnb-4bit nf4 double-quant compute=bfloat16"
     else:
         quant = None
-        precision = "bfloat16 (unquantised)"
+        precision = f"bfloat16 (unquantised, device_map={device})"
 
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_ID, revision=MODEL_REVISION, trust_remote_code=True, use_fast=False
@@ -158,7 +163,7 @@ def run(
 
     load_kwargs: dict[str, object] = {
         "revision": MODEL_REVISION,
-        "device_map": "auto",
+        "device_map": device,
         "trust_remote_code": True,
     }
     if quant is not None:
@@ -294,12 +299,17 @@ def main() -> None:
     ap.add_argument(
         "--quantise", action="store_true", help="4-bit sensitivity check; default is bf16"
     )
+    ap.add_argument(
+        "--device",
+        default="auto",
+        help="device_map. 'cpu' avoids the CUDA placement segfault seen on this host.",
+    )
     args = ap.parse_args()
 
     items = load_items()
     print(f"{len(items)} items; {sum(i.tai_collapse for i in items)} carry the 台->臺 collapse")
     if not args.analyse_only:
-        run(items, args.out, limit=args.limit, quantise=args.quantise)
+        run(items, args.out, limit=args.limit, quantise=args.quantise, device=args.device)
     print(f"wrote {args.out}")
     _ = statistics  # analysis lives in the reporting script
 
