@@ -161,9 +161,13 @@ def run(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    # An integer means explicit single-device placement, {"": N}. transformers
+    # 5.14.1 segfaults during weight placement on this host under any
+    # device_map; 4.57.6 does not. See docs/findings.
+    placement: object = {"": int(device)} if device.isdigit() else device
     load_kwargs: dict[str, object] = {
         "revision": MODEL_REVISION,
-        "device_map": device,
+        "device_map": placement,
         "trust_remote_code": True,
     }
     if quant is not None:
@@ -302,7 +306,7 @@ def main() -> None:
     ap.add_argument(
         "--device",
         default="auto",
-        help="device_map. 'cpu' avoids the CUDA placement segfault seen on this host.",
+        help="device_map: 'auto', 'cpu', or an integer for explicit single-device.",
     )
     args = ap.parse_args()
 

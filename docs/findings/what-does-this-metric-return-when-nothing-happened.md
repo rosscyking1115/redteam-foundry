@@ -1,12 +1,12 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day — and two more found later,
-in different work, in the same repository. Every figure below traces to a
+*One question, six failures, one repository, one day — and three more found
+later, in different work, in the same repository. Every figure below traces to a
 committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
-**Extended:** 2026-08-02 with #7 and #8, from the locale-provenance study
+**Extended:** 2026-08-02 with #7, #8 and #9, from the locale-provenance study
 
 ---
 
@@ -26,13 +26,16 @@ This document exists because the progression is the finding. Any one of these
 reads as an ordinary slip. Six in a row, under authors who knew about the
 pattern, is evidence about how evaluation metrics fail.
 
-Two later additions strengthen that claim rather than merely lengthening the
+Three later additions strengthen that claim rather than merely lengthening the
 list. **#7** was found five weeks on, in unrelated work, sitting inside the
 safety gate that protects *this document's own subject* — the pattern survived
 being written up. **#8** is a near-miss caught before it happened: a
 configuration default that would have produced a clean, well-powered, entirely
-false null result. Neither was findable by re-reading; both were found by
-running an affirmative check.
+false null result. **#9** is not a metric at all but a shell pipeline whose exit code reported
+success while the process it wrapped had segfaulted — the same shape, one layer
+out, and it produced a wrong diagnosis that was reported to a human and acted
+on. None was findable by re-reading; each was found by running an affirmative
+check.
 
 ## Why it is worth a document
 
@@ -194,7 +197,7 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
-## Two more, from the locale-provenance work
+## Three more, from the locale-provenance work
 
 ### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
 
@@ -271,10 +274,15 @@ session had recorded `s2tw` → 哪**裡** against `s2t` → 哪**裏**, flagged
 That is the failure this instance is really about, and it is a different one
 from #1–#7:
 
-> **A metric can be satisfied by a sample that had no opportunity to disconfirm.**
-> Four of five agreeing is only evidence if at least one of the five could have
+> **A metric can be satisfied by a sample that had no opportunity to disconfirm
+> it.** Four of five agreeing is evidence only if one of the five *could* have
 > disagreed. A test set selected for one property is silent about another, and
 > its silence reads exactly like confirmation.
+
+And the sharper half: **the disconfirming case was already in the project's own
+output.** The first probe of the session had printed `s2tw` → 哪**裡** against
+`s2t` → 哪**裏** and flagged it `same as A: False`. The evidence existed, was
+recorded correctly, and was never read back against the claim it refuted.
 
 It also demonstrates the failure mode surviving *into the correction*: the
 project caught the near-miss it was looking for and shipped a false explanation
@@ -305,6 +313,51 @@ described as comprehensive Taiwan localisation.
 Pinned by `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`,
 `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, and
 `tests/unit/test_opencc_pin.py`.
+
+### 9. A pipeline exit code — satisfied by the last command in the pipe
+
+The one that is not a metric at all, which is why it belongs here.
+
+A guard run was launched as:
+
+```sh
+python run_guard.py ... 2>&1 | grep -v "Loading weights" | tail -40
+```
+
+A shell pipeline reports the exit status of its **last** command. `tail`
+succeeded, so the pipeline returned **0** and the harness reported the job
+*completed*. Python had died of `SIGSEGV` partway through loading model
+weights. There was no output file, no traceback in the visible tail, and a
+green completion notice.
+
+The damage was not the crash. It was that the false success **produced a false
+diagnosis**: the run was reported as having failed on memory pressure, because
+that was the only plausible story for a large model stopping partway. Re-run
+with the exit code captured directly — no pipe — it came back `139`, and a
+4-bit build needing about 5.5 GB against 6.6 GB free is not a memory failure.
+The real cause was the weight-placement path in `transformers` 5.14.1;
+`transformers` 4.57.6 loads the same model on the same GPU in under two
+seconds. **The wrong diagnosis was reported to a human and acted on**, and it
+was wrong because a verification step returned success for something that
+failed.
+
+The same defect appeared in a sibling repository the same day, where a commit
+landed with fifteen tests red because the command that should have blocked it
+was piped into something that succeeded.
+
+This is the family seen one layer out. #1–#8 are metrics that cannot come out
+badly; this is a **verification step** that cannot come out badly:
+
+> **Ask what your check returns when the thing it checks fails.** A pipeline
+> returns its last command's status. A `grep` that finds nothing exits
+> non-zero, and a `grep -v` that finds nothing exits *zero*. A `tail` of a
+> crashed process's output is a successful `tail`.
+
+Concretely: capture the status of the process you care about, not of the
+formatting you wrapped around it. Redirect to a file and read it afterwards,
+use `PIPESTATUS`/`pipefail`, or simply do not pipe the command whose exit code
+is the signal. And when a long job "completes" implausibly fast, check that it
+produced its artifact before believing it.
 
 ## What the six have in common
 
@@ -380,6 +433,12 @@ reliably self-detectable, and needs structure:
     disconfirming case was in an earlier probe in the same session, correctly
     recorded and never re-read. Search your own prior output for the claim
     before publishing it.
+14. **Ask what your *check* returns when the thing it checks fails.** Not just
+    your metrics — your verification steps. A shell pipeline returns its last
+    command's status, so piping a command into `grep`, `tail` or `head`
+    discards the exit code that mattered. Capture the status of the process you
+    care about, and when a long job completes implausibly fast, confirm it
+    produced its artifact before believing it.
 
 ## Provenance
 
