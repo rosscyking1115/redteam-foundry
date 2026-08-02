@@ -10,11 +10,15 @@ bootstrap over items, matching the interval convention used elsewhere here.
 
 Precision
 ---------
-The guard runs at **bf16** by default. An earlier plan used 4-bit and disclosed
-quantisation as a limitation; renting a 48 GB card for roughly ten minutes is
-cheaper than carrying that caveat, so the caveat is deleted rather than
-disclosed. `--quantise` re-runs at 4-bit for a quantisation-sensitivity check,
-which is worth having on its own since guards are commonly deployed quantised.
+Both precisions run locally at no cost and both are reported: 4-bit at roughly
+1.6s per call (about 45 minutes for the full 1,600) and bf16 unquantised at
+roughly 18.5s per call (about 8.2 hours). `--quantise` selects 4-bit; the
+default is bf16. Neither substitutes for the other, so the precision used is
+recorded in the run header and must be stated with every number.
+
+Both require transformers 4.x. Version 5.14.1's weight-placement path
+segfaults on this host under every device_map, including explicit
+single-device; 4.57.6 loads the same model on the same GPU without incident.
 The precision actually used is recorded in the run header.
 
 Determinism

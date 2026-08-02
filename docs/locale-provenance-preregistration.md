@@ -294,11 +294,24 @@ This bounds the work. It is portfolio-grade, not publication-grade. Concretely:
   distribution — a Taiwan-tuned guard returning different verdicts for
   glyph-only and native renderings of a prompt it was built to catch is the
   strongest single result reachable here.
-- **Precision**: **bf16**, not quantised. An 8B guard over 1,600 short prompts
-  is roughly ten minutes on a rented 48 GB card at about $0.35/hour, which is
-  cheaper than carrying the caveat. A 4-bit run is reported alongside where
-  available, as a quantisation-sensitivity check on the guard — itself worth
-  having, since guards are commonly deployed quantised.
+- **Precision.** Both are available locally at no cost, and both are reported:
+
+  | Precision | Per call | Full run (1,600 calls) |
+  |---|---|---|
+  | 4-bit NF4, double-quant, bf16 compute | ~1.6 s | ~45 min |
+  | bf16 unquantised | ~18.5 s | ~8.2 h |
+
+  The first result reported is **4-bit**, because it completes in a session;
+  bf16 follows as the unquantised confirmation. Neither is a free substitution
+  for the other, so the precision actually used is recorded in every run header
+  and stated with every number. A quantisation-sensitivity comparison between
+  the two is worth having on its own, since guards are commonly deployed
+  quantised.
+
+  Both require `transformers` 4.x. Version 5.14.1's weight-placement path
+  segfaults on the development host under every `device_map`, including
+  explicit single-device; 4.57.6 loads the same model on the same GPU without
+  incident. The run therefore executes in a pinned, isolated environment.
 - **Generators** (when Tier 2 runs) must include **at least one Taiwan-tuned
   model** — `Llama-3-Taiwan-8B`, and Breeze if it runs locally. A study about
   Taiwan locale sensitivity whose target set contains no Taiwan-tuned model is
