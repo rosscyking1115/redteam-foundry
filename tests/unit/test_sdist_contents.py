@@ -158,7 +158,7 @@ def test_built_sdist_contains_only_tracked_files(sdist_members: frozenset[str]) 
     Named directories are not the danger; unnamed ones are. Anything local-only
     is untracked by construction, so this fires without knowing its name.
     """
-    strays = sorted(sdist_members - _tracked_paths() - GENERATED_MEMBERS)
+    strays = sorted(sdist_members - _tracked_paths() - GENERATED_MEMBERS) + ["DELIBERATE-BREAK"]
     assert strays == [], (
         f"the built sdist contains {len(strays)} file(s) git does not track: {strays}. "
         "Untracked files are exactly what a global gitignore hides, and publication "
