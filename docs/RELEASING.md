@@ -19,11 +19,38 @@ the version + CHANGELOG (§2), then create a GitHub release for the tag (§6).
    - **Workflow name:** `publish.yml`
    - **Environment:** *(leave blank)*
 3. Save. From then on, publishing a GitHub release runs the workflow and uploads
-   to PyPI automatically. (The workflow also fails if the git tag doesn't match
-   the package version, so a mismatched release can't publish.)
+   to PyPI automatically.
+
+### What the workflow refuses to publish
+
+Three things must hold, and the first two are checked *before* the build so a
+rejected release costs nothing and cannot half-happen. PyPI has no un-publish, so
+every check here runs ahead of the upload rather than after it.
+
+| Guard | Refuses |
+| --- | --- |
+| `publish` declares `needs: test` | a release whose lint, typecheck or test suite fails |
+| `git merge-base --is-ancestor` against `main` | a tag on a commit that is not reachable from `main` |
+| `test "$PKG" = "$TAG"` | a tag name that disagrees with the package version |
+
+The third is the weakest: it establishes that two things agree about a number,
+not that the code works. It is kept because it catches a mistake the other two do
+not.
+
+The `needs:` edge is the one that matters. Until 0.4.0 the workflow built and
+uploaded without running anything, which made `tests/unit/test_sdist_contents.py`
+a CI gate and not a release gate — the test written to stop a packaging leak did
+not run on the path that publishes. `tests/unit/test_release_gate.py` now pins
+the structure, because a release gate cannot be proven by releasing.
+
+Note that the workflow **rebuilds from the tag**; it does not upload artifacts
+built locally. Anything verified by hand before a release is verified against the
+same source tree, not against the same bytes.
 
 The manual, token-based steps below remain valid as a fallback (e.g. for the
-very first upload, or if you prefer to publish locally).
+very first upload, or if you prefer to publish locally). **They bypass every
+guard above** — the checks live in the workflow, so a local `twine upload` has
+none of them.
 
 ## 1. Pre-flight
 

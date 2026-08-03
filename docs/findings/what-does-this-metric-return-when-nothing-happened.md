@@ -42,12 +42,17 @@ design was fixed and was reported as though it had been preregistered. None was
 findable by re-reading; each was found by running an affirmative check.
 
 **#12** and **#13** came from preparing a release, and neither is a number. One
-is a publish workflow that runs no tests, so "the release succeeded" is satisfied
+is a publish workflow that ran no tests, so "the release succeeded" was satisfied
 by nothing having been checked. The other is a clean `git status` satisfied by
 the file being invisible to git, which had this repository packaging two
 untracked files into its own source distribution. They are kept because they show
 the pattern is not confined to metrics: anything that reports a state can be
 satisfied by the absence of what it claims to observe.
+
+Both are now fixed rather than merely described. That distinction is the point of
+recording them: this project has separately written up that **attestation is not
+enforcement**, and a catalogue entry reading "enforced by: nothing" is an
+attestation about a hole, not a repair of one.
 
 ## Why it is worth a document
 
@@ -498,12 +503,47 @@ The shape is the one this document is about, moved from a metric to a gate. A
 green tick that means "the upload completed" is easy to read as "the release was
 verified", and the two are the same colour.
 
-It is recorded rather than fixed, deliberately. Changing the release mechanism in
-the same act as using it would mean the release and the change to how releases
-work could not be reviewed separately. The 0.4.0 upload is not the case at risk —
-its commit reached `main` through a pull request with the required check green,
-and CI passed again on `main` afterwards — but that is a property of this
+It was recorded and not fixed during the 0.4.0 release itself, deliberately:
+changing the release mechanism in the same act as using it would have left the
+release and the change to how releases work unreviewable apart from each other.
+The 0.4.0 upload was not the case at risk — its commit reached `main` through a
+pull request with the required check green — but that was a property of that
 release, not of the pipeline.
+
+**Now fixed, because recording it and stopping there is attestation rather than
+enforcement**, which is a failure this project has written up separately. The
+sharper reason is that `tests/unit/test_sdist_contents.py` was a *CI* gate and
+not a *release* gate: the test written to stop a packaging leak did not run on
+the path that publishes.
+
+`publish.yml` is now two jobs, and two things must hold before an upload:
+
+| Guard | What it stops | Enforced by |
+| --- | --- | --- |
+| `publish` declares `needs: test` | publishing code that fails its own suite | the `needs:` edge, plus a test asserting the depended-on job actually runs `pytest`, `ruff` and `mypy` |
+| `git merge-base --is-ancestor "$TAG_SHA" origin/main` | publishing a commit that never went through review | the step itself, run *before* the build |
+
+Ordering is structural rather than incidental. A check that runs after the upload
+can only describe what already escaped, and `needs:` is what makes "before" a
+property of the graph instead of a property of how the steps happen to be
+arranged.
+
+Two details worth keeping. The test job duplicates the four CI commands rather
+than consuming a status check reported elsewhere — a release must not depend on a
+result computed against a different commit. And permissions are scoped per job:
+only `publish` holds `id-token: write`, so the job that runs untrusted-adjacent
+test code cannot mint a publishing credential.
+
+The version/tag string comparison is untouched. It is weak — it establishes that
+two things agree about a number and nothing about whether the code works — but it
+catches a mistake neither new guard does, and *agreement is not correctness* is a
+distinction worth keeping visible rather than deleting.
+
+`tests/unit/test_release_gate.py` pins all of it by reading the workflow, since a
+release gate cannot be proven by releasing. Each assertion was verified to fail
+first: removing `needs:`, dropping the ancestor step, granting the test job
+`id-token`, moving the upload ahead of the verifications, and stubbing out
+`pytest`.
 
 ### 13. A clean `git status` — satisfied by the file being hidden from git
 
@@ -636,7 +676,9 @@ reliably self-detectable, and needs structure:
     pipeline that builds and uploads reports success identically whether the
     tests passed or never ran. If a gate has no dependency on the thing it is
     supposed to gate, it is a notification, not a gate — so read the workflow
-    for what it *depends on*, not for what it is named.
+    for what it *depends on*, not for what it is named. Then ask the second
+    question: **which paths does the check run on?** A test can be a CI gate and
+    not a release gate, and the one that matters is the path that ships.
 16. **Inspect the artifact you are shipping, not the tree you built it from.**
     An ignore file the build backend never reads is not a packaging control, and
     a clean `git status` is satisfied by the file being invisible to git. Where
@@ -668,7 +710,7 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 6 | METHODOLOGY §7 | the redirect-zone table |
 | 7 | `ETHICS.md` (script exception), `_filters.py` module docstring | `tests/unit/test_exclusion_filter.py::test_the_english_patterns_alone_cannot_see_chinese`, `::test_both_chinese_scripts_are_covered` |
 | 8 | `docs/locale-provenance-preregistration.md` §3, `src/redteam/opencc_pin.py` | `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`, `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, `tests/unit/test_opencc_pin.py` |
-| 12 | this document | **nothing** — recorded, not fixed; the workflow is unchanged |
+| 12 | this document, `.github/workflows/publish.yml` header | `tests/unit/test_release_gate.py` — the `needs:` edge, the ancestor check, verification-before-upload, and per-job `id-token` scoping |
 | 13 | `pyproject.toml` (`[tool.hatch.build.targets.sdist]` comment), `CHANGELOG.md` 0.4.0 | `tests/unit/test_sdist_contents.py::test_built_sdist_contains_only_tracked_files`, `::test_built_sdist_carries_no_credential_shaped_file` |
 
 ## A note on what this is not
