@@ -1,12 +1,12 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day — and four more found
+*One question, six failures, one repository, one day — and five more found
 later, in different work, in the same repository. Every figure below traces to a
 committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
-**Extended:** 2026-08-02 with #7 through #10, from the locale-provenance study
+**Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study
 
 ---
 
@@ -26,7 +26,7 @@ This document exists because the progression is the finding. Any one of these
 reads as an ordinary slip. Six in a row, under authors who knew about the
 pattern, is evidence about how evaluation metrics fail.
 
-Four later additions strengthen that claim rather than merely lengthening the
+Five later additions strengthen that claim rather than merely lengthening the
 list. **#7** was found five weeks on, in unrelated work, sitting inside the
 safety gate that protects *this document's own subject* — the pattern survived
 being written up. **#8** is a near-miss caught before it happened: a
@@ -36,8 +36,9 @@ success while the process it wrapped had segfaulted — the same shape, one laye
 out, and it produced a wrong diagnosis that was reported to a human and acted
 on. **#10** is a line count that included a header — trivial in itself, and kept
 because the list's value is showing the same defect arrive through a new door
-each time. None was findable by re-reading; each was found by running an
-affirmative check.
+each time. **#11** is the subtlest: a pass criterion that arrived after the
+design was fixed and was reported as though it had been preregistered. None was
+findable by re-reading; each was found by running an affirmative check.
 
 ## Why it is worth a document
 
@@ -199,7 +200,7 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
-## Four more, from the locale-provenance work
+## Five more, from the locale-provenance work
 
 ### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
 
@@ -396,6 +397,42 @@ header.
 
 Fixed by reporting header lines and record lines separately, and by timestamping
 progress snapshots rather than comparing two taken at different moments.
+
+### 11. A criterion that arrived downstream — satisfied by untracked provenance
+
+The subtlest one, and the only one where the defect is in the *provenance of a
+rule* rather than in a number.
+
+A study preregistered a primary outcome and a 5-point minimum effect. Later, a
+session instruction added a subgroup analysis — "report the items where 台
+becomes 臺 separately" — with its own pass criterion: *the subgroup's rate must
+be at least as high as the corpus overall*. The subgroup passed. It was written
+into a session report alongside the preregistered outcomes, in the same register,
+with no marker distinguishing the two.
+
+**That criterion was never in the preregistration.** It arrived after the design
+was fixed, and — critically — its comparator was *the corpus rate*, not the
+preregistered 5-point bar. A subgroup measured against a comparator chosen later
+is not a preregistered test, and reporting it beside one borrows credibility it
+has not earned.
+
+It was caught only because a reviewer asked for the criterion to be **quoted
+verbatim from the preregistration**, and it could not be. Nothing in the
+document, the code, or the analysis output distinguished the two kinds of claim.
+
+> **A criterion supplied downstream is indistinguishable from one fixed in
+> advance unless provenance is tracked. Preregistration is not a document; it is
+> a *timestamp*, and a claim that cannot be traced to one does not have it.**
+
+The direction matters: this one **flattered the result**. An added criterion that
+made the finding look worse would have been scrutinised; one that made it pass
+was simply reported. That asymmetry is why the check has to be mechanical —
+"can I quote this from the commit that predates the run?" — rather than a matter
+of remembering.
+
+Fixed by labelling every reported contrast with its standing in place, and by
+stating plainly, where the subgroup appears, that no comparator for it exists in
+the preregistration and that the analysis is exploratory.
 
 ## What the six have in common
 

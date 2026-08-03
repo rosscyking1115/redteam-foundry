@@ -14,16 +14,27 @@ mechanical conversions of each — the same semantic content, differing only in 
 it had been rendered. The question was whether the rendering changes the guard's
 verdict.
 
-**It does, at p = 1.4 × 10⁻⁴. The result is reported as null.**
+**The preregistered primary outcome is null. A preregistered secondary outcome is
+not.**
 
-The preregistration fixed a minimum effect of 5 percentage points before any
-model was run, and said in terms that anything below it is null "regardless of
-statistical significance". The observed rate is 4.5%. That is the whole finding
-and it is the reason this document exists: the interesting case for
-preregistration is not when it confirms you, it is when it costs you a result
-you can defend on every other axis.
+The primary — whether the guard's verdict changes at all between native and
+glyph-only text — moved at p = 1.4 × 10⁻⁴ and is **still reported as null**,
+because the preregistration fixed a minimum effect of 5 percentage points before
+any model was run and said anything below it is null "regardless of statistical
+significance". The observed rate is 4.5%.
 
-Two substantive findings survive the null, and one prediction is refuted:
+The secondary — over-refusal on the benign hard negatives, also fixed in advance
+— **clears the bar at 6.0%**. Eleven benign Taiwanese prompts, the controls a
+guard exists to let through, were flagged unsafe purely by passing through a
+character converter.
+
+> **The secondary does not override the primary's NO-GO.** The preregistered
+> gate is defined on the primary outcome. A secondary that clears its own
+> threshold is a reported result, not a gate override, and the follow-on study
+> remains NO-GO. This sentence is here because without it the section below
+> reads as exactly the post-hoc rescue it is not.
+
+Two further findings, and one prediction refuted:
 
 - **The pre-stated mechanism is wrong.** The effect was predicted to run through
   台→臺. A fourth rendering that *preserves* 台 is statistically
@@ -142,38 +153,72 @@ the sensitivity lives in vocabulary rather than in orthography, then **anyone wh
 has normalised script and considered locale controlled has controlled for the
 wrong variable.** That holds whether or not the effect size clears 5 points.
 
+### Dose-response: more conversion applied, more verdicts moved
+
+Edit count is not a rival explanation for the effect — it is the **magnitude of
+the intervention itself**. Items are not randomly assigned more or less
+conversion; how many edits an item receives *is* how much treatment it got.
+
+| | Character-restoration edits |
+|---|---|
+| Discordant items | **5.00** |
+| Concordant items | **1.91** |
+
+Items whose verdict moved received **2.6× more conversion** than items whose
+verdict held. A gradient in the size of the intervention that tracks the outcome
+is positive evidence for the causal reading, not a caveat against it.
+
+**Its limit, stated with it:** 18 discordant pairs is far too few to fit a
+gradient, so this is *directional support* and not a demonstration. Edit count is
+also correlated with length, and at this sample size the two cannot be separated
+— which is why length is treated as a genuine population-level confound in §6
+while dose is treated as support here.
+
 ---
 
-## 4. Direction, as a secondary observation
+## 4. The preregistered secondary outcome, which is not null
 
-The 5-point rule governs **verdict-change rate**. It says nothing about
-**direction conditional on a change**. These are different estimands, and the
-second is not a substitute for the first.
+Preregistered as secondary outcome 4, quoted from the same commit that fixed the
+primary:
 
-Among the 18 discordant pairs: **b = 1, c = 17.** Seventeen items the guard
-passed as safe in native form it flagged as unsafe after glyph-only conversion;
-one went the other way. Under symmetric measurement error the expectation is
-about 9 and 9.
-
-Concentrated in the benign half — and this split **was** preregistered, as
-secondary outcome 4, "over-refusal on the benign hard negatives, reported
-separately from the harmful items and never averaged with them":
+> "Over-refusal on the benign hard negatives, reported separately from the
+> harmful items and never averaged with them."
 
 | Split | Rate | b | c | p |
 |---|---|---|---|---|
-| Benign hard negatives | 6.0% | 1 | 11 | 0.0063 |
+| **Benign hard negatives** | **6.0%** | 1 | 11 | 0.0063 |
 | Harmful | 3.0% | 0 | 6 | 0.031 |
 
-Eleven benign Taiwanese prompts — the controls, the items a guard is supposed to
-let through — became "unsafe" purely by passing through a converter.
+**6.0% clears the 5-point bar.** The preregistration scopes that bar to
+"verdict-change rate" without restricting it to the primary contrast, so the
+benign split meets its own threshold on the same terms the primary failed.
 
-**The primary outcome remains null, and the direction does not rescue it.** A
-one-way effect that fails a preregistered effect-size bar is still an effect that
-fails the bar. Direction is reported because it is real and because a reader
-deciding whether to convert their corpus needs it; it is not reported as a
-finding that recovers the primary. The difference between an honest secondary and
-a post-hoc rescue is entirely in whether the null is restated plainly, so: **the
-primary is null.**
+Eleven benign Taiwanese prompts — the *controls*, the items a guard exists to let
+through — were flagged unsafe purely by passing through a character converter.
+This is the most concrete and most actionable result in the study, and it was
+fixed in advance rather than found by looking.
+
+### It is not a gate override
+
+**The preregistered gate is defined on the primary outcome, and the primary is
+null.** A secondary clearing its own threshold does not move the gate; the
+follow-on study remains NO-GO.
+
+That distinction is the whole reason preregistration is worth the cost. Having
+committed to a rule that produced an unwelcome answer on the primary, the same
+document is what licenses reporting the secondary as a result rather than as a
+consolation — and what forbids promoting it. Stated plainly: **the primary is
+null, the secondary is not, and the secondary does not rescue the primary.**
+
+### Direction, a separate estimand
+
+The 5-point rule governs **verdict-change rate**. It says nothing about
+**direction conditional on a change**. Among the 18 discordant pairs:
+**b = 1, c = 17.** Seventeen items the guard passed as safe in native form it
+flagged unsafe after glyph-only conversion; one went the other way. Under
+symmetric measurement error the expectation is about 9 and 9, so this is not
+noise — but it is a different quantity from the one the bar governs, and it does
+not change the primary's status either.
 
 ---
 
@@ -220,11 +265,11 @@ So the precise limit is: the claim "*Taiwanese locale content is affected*" may
 be more accurately "*longer, more locale-dense content is affected*". The claim
 "*when a verdict flips, the rendering is what changed*" is not reached by it.
 
-**Edit count is treatment dose, not a confound.** Discordant items carry 5.00
-character-restoration edits against 1.91 for concordant ones. A confound is a
-rival explanation; edit count is the magnitude of the intervention itself, so
-this reads as dose-response rather than as an alternative cause. Length and edit
-count are correlated and cannot be separated at this sample size.
+A reader can check that scoping directly against the numbers above: **1.33
+tokens of within-pair difference against a 163-token prompt** is under one
+percent, and a difference that small cannot be what moved a binary verdict. The
+10% between-item gap is where the confound lives, and it constrains
+generalisation rather than causation.
 
 **Eighteen discordant pairs.** Every subgroup and confound statement rests on
 them. Intervals are wide and are printed rather than glossed.
