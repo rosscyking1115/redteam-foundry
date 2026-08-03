@@ -6,6 +6,67 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-08-03
+
+**A patch: no API change, no behaviour change, two corrections to what the
+published page and the CLI say.** Nothing a caller imports changes signature or
+result. Under semver that is a PATCH — the one user-visible behaviour change is
+`redteam version` printing the right number instead of the wrong one, which is a
+bug fix rather than a new capability.
+
+It needs a version at all because **a PyPI description is frozen at upload**. The
+description *is* the README, so the only way to correct the page is to publish
+again; on its own the stale line would not have been worth it, but the README
+restructure travels with it and both arrive together.
+
+### Fixed
+- **`redteam version` reported `0.3.0` on the 0.4.0 release.** `pyproject.toml`
+  was bumped to 0.4.0 and the hardcoded `__version__` in
+  `src/redteam/__init__.py` was not, so the published 0.4.0 wheel carries
+  `METADATA: Version: 0.4.0` beside code saying `0.3.0`. Anyone who installed
+  0.4.0 and ran `redteam version` was told 0.3.0. Stated rather than quietly
+  corrected: 0.4.0 is wrong about its own version and will stay wrong.
+
+  `__version__` now reads the installed distribution metadata, so there is one
+  source of truth and nothing to keep in step by hand.
+
+  The reason nothing caught it is the more useful part. There *was* a test —
+  `assert __version__ == "0.3.0"`, a third hardcoded copy — and it was green
+  throughout the release, because the code and the test held the same wrong value
+  and agreed with each other while the package metadata said something else.
+  **Agreement is not correctness.** `tests/unit/test_version.py` now compares the
+  version against `pyproject.toml`, against the installed distribution, and
+  against what the CLI actually prints, and refuses to run against the
+  not-installed placeholder. Written up as instance #14 in
+  `docs/findings/what-does-this-metric-return-when-nothing-happened.md`.
+- **The status line published in 0.4.0 was already stale when it was uploaded.**
+  It said the corpus-audit and locale-provenance lines were *ongoing*. Both had
+  concluded before that release shipped. Corrected here; 0.4.0's description
+  cannot be edited.
+
+### Changed
+- **The README is split rather than trimmed; nothing was deleted.** It was 2,420
+  words carrying three Diátaxis types at once — explanation, reference and
+  how-to — against a house target of roughly 1,200 and sibling repositories that
+  finished at 1,075 and 1,007. Reference material (the command listing, the
+  pipeline diagram, what the foundry does) moved to `docs/commands.md`; how-to
+  material (install, development setup, reproducing the headline table) moved to
+  `docs/getting-started.md`. The README keeps explanation and the reader ladder.
+- **The README now says who it is for and what problem it solves**, which it
+  never did. That rung was simply absent: a reader could learn what the project
+  measured without learning who should care. The problem is now stated plainly —
+  a robust model and an exhausted benchmark both report "0% of attacks
+  succeeded", and the success rate alone cannot tell them apart.
+- The question is still posed before the finding is stated, deliberately. A
+  finding written in a project's own vocabulary is illegible to a reader who does
+  not yet hold the question.
+- Two counts in the README that had drifted are gone rather than corrected: the
+  absence catalogue was described as holding "nine" instances when it held
+  thirteen. A count in a link description decays every time the target grows, so
+  it is now described rather than counted.
+- `docs/ROADMAP.md` said "Phase 0 is complete" while every phase below it was
+  marked done — true, and implying far less progress than exists.
+
 ## [0.4.0] — 2026-08-03
 
 **This release exists to correct the published page, not only the repository.**
@@ -348,6 +409,7 @@ unchanged; these are additive. First public release.
   confidence intervals; Cohen's κ and Krippendorff's α.
 - UK AISI Inspect eval-log export.
 
+[0.4.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.4.0
 [0.3.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.3.0
 [0.2.1]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.2.1
 [0.2.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.2.0
