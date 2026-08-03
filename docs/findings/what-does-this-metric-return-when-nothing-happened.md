@@ -1,13 +1,13 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day — and seven more found
+*One question, six failures, one repository, one day — and eight more found
 later, in different work, in the same repository. Every figure below traces to a
 committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
 **Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study ·
-**Extended:** 2026-08-03 with #12 and #13, from cutting a release
+**Extended:** 2026-08-03 with #12 through #14, from cutting a release
 
 ---
 
@@ -41,13 +41,15 @@ each time. **#11** is the subtlest: a pass criterion that arrived after the
 design was fixed and was reported as though it had been preregistered. None was
 findable by re-reading; each was found by running an affirmative check.
 
-**#12** and **#13** came from preparing a release, and neither is a number. One
-is a publish workflow that ran no tests, so "the release succeeded" was satisfied
-by nothing having been checked. The other is a clean `git status` satisfied by
-the file being invisible to git, which had this repository packaging two
-untracked files into its own source distribution. They are kept because they show
-the pattern is not confined to metrics: anything that reports a state can be
-satisfied by the absence of what it claims to observe.
+**#12**, **#13** and **#14** came from preparing a release, and none is a
+number. #12 is a publish workflow that ran no tests, so "the release succeeded"
+was satisfied by nothing having been checked. #13 is a clean `git status`
+satisfied by the file being invisible to git, which had this repository packaging
+two untracked files into its own source distribution. #14 is a version test that
+was green throughout a release in which the version was wrong, because the test
+and the code held the same wrong value and agreed with each other. They are kept
+because they show the pattern is not confined to metrics: anything that reports a
+state can be satisfied by the absence of what it claims to observe.
 
 Both are now fixed rather than merely described. That distinction is the point of
 recording them: this project has separately written up that **attestation is not
@@ -472,7 +474,7 @@ Fixed by labelling every reported contrast with its standing in place, and by
 stating plainly, where the subgroup appears, that no comparator for it exists in
 the preregistration and that the analysis is exploratory.
 
-## Two more, from cutting a release
+## Three more, from cutting a release
 
 Both were found while fixing packaging before the 0.4.0 upload. Neither is a
 number, which is why they are worth adding: the pattern is not confined to
@@ -583,14 +585,62 @@ the sdist and fails on any member git does not track — a check that stops the
 class, because every local-only file is untracked by construction and no list of
 local tool names is required.
 
-**One thing this release did not close.** The publish workflow rebuilds from a
-fresh checkout of the tag; it does not upload the artifacts that were verified.
-Those were built from a pristine clone of the same commit, so the file selection
-and the README are identical by construction — but the bytes on PyPI are not the
-bytes that were inspected, and only the source tree, not the artifact, is known
-to be common to both. That distinction belongs in a record rather than in
-somebody's memory, which is the whole argument of this document applied to its
-own release.
+**A stated property, not an open defect.** The publish workflow rebuilds from a
+fresh checkout of the tag; it does not upload artifacts built anywhere else. So
+the bytes on PyPI are never the bytes anyone inspected locally, and what *is*
+common to both is the source tree — which is verified, and which determines the
+file selection and the README entirely.
+
+This is the cost of Trusted Publishing, and the alternative is strictly worse:
+uploading locally-built artifacts requires an API token that deliberately does
+not exist, and it would bypass every guard in `publish.yml` — the suite, the
+ancestor check, and the version comparison alike. The workflow already emits
+digital attestations for what it did upload. Recorded here so nobody re-derives
+it as a finding, and stated as a property rather than filed as an open item,
+because filing it would imply someone should close it and nobody should.
+
+### 14. A version test satisfied by two copies of the same wrong number
+
+Found by the README audit's dullest step — *run every command shown* — and it is
+the one that caught what nothing else did.
+
+`redteam version` printed **0.3.0** while the package was 0.4.0. The cause was
+two sources of truth: `pyproject.toml` said `0.4.0` and a hardcoded
+`__version__` in `src/redteam/__init__.py` still said `0.3.0`. Every earlier
+release kept them in step by hand; 0.4.0 is where that failed, and it shipped —
+the published wheel carries `METADATA: Version: 0.4.0` beside code saying
+`0.3.0`.
+
+The interesting part is why no test caught it, because there **was** one:
+
+```python
+def test_package_version_is_set() -> None:
+    assert __version__ == "0.3.0"
+```
+
+A *third* hardcoded copy. It was green through the whole 0.4.0 release, because
+the code and the test carried the same wrong value and agreed with each other
+while the package metadata said something else. Its neighbour was worse:
+`assert __version__ in result.stdout` compares the code to itself and passes on
+any value whatsoever.
+
+> **Agreement is not correctness.** Two artefacts that restate one fact will
+> eventually disagree with reality together, and a test that compares them to
+> each other confirms only that they were copied from the same place.
+
+The same distinction sits one directory away in `publish.yml`, where
+`test "$PKG" = "$TAG"` establishes that the tag and the version agree about a
+number and nothing about whether the code works. That check is weak and honest
+about it. This one was weak while *named* for the property it did not check,
+which is worse — a test named `test_package_version_is_set` occupies the place
+where the real check would go.
+
+Fixed by removing the copies rather than synchronising them: `__version__` now
+reads the installed distribution metadata, so there is one source of truth and
+nothing to keep in step. `tests/unit/test_version.py` compares it against
+`pyproject.toml`, against the installed distribution, and against what the CLI
+actually prints — and refuses to run against the not-installed placeholder,
+since a check measuring `0.0.0+unknown` measures nothing.
 
 ## What the six have in common
 
@@ -712,6 +762,7 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 8 | `docs/locale-provenance-preregistration.md` §3, `src/redteam/opencc_pin.py` | `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`, `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, `tests/unit/test_opencc_pin.py` |
 | 12 | this document, `.github/workflows/publish.yml` header | `tests/unit/test_release_gate.py` — the `needs:` edge, the ancestor check, verification-before-upload, and per-job `id-token` scoping |
 | 13 | `pyproject.toml` (`[tool.hatch.build.targets.sdist]` comment), `CHANGELOG.md` 0.4.0 | `tests/unit/test_sdist_contents.py::test_built_sdist_contains_only_tracked_files`, `::test_built_sdist_carries_no_credential_shaped_file` |
+| 14 | `src/redteam/__init__.py` comment, `CHANGELOG.md` 0.4.1 | `tests/unit/test_version.py` — against `pyproject.toml`, against the installed distribution, and against the CLI's own output |
 
 ## A note on what this is not
 
