@@ -42,7 +42,10 @@ the contribution this layer specialises in.
 
 ## Phased plan
 
-Each phase is one PR with green CI. Phase 0 is complete.
+Each phase is one PR with green CI. **All phases below are done** — phase 6
+repo-side, with the live integration deliberately out of scope. Residual items
+are named inside their own phase and each needs a live API or judge run; none is
+a phase still in progress.
 
 ### Phase 0 — Stabilise & re-anchor — **done**
 - Closed three exclusion-filter leaks (WMD "synthesis" noun, self-harm
