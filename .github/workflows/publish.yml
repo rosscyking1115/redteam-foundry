@@ -3,38 +3,116 @@ name: Publish to PyPI
 # Publishes on a GitHub Release using PyPI Trusted Publishing (OIDC) — no API
 # token is stored anywhere. One-time setup: register this repo + workflow as a
 # trusted publisher on PyPI. See docs/RELEASING.md.
+#
+# TWO GUARDS STAND BETWEEN A RELEASE AND PyPI, and both answer the same
+# question: what may publish?
+#
+#   1. The suite runs BEFORE the upload. The `publish` job declares `needs: test`
+#      so the ordering is structural rather than incidental. PyPI has no
+#      un-publish, so a check that runs after the upload is worthless — it can
+#      only tell you what you already released.
+#   2. The tagged commit must be reachable from `main`. A tag can be created on
+#      any commit on any branch; the branch ruleset gates pushes to the default
+#      branch and there is no tag ruleset, so without this a commit that never
+#      went through review could publish.
+#
+# Until 0.4.0 this workflow had neither. It built, compared the tag name to the
+# package version, and uploaded — so `tests/unit/test_sdist_contents.py`, the
+# test written to stop a packaging leak, was a CI gate and not a release gate. It
+# did not run on the path that publishes. 0.4.0 was safe because its commit
+# happened to carry a green CI run from its pull request, which is a property of
+# that release and not of this mechanism.
+#
+# Permissions are set PER JOB, deliberately, not at workflow level: only the
+# publishing job may mint an OIDC token. A test job holding a publishing
+# credential is a wider blast radius for no benefit.
+
 on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-
 jobs:
-  publish:
-    name: Build and publish to PyPI
+  test:
+    name: Gate — lint, typecheck, tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # No id-token. This job must never be able to publish.
     permissions:
-      id-token: write # required for Trusted Publishing (OIDC)
+      contents: read
     steps:
       # Third-party actions pinned to a full commit SHA (supply-chain hardening);
       # the trailing comment records the human-readable version.
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
 
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           version: "latest"
 
-      - name: Build sdist + wheel
-        run: uv build
+      - name: Install project (editable, with dev extras)
+        run: uv pip install --system -e ".[dev]"
 
+      # The same four gates CI runs on a pull request. Kept as separate steps so
+      # a failure names which one, and deliberately duplicated rather than
+      # reused: a release must not depend on a status check reported elsewhere,
+      # possibly against a different commit.
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Ruff (format check)
+        run: ruff format --check .
+
+      - name: Mypy (typecheck)
+        run: mypy src/
+
+      - name: Pytest (unit) + coverage
+        run: pytest tests/unit --cov=src/redteam --cov-report=term-missing --cov-fail-under=75
+
+  publish:
+    name: Build and publish to PyPI
+    needs: test # <- the release gate. Do not remove; see the header.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write # required for Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          # Needed by the ancestor check below: the default shallow fetch has no
+          # `main` to compare against.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "latest"
+
+      # Both verifications run BEFORE the build, so a rejected release costs
+      # nothing and cannot half-happen.
       - name: Verify the tag matches the package version
         run: |
           PKG=$(uv run python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
           TAG="${GITHUB_REF_NAME#v}"
           echo "package=$PKG tag=$TAG"
           test "$PKG" = "$TAG" || { echo "::error::tag $TAG != package version $PKG"; exit 1; }
+
+      - name: Verify the tagged commit is on main
+        run: |
+          git fetch --no-tags --prune origin +refs/heads/main:refs/remotes/origin/main
+          TAG_SHA=$(git rev-parse HEAD)
+          echo "tagged commit=$TAG_SHA"
+          git merge-base --is-ancestor "$TAG_SHA" origin/main || {
+            echo "::error::$TAG_SHA is not reachable from main — refusing to publish."
+            exit 1
+          }
+
+      - name: Build sdist + wheel
+        run: uv build
 
       - name: Publish to PyPI (Trusted Publishing, no token)
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
