@@ -18,8 +18,14 @@
 > consumes the challenge packs exported here. Full project map →
 > [profile](https://github.com/rosscyking1115).
 
-**Status: active.** The headline result below is concluded and frozen; the
-corpus-audit and locale-provenance lines are ongoing. This measures whether
+**Status: active — the package is maintained, the research has reported.** What
+is maintained is the tooling and the release path, which now runs the full suite
+and refuses a tag that is not on `main` before it can publish. The research lines
+have concluded: [`docs/ROADMAP.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/ROADMAP.md)
+is done through phase 6 (repo-side), the headline result below is frozen, and the
+locale-provenance study ended in [a preregistered null](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/findings/a-preregistered-null-at-p-0-0001.md).
+Its bf16 arm was never run — 16 GB of weights against an 8 GB card — and is
+recorded as blocked on hardware rather than pending. This measures whether
 *benchmarks* still discriminate — it does not certify any model as safe, and it
 is not a security audit. Install: `pipx install redteam-foundry`.
 
