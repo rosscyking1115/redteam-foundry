@@ -5,11 +5,11 @@
 > actually discriminate modern models — and how much can we trust the answer?**
 > It audits attack corpora, measures defence impact, scores benchmark
 > *staleness*, and validates every number against a second independent judge.
-> A measurement tool, not a weapon (see [`ETHICS.md`](./ETHICS.md)).
+> A measurement tool, not a weapon (see [`ETHICS.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/ETHICS.md)).
 
 [![PyPI](https://img.shields.io/pypi/v/redteam-foundry.svg)](https://pypi.org/project/redteam-foundry/)
 [![CI](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/rosscyking1115/redteam-foundry/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/rosscyking1115/redteam-foundry/blob/main/LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 [![Checked with mypy --strict](https://img.shields.io/badge/mypy-strict-2a6db2.svg)](https://mypy-lang.org/)
 
@@ -31,7 +31,7 @@ composable defence configurations — 12 evaluation cells in all — published
 adversarial prompts succeed between 0% and 4% of the time, and a paranoid
 prompt-only defence stack does not measurably move that number.
 
-![Attack success rate across all 12 evaluation cells — point estimate with 95% bootstrap confidence interval. Ten of the twelve cells sit at 0%; the two non-zero cells are the AdvBench Llama baseline at 1% and the AgentDojo Llama baseline at 4%.](docs/results_matrix.png)
+![Attack success rate across all 12 evaluation cells — point estimate with 95% bootstrap confidence interval. Ten of the twelve cells sit at 0%; the two non-zero cells are the AdvBench Llama baseline at 1% and the AgentDojo Llama baseline at 4%.](https://raw.githubusercontent.com/rosscyking1115/redteam-foundry/main/docs/results_matrix.png)
 
 Read carefully, that near-zero is a statement about the benchmarks as much as the
 models: 2026-era instruction tuning has largely *saturated* the static, published
@@ -46,7 +46,7 @@ This is framed as a meta-science result about benchmark validity (the "is this
 eval still meaningful?" question), not as a claim that any model is "safe." What
 the benchmarks *under*-measure — the live agentic tool-use loop, multi-turn
 attacks, adaptive optimisation — is named explicitly in
-[§ Threats to validity](./METHODOLOGY.md#12-threats-to-validity), not hidden.
+[§ Threats to validity](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md#12-threats-to-validity), not hidden.
 
 ```bash
 # Regenerate the headline table from the cached run artifacts (no API calls):
@@ -63,7 +63,7 @@ so the *measurement* is auditable, and so it says how much to trust itself:
   AdvBench, no defences) scores 80% ASR (cross-judge 80.6%, κ = +0.935): the
   apparatus visibly registers a high attack-success rate when the target is
   actually vulnerable, so the 0–4% is the aligned models' property, not a
-  measurement artifact. See [`METHODOLOGY.md`](./METHODOLOGY.md) §12.5.
+  measurement artifact. See [`METHODOLOGY.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md) §12.5.
 - Two-judge cross-validation as a first-class output. Every verdict is scored by
   an LLM judge and re-scored by an independent second judge; agreement (Cohen's
   κ, Krippendorff's α) is reported per cell. On attack success the judges agree
@@ -84,7 +84,7 @@ so the *measurement* is auditable, and so it says how much to trust itself:
 - Scoped, with threats to validity written down. Single-turn only; static
   published prompts, not adaptive attacks (GCG/PAIR/TAP); the AgentDojo static
   render is an explicit lower bound on the live agent loop. See
-  [`METHODOLOGY.md`](./METHODOLOGY.md), the source of truth for every number.
+  [`METHODOLOGY.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md), the source of truth for every number.
 
 ## What's in the repo
 
@@ -152,7 +152,7 @@ redteam version                      # prints the installed version
 ```
 
 The CLI is `redteam ...` (equivalently `python -m redteam ...`). Dependencies are
-pinned in [`uv.lock`](./uv.lock) for a byte-for-byte reproducible environment.
+pinned in [`uv.lock`](https://github.com/rosscyking1115/redteam-foundry/blob/main/uv.lock) for a byte-for-byte reproducible environment.
 
 > [!WARNING]
 > Live runs call paid APIs. Each run enforces a hard USD budget cap (set per
@@ -171,7 +171,7 @@ python scripts/headline_table.py --check   # also assert they match METHODOLOGY.
 ```
 
 The run artifacts are gitignored (they contain prompt/response text; see
-[`ETHICS.md`](./ETHICS.md)) but are free and deterministic to regenerate from the
+[`ETHICS.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/ETHICS.md)) but are free and deterministic to regenerate from the
 response cache with `redteam run` / `score` / `cross-judge`.
 
 ## Commands
@@ -229,7 +229,7 @@ worse than chance, on whether a response was a "refusal", because an
 indirect-injection task has two things that can be refused (the user's request
 and the injected instruction). `refusal_rate` is therefore reported as a
 *descriptive* signal of response style only, never as a safety metric. This is
-documented, not hidden — see [`METHODOLOGY.md`](./METHODOLOGY.md) §7.
+documented, not hidden — see [`METHODOLOGY.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md) §7.
 
 ## Where this sits: the research layer
 
@@ -262,7 +262,7 @@ split; the gate layer is not part of this repository.
 > weapons-of-mass-destruction synthesis, detailed self-harm methods) are
 > filtered at corpus-load time and verified by a CI test. Results are aggregate;
 > exported adversarial prompts are redacted. The multilingual work is
-> benign-only. Full policy in [`ETHICS.md`](./ETHICS.md).
+> benign-only. Full policy in [`ETHICS.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/ETHICS.md).
 
 If you are a model provider whose model is included and want example transcripts
 removed, email rosscyking@gmail.com and I'll remove them within 24 hours.
@@ -271,20 +271,20 @@ removed, email rosscyking@gmail.com and I'll remove them within 24 hours.
 
 `scripts/ci_local.ps1` (Windows) and `scripts/ci_local.sh` (Linux/macOS) run the
 same checks as CI — ruff lint, ruff format check, mypy, pytest. Green locally
-means green on the PR. See [`tests/README.md`](./tests/README.md) for
+means green on the PR. See [`tests/README.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/tests/README.md) for
 which claim each test suite defends. Run artifacts (`results/`), audit outputs
 (`reports/`), and non-sample packs (`challenge_packs/`) are gitignored — all
 re-creatable from configs.
 
 **Typing.** `mypy` runs in `strict` mode with `warn_unreachable`
-([`pyproject.toml`](./pyproject.toml)), and CI fails the build on any type
+([`pyproject.toml`](https://github.com/rosscyking1115/redteam-foundry/blob/main/pyproject.toml)), and CI fails the build on any type
 error — it is a gate, not a report. Coverage is all of `src/`; `tests/` and
 `scripts/` are linted and formatted but not yet typechecked.
 
 **Result integrity.** `python scripts/headline_table.py --check` recomputes
 every published cell from the cached run artifacts and fails on drift —
 including whether each cross-judge κ is a real measurement or a degenerate 0/0
-(see [`METHODOLOGY.md`](./METHODOLOGY.md) §7). The artifacts are gitignored, so
+(see [`METHODOLOGY.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md) §7). The artifacts are gitignored, so
 this runs locally rather than in CI; `tests/unit/test_headline_table.py` pins
 the classification logic itself, which does run in CI.
 
@@ -292,19 +292,19 @@ the classification logic itself, which does run in CI.
 
 | File | What's in it |
 | --- | --- |
-| [**Finding: are jailbreak benchmarks still worth running?**](./docs/findings/benchmark-quality-report-card.md) | The paper-style write-up: RQ, method, results (+CIs), threats to validity, related work |
-| [**Finding: what does this metric return when nothing happened?**](./docs/findings/what-does-this-metric-return-when-nothing-happened.md) | Nine metrics and checks in this repo that were satisfied by the *absence* of the thing they measured — three introduced while fixing the previous one, one found five weeks later inside the safety gate protecting this very document, and one that was a shell exit code |
-| [**Finding: a preregistered null at p = 0.0001**](./docs/findings/a-preregistered-null-at-p-0-0001.md) | A real, highly significant effect reported as null because it missed an effect-size bar fixed before the run — plus a refuted mechanism, and what a Taiwan-tuned guard turns out to be sensitive to |
-| [**Finding: what mechanical conversion does to Taiwan-native safety text**](./docs/findings/what-mechanical-conversion-does-to-taiwan-native-safety-text.md) | A frozen-treatment corpus measurement: converting 400 Taiwan-native safety prompts to Simplified and back changes 66% of them, and the standard Taiwan localisation option diverges from the authors mostly on one contested character pair |
-| [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; threats to validity |
-| [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
-| [`tests/README.md`](./tests/README.md) | Which claim each test suite defends |
-| [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The foundry pivot, phase status, and follow-up hardening |
-| [`docs/inspect-evals-port-scoping.md`](./docs/inspect-evals-port-scoping.md) | Scoping (not built): porting the AgentDojo cell to a native Inspect task, and what the `inspect_evals` register now requires |
-| [`docs/preprint-scoping.md`](./docs/preprint-scoping.md) | Scoping (not written): gap analysis from the findings report card to a submittable arXiv preprint, with effort and blockers |
-| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Scope, dev setup, and the ethics rules for adding corpora |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Release history |
-| [`reports/samples/`](./reports/samples/) | Committed real-data findings (staleness, defence comparison, data card) |
+| [**Finding: are jailbreak benchmarks still worth running?**](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/findings/benchmark-quality-report-card.md) | The paper-style write-up: RQ, method, results (+CIs), threats to validity, related work |
+| [**Finding: what does this metric return when nothing happened?**](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/findings/what-does-this-metric-return-when-nothing-happened.md) | Nine metrics and checks in this repo that were satisfied by the *absence* of the thing they measured — three introduced while fixing the previous one, one found five weeks later inside the safety gate protecting this very document, and one that was a shell exit code |
+| [**Finding: a preregistered null at p = 0.0001**](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/findings/a-preregistered-null-at-p-0-0001.md) | A real, highly significant effect reported as null because it missed an effect-size bar fixed before the run — plus a refuted mechanism, and what a Taiwan-tuned guard turns out to be sensitive to |
+| [**Finding: what mechanical conversion does to Taiwan-native safety text**](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/findings/what-mechanical-conversion-does-to-taiwan-native-safety-text.md) | A frozen-treatment corpus measurement: converting 400 Taiwan-native safety prompts to Simplified and back changes 66% of them, and the standard Taiwan localisation option diverges from the authors mostly on one contested character pair |
+| [`METHODOLOGY.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/METHODOLOGY.md) | Source of truth for every reported number; metric validation; threats to validity |
+| [`ETHICS.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
+| [`tests/README.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/tests/README.md) | Which claim each test suite defends |
+| [`docs/ROADMAP.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/ROADMAP.md) | The foundry pivot, phase status, and follow-up hardening |
+| [`docs/inspect-evals-port-scoping.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/inspect-evals-port-scoping.md) | Scoping (not built): porting the AgentDojo cell to a native Inspect task, and what the `inspect_evals` register now requires |
+| [`docs/preprint-scoping.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/docs/preprint-scoping.md) | Scoping (not written): gap analysis from the findings report card to a submittable arXiv preprint, with effort and blockers |
+| [`CONTRIBUTING.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/CONTRIBUTING.md) | Scope, dev setup, and the ethics rules for adding corpora |
+| [`CHANGELOG.md`](https://github.com/rosscyking1115/redteam-foundry/blob/main/CHANGELOG.md) | Release history |
+| [`reports/samples/`](https://github.com/rosscyking1115/redteam-foundry/tree/main/reports/samples/) | Committed real-data findings (staleness, defence comparison, data card) |
 
 ## Citation
 
@@ -319,4 +319,4 @@ the classification logic itself, which does run in CI.
 
 ## Licence
 
-MIT — see [`LICENSE`](./LICENSE).
+MIT — see [`LICENSE`](https://github.com/rosscyking1115/redteam-foundry/blob/main/LICENSE).
