@@ -1,6 +1,6 @@
 [project]
 name = "redteam-foundry"
-version = "0.3.0"
+version = "0.4.0"
 description = "An adversarial benchmark foundry for LLM safety: audit attack corpora, score benchmark staleness, compare defences (ASR + false-refusal), test multilingual over-refusal, and export safe challenge packs."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -109,6 +109,11 @@ dev = [
   # exercised by tests/unit/test_provenance.py. In `dev` as well as its own
   # extra so the suite never silently shrinks when the extra is absent.
   "OpenCC>=1.1",
+  # tests/unit/test_sdist_contents.py builds the sdist IN PROCESS and reads its
+  # member list. The build backend is normally installed into an isolated
+  # environment the test cannot import from, so it is named here as well —
+  # otherwise the one check that opens the artifact would silently not run.
+  "hatchling>=1.25",
   # types
   "types-PyYAML",
 ]
@@ -132,6 +137,58 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/redteam"]
+
+# The sdist contents are an ALLOWLIST, and the difference from an exclude list is
+# the entire point.
+#
+# An allowlist FAILS CLOSED: anything not named here is absent from the sdist,
+# including a directory that does not exist yet. An exclude list FAILS OPEN:
+# anything not named is included, so the next tool that drops a cache directory
+# into the working tree publishes it, silently, on the next release.
+#
+# Until now this project declared no sdist selection at all, which is an exclude
+# list — hatchling packaged the whole working tree minus the *repository's*
+# .gitignore. That backend never reads a contributor's global gitignore
+# (`core.excludesFile`), so anything hidden there is invisible to `git status`,
+# invisible in review, invisible in CI, and packaged anyway. PyPI uploads cannot
+# be unpublished.
+#
+# That is not hypothetical here. Built against the old configuration, the sdist
+# contained `data/.gitkeep` and `results/.gitkeep` — two files git does not
+# track, ignored by this repository's own `/data/` and `/results/` rules.
+# Hatchling honoured the `!` re-inclusion that git cannot, so the backend's file
+# selection provably was not the repository's. Both files are empty, so nothing
+# escaped; the mechanism is the finding, not the payload. `data/` and `results/`
+# hold a download cache and full run outputs respectively.
+#
+# tests/unit/test_sdist_contents.py builds the sdist and fails if any member is
+# untracked, so this list cannot admit a local-only path without CI going red.
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/docs",
+  "/scripts",
+  "/configs",
+  "/examples",
+  "/reports",
+  "/challenge_packs",
+  "/.github",
+  "/README.md",
+  "/CHANGELOG.md",
+  "/CONTRIBUTING.md",
+  "/CODE_OF_CONDUCT.md",
+  "/METHODOLOGY.md",
+  "/ETHICS.md",
+  "/SECURITY.md",
+  "/LICENSE",
+  "/pyproject.toml",
+  "/uv.lock",
+  "/.env.example",
+  "/.gitattributes",
+  "/.gitignore",
+  "/.pre-commit-config.yaml",
+]
 
 # ----------------------------------------------------------------------------
 # Ruff (lint + format)
