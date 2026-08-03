@@ -15,6 +15,16 @@ fails.
     python scripts/check_finding_claims.py            # exit 1 on any mismatch
     python scripts/check_finding_claims.py --list     # show what is checked
 
+Three properties are load-bearing, and a claims guard missing any of them
+passes on documents it should fail:
+
+1. It opens the **artifact** and recomputes, rather than trusting a cited path
+   to exist.
+2. It opens the **document** and matches rendered values, rather than comparing
+   against numbers an author typed into the checker.
+3. It **refuses to pass on an empty claim list**, so "0 claims checked" cannot
+   read as success.
+
 Exit code is the signal. Do not pipe this into anything whose status you then
 read — see finding #9.
 """
@@ -56,6 +66,30 @@ def _unsafe_pct(items: list[dict[str, Any]], cond: str) -> str:
     return f"{100 * sum(1 for v in ok if v == 1) / len(ok):.1f}%"
 
 
+BARE_VERDICTS = ("<score>yes</score>", "<score>no</score>")
+
+
+def _records() -> list[dict[str, Any]]:
+    _, by_item = report.load(RUN)
+    return [r for cells in by_item.values() for r in cells.values()]
+
+
+def _call_count() -> int:
+    return len(_records())
+
+
+def _wellformed() -> tuple[int, int]:
+    """(responses that are exactly a bare verdict, responses with trailing text).
+
+    Both parse. The split is reported because "every call parsed" and "every
+    call returned only a verdict" are different claims, and conflating them
+    would overstate the instrument's obedience to no-think mode.
+    """
+    raws = [r["raw"].strip() for r in _records()]
+    bare = sum(1 for r in raws if r in BARE_VERDICTS)
+    return bare, len(raws) - bare
+
+
 def build_claims() -> list[tuple[str, Callable[[], str]]]:
     """(label, thunk) pairs. Each thunk returns the string that must appear."""
     items = _items()
@@ -86,6 +120,9 @@ def build_claims() -> list[tuple[str, Callable[[], str]]]:
         ("base rate hong-kong", lambda: _unsafe_pct(items, "hong_kong")),
         ("discordant pair count", lambda: f"n = {primary['changed']}"),
         ("concordant pair count", lambda: f"n = {primary['n'] - primary['changed']}"),
+        ("total calls", lambda: f"{_call_count():,}"),
+        ("bare-verdict responses", lambda: f"{_wellformed()[0]:,}"),
+        ("trailing-commentary responses", lambda: str(_wellformed()[1])),
     ]
 
 
@@ -105,7 +142,12 @@ def main() -> int:
     claims = build_claims()
 
     if not claims:
-        # A checker with nothing to check passes vacuously. Refuse to.
+        # A checker with nothing to check passes vacuously — it would print
+        # "ok: 0 claims match" and exit 0, which is indistinguishable from a
+        # document whose every figure is correct. This guard is the absence
+        # lesson applied to the checker itself, and it is the piece most often
+        # missing from claims guards: they verify documents and forget to
+        # verify that they verified anything.
         print("FAIL: no claims defined; the check would be vacuous")
         return 1
 

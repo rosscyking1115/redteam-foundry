@@ -356,6 +356,21 @@ The same defect appeared in a sibling repository the same day, where a commit
 landed with fifteen tests red because the command that should have blocked it
 was piped into something that succeeded.
 
+**It then happened twice more in the same project, and the guard caught both.**
+A background-task notification reported "completed (exit code 0)" for a run that
+had segfaulted, and later for a different run that exited 1 on CUDA
+out-of-memory after five calls. Both times the wrapper's status was reported and
+Python's was not; both times the direct capture — `echo "PYTHON EXIT=$?"`
+immediately after the command, with the output redirected rather than piped —
+showed the truth. The second of those would otherwise have been read as a
+completed 1,600-call confirmation run, because a notification saying "completed"
+and a file containing five records do not contradict each other unless someone
+looks.
+
+That a guard written for a defect has now caught the same defect twice is worth
+more than the original diagnosis was. A fix that never fires again might have
+been unnecessary; one that fires repeatedly was load-bearing.
+
 This is the family seen one layer out. #1–#8 are metrics that cannot come out
 badly; this is a **verification step** that cannot come out badly:
 

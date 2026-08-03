@@ -84,6 +84,12 @@ guard = [
   # and not a driver problem (a bare bf16 GPU matmul passes). transformers
   # 4.57.6 loads and generates from the same checkpoint on the same GPU in
   # under two seconds.
+  #
+  # SECOND DOOR, so nobody wastes a day finding it: device_map="auto" is NOT
+  # the workaround. The CPU-offload dispatch segfaults on 4.57.6 as well, so it
+  # is unstable here independently of the transformers version. Use explicit
+  # single-device placement ({"": 0}, i.e. --device 0) and a model that fits in
+  # VRAM. An 8B checkpoint fits at 4-bit and does not fit at bf16.
   "transformers>=4.50,<5",
   "accelerate>=1.0",
   "bitsandbytes>=0.45",

@@ -245,7 +245,50 @@ text](./what-mechanical-conversion-does-to-taiwan-native-safety-text.md).
 
 ---
 
-## 6. Limits
+## 6. Does a quantised guard produce a null by being flattened?
+
+The obvious objection to a null is that the instrument was degraded. The guard
+ran 4-bit; an unquantised confirmation was attempted and could not be run on the
+available hardware, so the caveat cannot be deleted and is answered instead —
+from the completed run.
+
+**A flattened instrument would be insensitive. This one discriminates:**
+
+| Evidence | Value |
+|---|---|
+| Verdicts are not degenerate | unsafe rates span 48.0% to 52.2% across four conditions |
+| Between-arm separation is significant | A and D each differ from native at p = 1.4 × 10⁻⁴ and 7.6 × 10⁻⁵ |
+| B is *not* separated from native | 1.0%, p = 0.63 — the guard distinguishes which renderings matter |
+| The preregistered secondary fires | benign hard negatives at 6.0%, p = 0.0063 |
+| Absence | 0 empty, 0 unparseable across 1,600 calls, on a detector proven to fire against injected fixtures |
+| Output form | every call returned a parseable verdict; 1,557 were exactly `<score>yes/no</score>` and 43 carried trailing commentary that parsed correctly anyway |
+
+A model compressed into insensitivity could not produce **both** a firing
+preregistered secondary **and** a significant, direction-consistent separation
+between arms while leaving a third arm statistically indistinguishable from
+native. Insensitivity looks like one number everywhere. This is not that.
+
+### The precise scope of the caveat
+
+> **The quantisation caveat limits generalisation, not internal validity.**
+
+All four renderings were measured on the **same instrument**, in the same run,
+with identical decoding. The *contrast between conditions* — which is the entire
+study — does not depend on the precision, because the precision is held constant
+across every comparison.
+
+What the caveat does limit: these are **a 4-bit model's behaviours**. The base
+rates, the 4.5%, the 6.0% — those are properties of this deployment.
+
+**And what this argument does not establish**, stated because it would be easy to
+let it drift: it is evidence the instrument was not flattened. It is **not**
+evidence that an unquantised model would show the same rates, or that the primary
+would still land below 5 points at bf16. That question is open and is recorded as
+open.
+
+---
+
+## 7. Limits
 
 **The length association reaches the population claim, not the within-pair
 claim.** A McNemar pair is one item under two renderings, so the two arms of a
@@ -285,9 +328,12 @@ was chosen to require no human labelling at all: the four renderings derive
 mechanically from one source, so their equivalence is established by construction
 rather than by rating.
 
-**One guard, one corpus, one precision.** The 4-bit run is complete;
-**bf16 was measured at 18.5 s/call and was not executed.** No number in this
-document is a bf16 result. One guard classifier is not the field.
+**One guard, one corpus, one precision.** The 4-bit run is complete. bf16 was
+attempted and **could not be run on the available hardware** — 16 GB of weights
+against an 8 GB card, with the CPU-offload path segfaulting and CPU-only
+inference at 229 s per call. No number in this document is a bf16 result; §6
+answers the resulting objection from the data rather than deleting it. One guard
+classifier is not the field.
 
 **Instrument health.** 1,600 calls, **0 empty responses, 0 unparseable verdicts,
 0 missing cells.** That 0.00% is reported only because the detector was fired
