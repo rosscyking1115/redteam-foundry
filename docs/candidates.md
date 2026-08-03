@@ -64,6 +64,55 @@ If the two precisions agree, there is no candidate here — only a caveat delete
 
 ---
 
+## Packaging: two defects that must land together before any release
+
+**Status:** blocking a release. Assigned elsewhere; **not** to be fixed in
+isolation.
+
+Both are the same class — *the artifact is not the repository* — and both fire on
+the same event, a release build. Fixing either alone produces a release that is
+still wrong, just wrong differently.
+
+### 1. No sdist allowlist
+
+The build has no explicit include list, so the packaged sdist is determined by
+exclusion. Hatchling reads the **repository's** `.gitignore`, not a global one,
+so local-only directories present in a working tree are packaged on the next
+release. A sibling repository leaked exactly this way, and its fix plus the test
+that enforces it exist there as a working reference.
+
+### 2. Eighteen relative README links break on PyPI
+
+`README.md` is the package `long_description`. It carries **18 distinct relative
+targets** that resolve on GitHub and break on PyPI:
+
+```
+./CHANGELOG.md   ./CONTRIBUTING.md   ./ETHICS.md   ./LICENSE
+./METHODOLOGY.md   ./METHODOLOGY.md#12-threats-to-validity
+./docs/ROADMAP.md   ./docs/inspect-evals-port-scoping.md
+./docs/preprint-scoping.md   ./pyproject.toml   ./reports/samples/
+./tests/README.md   ./uv.lock   docs/results_matrix.png
+./docs/findings/benchmark-quality-report-card.md
+./docs/findings/what-does-this-metric-return-when-nothing-happened.md
+./docs/findings/what-mechanical-conversion-does-to-taiwan-native-safety-text.md
+./docs/findings/a-preregistered-null-at-p-0-0001.md
+```
+
+Two of those matter more than the rest. `./LICENSE` is wrapped inside the licence
+badge, so a naive link scan that only looks at the outermost `[text](target)` per
+line can miss it. And **`docs/results_matrix.png` is the headline figure** — on a
+package page it renders as a broken image in exactly the place the finding's
+evidence belongs. A sibling repository shipped that and had to cut a patch
+release to correct it.
+
+### Why they must land together
+
+A release with the allowlist fixed but the links unfixed shows a broken headline
+figure. A release with the links fixed but the allowlist missing leaks local
+files. Neither is shippable, so neither fix is complete on its own.
+
+---
+
 ## Upstream report: `transformers` weight-placement segfault
 
 **Status:** candidate. Not filed.

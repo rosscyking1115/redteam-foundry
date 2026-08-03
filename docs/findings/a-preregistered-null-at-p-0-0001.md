@@ -268,14 +268,26 @@ preregistered secondary **and** a significant, direction-consistent separation
 between arms while leaving a third arm statistically indistinguishable from
 native. Insensitivity looks like one number everywhere. This is not that.
 
-**The trailing commentary is an item property, not a rendering one.** The 43
-responses that carried text beyond the verdict are spread evenly across the four
-arms — 12, 11, 10, 10 — and come from only **12 distinct items**, 9 of which
-elicit it in *all four* renderings. Every one carries an unsafe verdict. So it is
-the prompt, not the conversion, that occasionally draws an explanation out of
-no-think mode. Checked because a concentration in one arm would have meant the
-rendering was changing something beyond the verdict; it does not. **n = 43 across
-12 items is far too small to test, and nothing here rests on it.**
+**The trailing commentary is an item property, not a rendering one — and that
+makes it incapable of confounding the comparison.** The 43 responses that carried
+text beyond the verdict come from only **12 distinct items**, and **9 of those 12
+elicit it in all four renderings**. The per-arm counts are 12, 11, 10, 10.
+
+Even counts alone could be coincidence. What identifies the driver is the
+*same items recurring across every arm*: the commentary varies with the **prompt**
+and not with the **rendering**.
+
+> An artefact that appears on all four arms of the same item is **constant across
+> exactly the contrast being measured**, so it cannot produce a between-arm
+> difference. This is a validity statement, not a sample-size one.
+
+Every one carries an unsafe verdict, which reads as the model explaining itself
+when it flags something. The distribution was checked because a *concentration*
+in one arm would have meant the rendering was changing something beyond the
+verdict; it is not concentrated.
+
+Separately and additionally: **n = 43 across 12 items is far too small to test,
+and nothing here rests on it.**
 
 ### The precise scope of the caveat
 
