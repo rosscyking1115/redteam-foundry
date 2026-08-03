@@ -10,11 +10,17 @@ bootstrap over items, matching the interval convention used elsewhere here.
 
 Precision
 ---------
-Both precisions run locally at no cost and both are reported: 4-bit at roughly
-1.6s per call (about 45 minutes for the full 1,600) and bf16 unquantised at
-roughly 18.5s per call (about 8.2 hours). `--quantise` selects 4-bit; the
-default is bf16. Neither substitutes for the other, so the precision used is
-recorded in the run header and must be stated with every number.
+4-bit runs locally at roughly 1.6s per call, about 45 minutes for the full
+1,600. `--quantise` selects it.
+
+bf16 is the default but does NOT run on an 8GB card: the weights are about
+16GB, so it loads and then hits CUDA out-of-memory during sustained
+generation, and the CPU-offload path segfaults. A single successful bf16 call
+is not evidence that a run will complete — that estimate was made once and was
+wrong. See docs/bf16-confirmation-plan.md.
+
+The precision used is recorded in the run header and must be stated with every
+number; neither substitutes for the other.
 
 Both require transformers 4.x. Version 5.14.1's weight-placement path
 segfaults on this host under every device_map, including explicit

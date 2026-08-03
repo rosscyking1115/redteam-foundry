@@ -292,6 +292,14 @@ project caught the near-miss it was looking for and shipped a false explanation
 of it in the same breath. Being alert to one pattern is not protection against
 committing it.
 
+**It recurred the same day, through a different door.** A bf16 throughput
+estimate of 18.5 s/call — and a projected 8.2-hour run — was taken from **one**
+successful call and reported as a plan. Sustained generation with a growing KV
+cache then hit CUDA out-of-memory after five calls. The single call fit; nothing
+about it could have revealed that the next thousand would not. A performance
+probe is a sample like any other, and a benchmark of one has no opportunity to
+disconfirm the throughput it implies.
+
 **What still stands.** Configuration belongs in the preregistration. A tool's
 default encodes an assumption about the common case, and `s2tw` versus `s2twp`
 is the difference between measuring vocabulary localisation and not. And before

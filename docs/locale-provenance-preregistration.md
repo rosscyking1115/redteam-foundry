@@ -294,19 +294,18 @@ This bounds the work. It is portfolio-grade, not publication-grade. Concretely:
   distribution — a Taiwan-tuned guard returning different verdicts for
   glyph-only and native renderings of a prompt it was built to catch is the
   strongest single result reachable here.
-- **Precision.** Both are available locally at no cost, and both are reported:
+- **Precision. Results are 4-bit only.** NF4, double-quantised, bf16 compute,
+  at roughly 1.6 s per call.
 
-  | Precision | Per call | Full run (1,600 calls) |
-  |---|---|---|
-  | 4-bit NF4, double-quant, bf16 compute | ~1.6 s | ~45 min |
-  | bf16 unquantised | ~18.5 s | ~8.2 h |
+  bf16 was attempted as an unquantised confirmation and **could not be run on
+  the available hardware** — 16 GB of weights against an 8 GB card, with the
+  CPU-offload path segfaulting and CPU-only inference at 229 s per call. The
+  attempt and its outcome are recorded in `docs/bf16-confirmation-plan.md`,
+  whose analysis plan was fixed before the attempt.
 
-  The first result reported is **4-bit**, because it completes in a session;
-  bf16 follows as the unquantised confirmation. Neither is a free substitution
-  for the other, so the precision actually used is recorded in every run header
-  and stated with every number. A quantisation-sensitivity comparison between
-  the two is worth having on its own, since guards are commonly deployed
-  quantised.
+  **The quantisation caveat therefore stands and is disclosed rather than
+  deleted.** Every number is a 4-bit number, the precision is recorded in the
+  run header, and no claim here is an unquantised claim.
 
   Both require `transformers` 4.x. Version 5.14.1's weight-placement path
   segfaults on the development host under every `device_map`, including
