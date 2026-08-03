@@ -268,6 +268,15 @@ preregistered secondary **and** a significant, direction-consistent separation
 between arms while leaving a third arm statistically indistinguishable from
 native. Insensitivity looks like one number everywhere. This is not that.
 
+**The trailing commentary is an item property, not a rendering one.** The 43
+responses that carried text beyond the verdict are spread evenly across the four
+arms — 12, 11, 10, 10 — and come from only **12 distinct items**, 9 of which
+elicit it in *all four* renderings. Every one carries an unsafe verdict. So it is
+the prompt, not the conversion, that occasionally draws an explanation out of
+no-think mode. Checked because a concentration in one arm would have meant the
+rendering was changing something beyond the verdict; it does not. **n = 43 across
+12 items is far too small to test, and nothing here rests on it.**
+
 ### The precise scope of the caveat
 
 > **The quantisation caveat limits generalisation, not internal validity.**

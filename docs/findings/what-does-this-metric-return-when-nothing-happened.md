@@ -426,12 +426,13 @@ progress snapshots rather than comparing two taken at different moments.
 The subtlest one, and the only one where the defect is in the *provenance of a
 rule* rather than in a number.
 
-A study preregistered a primary outcome and a 5-point minimum effect. Later, a
-session instruction added a subgroup analysis — "report the items where 台
-becomes 臺 separately" — with its own pass criterion: *the subgroup's rate must
-be at least as high as the corpus overall*. The subgroup passed. It was written
-into a session report alongside the preregistered outcomes, in the same register,
-with no marker distinguishing the two.
+A study preregistered a primary outcome and a 5-point minimum effect. Later —
+after the design was fixed, and before the results were in — a working
+instruction added a subgroup analysis: "report the items where 台 becomes 臺
+separately", with its own pass criterion, *the subgroup's rate must be at least
+as high as the corpus overall*. The subgroup passed. It was then reported
+alongside the preregistered outcomes, in the same register, with no marker
+distinguishing the two.
 
 **That criterion was never in the preregistration.** It arrived after the design
 was fixed, and — critically — its comparator was *the corpus rate*, not the
