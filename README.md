@@ -18,6 +18,11 @@
 > consumes the challenge packs exported here. Full project map →
 > [profile](https://github.com/rosscyking1115).
 
+**Status: active.** The headline result below is concluded and frozen; the
+corpus-audit and locale-provenance lines are ongoing. This measures whether
+*benchmarks* still discriminate — it does not certify any model as safe, and it
+is not a security audit. Install: `pipx install redteam-foundry`.
+
 ## The finding
 
 A rigorous negative result. Across 2 target models (a frontier model and a small
@@ -273,8 +278,8 @@ re-creatable from configs.
 
 **Typing.** `mypy` runs in `strict` mode with `warn_unreachable`
 ([`pyproject.toml`](./pyproject.toml)), and CI fails the build on any type
-error — it is a gate, not a report. Coverage today is `src/` (43 modules, clean);
-`tests/` and `scripts/` are linted and formatted but not yet typechecked.
+error — it is a gate, not a report. Coverage is all of `src/`; `tests/` and
+`scripts/` are linted and formatted but not yet typechecked.
 
 **Result integrity.** `python scripts/headline_table.py --check` recomputes
 every published cell from the cached run artifacts and fails on drift —
@@ -288,7 +293,9 @@ the classification logic itself, which does run in CI.
 | File | What's in it |
 | --- | --- |
 | [**Finding: are jailbreak benchmarks still worth running?**](./docs/findings/benchmark-quality-report-card.md) | The paper-style write-up: RQ, method, results (+CIs), threats to validity, related work |
-| [**Finding: what does this metric return when nothing happened?**](./docs/findings/what-does-this-metric-return-when-nothing-happened.md) | Six metrics in this repo that were satisfied by the *absence* of the thing they measured, three introduced while fixing the previous one — and the one question that catches all six |
+| [**Finding: what does this metric return when nothing happened?**](./docs/findings/what-does-this-metric-return-when-nothing-happened.md) | Nine metrics and checks in this repo that were satisfied by the *absence* of the thing they measured — three introduced while fixing the previous one, one found five weeks later inside the safety gate protecting this very document, and one that was a shell exit code |
+| [**Finding: a preregistered null at p = 0.0001**](./docs/findings/a-preregistered-null-at-p-0-0001.md) | A real, highly significant effect reported as null because it missed an effect-size bar fixed before the run — plus a refuted mechanism, and what a Taiwan-tuned guard turns out to be sensitive to |
+| [**Finding: what mechanical conversion does to Taiwan-native safety text**](./docs/findings/what-mechanical-conversion-does-to-taiwan-native-safety-text.md) | A frozen-treatment corpus measurement: converting 400 Taiwan-native safety prompts to Simplified and back changes 66% of them, and the standard Taiwan localisation option diverges from the authors mostly on one contested character pair |
 | [`METHODOLOGY.md`](./METHODOLOGY.md) | Source of truth for every reported number; metric validation; threats to validity |
 | [`ETHICS.md`](./ETHICS.md) | Excluded categories, redaction, disclosure, provider ToS |
 | [`tests/README.md`](./tests/README.md) | Which claim each test suite defends |

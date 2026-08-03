@@ -1,10 +1,12 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day. Every figure below traces
-to a committed artifact and is re-derivable with the commands in
+*One question, six failures, one repository, one day — and five more found
+later, in different work, in the same repository. Every figure below traces to a
+committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
-**Author:** Cheng-Yuan King · **Written:** 2026-07-28
+**Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
+**Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study
 
 ---
 
@@ -23,6 +25,20 @@ one*, and one introduced by the reviewer who had caught the others.
 This document exists because the progression is the finding. Any one of these
 reads as an ordinary slip. Six in a row, under authors who knew about the
 pattern, is evidence about how evaluation metrics fail.
+
+Five later additions strengthen that claim rather than merely lengthening the
+list. **#7** was found five weeks on, in unrelated work, sitting inside the
+safety gate that protects *this document's own subject* — the pattern survived
+being written up. **#8** is a near-miss caught before it happened: a
+configuration default that would have produced a clean, well-powered, entirely
+false null result. **#9** is not a metric at all but a shell pipeline whose exit code reported
+success while the process it wrapped had segfaulted — the same shape, one layer
+out, and it produced a wrong diagnosis that was reported to a human and acted
+on. **#10** is a line count that included a header — trivial in itself, and kept
+because the list's value is showing the same defect arrive through a new door
+each time. **#11** is the subtlest: a pass criterion that arrived after the
+design was fixed and was reported as though it had been preregistered. None was
+findable by re-reading; each was found by running an affirmative check.
 
 ## Why it is worth a document
 
@@ -184,6 +200,264 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
+## Five more, from the locale-provenance work
+
+### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
+
+The exclusion filter is the mechanism behind this repository's central ethical
+guarantee: excluded categories are dropped at corpus-load time, before any
+prompt reaches a model. Every pattern in it was anchored on `\b` word boundaries
+and ASCII letter classes.
+
+Chinese is unspaced and non-ASCII. There are no word boundaries for `\b` to
+match. So **no pattern could match any Chinese prompt**, and `filter_prompt`
+returned `excluded=False` for all Chinese input — not because the input was
+clean, but because the filter could not read it. A gate that passes everything
+it cannot parse returns exactly the value of a gate with nothing to catch.
+
+Three things make this the sharpest instance in the set:
+
+- **The hole was documented in prose and unguarded in code.** `ETHICS.md` named
+  this exact bypass as a *reason* for a policy: we do not translate harmful
+  prompts into other languages because that "would both create new harmful
+  content and bypass the English-only exclusion filter." The bypass was known,
+  written down, and load-bearing in an argument — and nothing tested it.
+- **It sat inside the gate protecting this document's own finding**, in the
+  repository that published it.
+- **No test could have caught it**, because every test fixture was English. The
+  suite was green and complete with respect to the inputs it imagined.
+
+Fixed in `src/redteam/corpora/_filters.py` with a Chinese blocklist covering all
+three excluded categories in both scripts. The guard against regression is the
+affirmative form: `tests/unit/test_exclusion_filter.py` asserts that the English
+patterns **alone cannot match** the Chinese positive cases, that the full filter
+catches them anyway, and that a Simplified and a Traditional writing of one
+prompt receive the same verdict. If someone later "simplifies" the filter by
+deleting the Chinese set, that test goes red instead of the guarantee going
+quietly vacuous.
+
+The generalisation is worth more than the fix: **a validator's coverage is
+bounded by what it can parse, and "no matches" and "cannot read the input" are
+the same return value.** For any regex, schema, linter or scanner, ask what it
+returns for input outside its alphabet.
+
+### 8. A generalisation from five probes — corrected
+
+**The first published version of this instance was wrong, and the correction is
+the more useful finding.** It is kept here rather than deleted, because an
+instance in a document about unchecked claims must not itself be an unchecked
+claim.
+
+**What was published.** That `s2tw` "collapses into `s2t`", so choosing it for
+the dictionary condition would have made conditions A and B
+character-for-character identical and produced a clean, well-powered, entirely
+false null. The evidence given was that `s2tw` reproduced `s2t` output on 4 of 5
+vocabulary probes.
+
+**What the configs actually say.** Read directly from the installed files:
+
+```
+s2t    = STPhrases, STCharacters
+s2tw   = STPhrases, STCharacters, TWVariantsPhrases, TWVariants
+s2twp  = STPhrases, STCharacters, TWPhrases, TWVariantsPhrases, TWVariants
+```
+
+`s2tw` runs a genuine Taiwan character-variant stage and differs from `s2t` on
+any text containing 裏, 爲 or 麪 — 裏面→裡面, 爲了→為了, 麪條→麵條 all verified.
+What it lacks is *TWPhrases*, the word-level vocabulary dictionary. The
+conclusion — use `s2twp` — survives. The stated reason was false.
+
+**How the error was made.** The five probes were chosen to be
+*vocabulary*-bearing, so they had no variant-bearing characters in them. Four
+matched, and "matched on these five" became "is structurally identical". The
+disconfirming evidence was already in hand: an earlier probe in the same
+session had recorded `s2tw` → 哪**裡** against `s2t` → 哪**裏**, flagged
+`same as A: False`. It was not reconciled against the claim.
+
+That is the failure this instance is really about, and it is a different one
+from #1–#7:
+
+> **A metric can be satisfied by a sample that had no opportunity to disconfirm
+> it.** Four of five agreeing is evidence only if one of the five *could* have
+> disagreed. A test set selected for one property is silent about another, and
+> its silence reads exactly like confirmation.
+
+And the sharper half: **the disconfirming case was already in the project's own
+output.** The first probe of the session had printed `s2tw` → 哪**裡** against
+`s2t` → 哪**裏** and flagged it `same as A: False`. The evidence existed, was
+recorded correctly, and was never read back against the claim it refuted.
+
+It also demonstrates the failure mode surviving *into the correction*: the
+project caught the near-miss it was looking for and shipped a false explanation
+of it in the same breath. Being alert to one pattern is not protection against
+committing it.
+
+**It recurred the same day, through a different door.** A bf16 throughput
+estimate of 18.5 s/call — and a projected 8.2-hour run — was taken from **one**
+successful call and reported as a plan. Sustained generation with a growing KV
+cache then hit CUDA out-of-memory after five calls. The single call fit; nothing
+about it could have revealed that the next thousand would not. A performance
+probe is a sample like any other, and a benchmark of one has no opportunity to
+disconfirm the throughput it implies.
+
+**What still stands.** Configuration belongs in the preregistration. A tool's
+default encodes an assumption about the common case, and `s2tw` versus `s2twp`
+is the difference between measuring vocabulary localisation and not. And before
+believing any null, verify the conditions differed — the same question as #2 and
+#3, asked of the *stimulus* rather than the response.
+
+**What was added because of the error.** The treatment is now frozen by content,
+not by name: `src/redteam/opencc_pin.py` records the package version, upstream
+commit `81223ed`, and the SHA-256 of every dictionary in every chain used, with
+`verify_pin()` failing loudly on drift. This matters beyond bookkeeping — OpenCC
+master carries an August 2026 fix to greedy `s2twp` matching that is not in the
+pinned release, and several dictionaries have gained entries since. A run
+reporting "converted with OpenCC" is not reproducible.
+
+A second claim from the same session was also wrong and is corrected here:
+`TWPhrases` proper-name coverage is **sparse and uneven, not absent**.
+奧巴馬→歐巴馬, 新西蘭→紐西蘭 and 老撾→寮國 are present; 布什→布希, 悉尼→雪梨
+and 里根→雷根 are not. At 775 entries against 4,800+ groups in Taiwan's official
+cross-strait difference list, `s2twp` is a partial mapping and must never be
+described as comprehensive Taiwan localisation.
+
+Pinned by `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`,
+`::test_s2twp_adds_vocabulary_that_s2tw_lacks`, and
+`tests/unit/test_opencc_pin.py`.
+
+### 9. A pipeline exit code — satisfied by the last command in the pipe
+
+The one that is not a metric at all, which is why it belongs here.
+
+A guard run was launched as:
+
+```sh
+python run_guard.py ... 2>&1 | grep -v "Loading weights" | tail -40
+```
+
+A shell pipeline reports the exit status of its **last** command. `tail`
+succeeded, so the pipeline returned **0** and the harness reported the job
+*completed*. Python had died of `SIGSEGV` partway through loading model
+weights. There was no output file, no traceback in the visible tail, and a
+green completion notice.
+
+The damage was not the crash. It was that the false success **produced a false
+diagnosis**: the run was reported as having failed on memory pressure, because
+that was the only plausible story for a large model stopping partway. Re-run
+with the exit code captured directly — no pipe — it came back `139`, and a
+4-bit build needing about 5.5 GB against 6.6 GB free is not a memory failure.
+The real cause was the weight-placement path in `transformers` 5.14.1;
+`transformers` 4.57.6 loads the same model on the same GPU in under two
+seconds. **The wrong diagnosis was reported to a human and acted on**, and it
+was wrong because a verification step returned success for something that
+failed.
+
+The same defect appeared in a sibling repository the same day, where a commit
+landed with fifteen tests red because the command that should have blocked it
+was piped into something that succeeded.
+
+**It then happened twice more in the same project, and the guard caught both.**
+A background-task notification reported "completed (exit code 0)" for a run that
+had segfaulted, and later for a different run that exited 1 on CUDA
+out-of-memory after five calls. Both times the wrapper's status was reported and
+Python's was not; both times the direct capture — `echo "PYTHON EXIT=$?"`
+immediately after the command, with the output redirected rather than piped —
+showed the truth. The second of those would otherwise have been read as a
+completed 1,600-call confirmation run, because a notification saying "completed"
+and a file containing five records do not contradict each other unless someone
+looks.
+
+That a guard written for a defect has now caught the same defect twice is worth
+more than the original diagnosis was. A fix that never fires again might have
+been unnecessary; one that fires repeatedly was load-bearing.
+
+This is the family seen one layer out. #1–#8 are metrics that cannot come out
+badly; this is a **verification step** that cannot come out badly:
+
+> **Ask what your check returns when the thing it checks fails.** A pipeline
+> returns its last command's status. A `grep` that finds nothing exits
+> non-zero, and a `grep -v` that finds nothing exits *zero*. A `tail` of a
+> crashed process's output is a successful `tail`.
+
+**The repair is the inverse of the defect, and worth stating as a method.**
+Once the exit code was captured honestly, the cause was established by ruling
+things out in order of cheapness, each with its own exit code: explicit
+single-device placement still segfaulted, which eliminated the auto-dispatch
+and CPU-offload logic; a bare bf16 matmul on the GPU passed, which eliminated
+the driver, the CUDA runtime and the torch build; only then was the library
+version changed, and the same model loaded and generated in under two seconds.
+
+That ordering is what makes the conclusion *established* rather than
+*presumed*. The first diagnosis — memory pressure — was the first plausible
+story reached for, tested against nothing, and it was wrong. A cause you have
+merely explained is not a cause you have isolated.
+
+Concretely: capture the status of the process you care about, not of the
+formatting you wrapped around it. Redirect to a file and read it afterwards,
+use `PIPESTATUS`/`pipefail`, or simply do not pipe the command whose exit code
+is the signal. And when a long job "completes" implausibly fast, check that it
+produced its artifact before believing it.
+
+### 10. A line count — satisfied by the header
+
+Small, and included because the *arrival route* is the point.
+
+Run progress was checked with `wc -l results/run.jsonl`. The file is JSONL with
+a metadata header line, so the line count is always one greater than the record
+count. Two progress figures reported minutes apart — "270 records" from a
+verdict tally and "304 calls" from a line count — were quietly inconsistent by
+34: partly two different snapshots, partly the header.
+
+Nothing downstream depended on it. It is here because it is the **same defect
+arriving through a new door**: a count that is correct as arithmetic and wrong
+as evidence, because the measuring instrument included something the claim did
+not. It is the same shape as citing 305 tests when the suite ran 309, and as
+reading a dictionary as having 781 entries when 6 of those lines are a licence
+header.
+
+> **A count is a claim about a population. State the population, not just the
+> number.**
+
+Fixed by reporting header lines and record lines separately, and by timestamping
+progress snapshots rather than comparing two taken at different moments.
+
+### 11. A criterion that arrived downstream — satisfied by untracked provenance
+
+The subtlest one, and the only one where the defect is in the *provenance of a
+rule* rather than in a number.
+
+A study preregistered a primary outcome and a 5-point minimum effect. Later —
+after the design was fixed, and before the results were in — a working
+instruction added a subgroup analysis: "report the items where 台 becomes 臺
+separately", with its own pass criterion, *the subgroup's rate must be at least
+as high as the corpus overall*. The subgroup passed. It was then reported
+alongside the preregistered outcomes, in the same register, with no marker
+distinguishing the two.
+
+**That criterion was never in the preregistration.** It arrived after the design
+was fixed, and — critically — its comparator was *the corpus rate*, not the
+preregistered 5-point bar. A subgroup measured against a comparator chosen later
+is not a preregistered test, and reporting it beside one borrows credibility it
+has not earned.
+
+It was caught only because a reviewer asked for the criterion to be **quoted
+verbatim from the preregistration**, and it could not be. Nothing in the
+document, the code, or the analysis output distinguished the two kinds of claim.
+
+> **A criterion supplied downstream is indistinguishable from one fixed in
+> advance unless provenance is tracked. Preregistration is not a document; it is
+> a *timestamp*, and a claim that cannot be traced to one does not have it.**
+
+The direction matters: this one **flattered the result**. An added criterion that
+made the finding look worse would have been scrutinised; one that made it pass
+was simply reported. That asymmetry is why the check has to be mechanical —
+"can I quote this from the commit that predates the run?" — rather than a matter
+of remembering.
+
+Fixed by labelling every reported contrast with its standing in place, and by
+stating plainly, where the subgroup appears, that no comparator for it exists in
+the preregistration and that the analysis is exploratory.
+
 ## What the six have in common
 
 1. **Every number was computed correctly.** No arithmetic error appears here.
@@ -237,6 +511,33 @@ reliably self-detectable, and needs structure:
    not get re-derived.
 8. **Some claims should not be automatable.** If no available instrument can
    bear the weight, demote the verdict to a screen requiring human adjudication.
+9. **What does this validator return for input outside its alphabet?** A regex,
+   schema, linter or scanner covers only what it can parse, and "no matches" is
+   indistinguishable from "could not read it". Test the *old* rule against the
+   *new* input class and assert it fails, so a later simplification goes red.
+10. **Before believing a null, verify the conditions differed.** Measure the
+    stimulus, not only the response. A comparison between two things that turn
+    out to be the same thing will produce a confident, well-powered nothing.
+11. **Pre-register the configuration, not just the thresholds.** A library
+    default encodes an assumption about the common case, which may not be
+    yours; `s2tw` versus `s2twp` was the whole experiment. Freeze it by
+    *content* — version, commit, per-file hash — not by name.
+12. **Could this sample have disconfirmed the claim?** Agreement across N
+    probes is evidence only if at least one probe had the property that would
+    have broken it. A set selected for one feature is silent about another,
+    and its silence is indistinguishable from confirmation. #8 was published
+    from five probes chosen for vocabulary, none of which contained the
+    variant characters that would have refuted it.
+13. **Reconcile new claims against evidence already collected.** #8's
+    disconfirming case was in an earlier probe in the same session, correctly
+    recorded and never re-read. Search your own prior output for the claim
+    before publishing it.
+14. **Ask what your *check* returns when the thing it checks fails.** Not just
+    your metrics — your verification steps. A shell pipeline returns its last
+    command's status, so piping a command into `grep`, `tail` or `head`
+    discards the exit code that mattered. Capture the status of the process you
+    care about, and when a long job completes implausibly fast, confirm it
+    produced its artifact before believing it.
 
 ## Provenance
 
@@ -260,6 +561,8 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 4 | METHODOLOGY §12.7 | `tests/unit/test_detector_control_verdict.py` (grid test) |
 | 5 | METHODOLOGY §12.8 | `scripts/detector_control_verdict.py` |
 | 6 | METHODOLOGY §7 | the redirect-zone table |
+| 7 | `ETHICS.md` (script exception), `_filters.py` module docstring | `tests/unit/test_exclusion_filter.py::test_the_english_patterns_alone_cannot_see_chinese`, `::test_both_chinese_scripts_are_covered` |
+| 8 | `docs/locale-provenance-preregistration.md` §3, `src/redteam/opencc_pin.py` | `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`, `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, `tests/unit/test_opencc_pin.py` |
 
 ## A note on what this is not
 

@@ -25,13 +25,40 @@ guarantee.
   be shown per category, with explicit warnings.
 - **Test categories that are excluded by policy** (see below). These are
   filtered at corpus-load time before any model receives them.
-- **Generate non-English attack content.** The multilingual work
-  (`src/redteam/multilingual.py`) is a **benign** control set only — it
-  measures whether models *over-refuse* harmless non-English and code-switched
-  prompts (false refusal). We do **not** translate harmful prompts into other
-  languages: that would both create new harmful content and bypass the
-  English-only exclusion filter. The multilingual contribution is over-refusal
-  measurement, not non-English jailbreak generation.
+- **Author non-English attack content.** We do not write new harmful prompts
+  in any language, and we do not use a model to translate or paraphrase harmful
+  prompts into new ones. The multilingual control set
+  (`src/redteam/multilingual.py`) is **benign** only — it measures whether
+  models *over-refuse* harmless non-English and code-switched prompts.
+
+  **Narrow exception, added 2026-08-02: deterministic script and locale
+  conversion of prompts that are already published.** Locale-provenance work
+  (`src/redteam/provenance.py`) renders an existing prompt into Simplified and
+  Traditional Chinese variants using pinned, recorded OpenCC configurations.
+  Nothing is authored: the output is a character and vocabulary mapping of text
+  the upstream dataset already released, and the transformation is reversible
+  and reproducible from the recorded config. This is the same relationship to
+  the source that loading a pinned corpus has, not the creation of new content.
+
+  Two conditions govern the exception, both of which must hold:
+
+  1. **The source prompt must already be published** under a licence permitting
+     derivative works, and pinned to an upstream revision.
+  2. **The exclusion filter must be able to read the target script.** Every
+     rendering passes the same `filter_prompt` gate as the source, and the
+     filter's Chinese coverage is asserted by
+     `tests/unit/test_exclusion_filter.py`, including that a Simplified and a
+     Traditional writing of one prompt receive the same verdict.
+
+  Condition 2 was not met before 2026-08-02. Every filter pattern was anchored
+  on `\b` word boundaries and ASCII letters, so none could match Chinese text
+  at all, and the filter returned "not excluded" for every Chinese prompt —
+  because it could not read them, not because they were clean. That gap is
+  fixed, and the exception above is conditional on it staying fixed.
+
+  Still excluded: authoring novel harmful prompts in any language; and
+  publishing rendered adversarial prompt text, which stays redacted and
+  gitignored exactly as English adversarial prompts do.
 
 ## Excluded categories
 
@@ -61,6 +88,13 @@ If any of these slip past the filter, the CI test fails and merge is blocked.
 - **AgentDojo** — Debenedetti et al., 2024. *AgentDojo: A Dynamic
   Environment to Evaluate Prompt Injection Attacks and Defences for LLM
   Agents.* AGPL licence.
+- **TS-Bench** — Hsu et al., 2026. *Taiwan Safety Benchmark and Breeze Guard:
+  Toward Trustworthy AI for Taiwanese Mandarin.* arXiv:2603.07286.
+  Apache-2.0 (`github.com/mtkresearch/TS-Bench`). 400 Taiwan-native prompts,
+  200 harmful and 200 matched benign hard negatives. Used as the source for
+  locale-provenance renderings; Apache-2.0 permits derivative works with a
+  licence copy and a notice of modifications, and the OpenCC configuration
+  applied to each item is that notice.
 
 Exact dataset commits are pinned in `configs/dataset_versions.yaml`.
 
