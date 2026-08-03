@@ -1,12 +1,12 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day — and three more found
+*One question, six failures, one repository, one day — and four more found
 later, in different work, in the same repository. Every figure below traces to a
 committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
-**Extended:** 2026-08-02 with #7, #8 and #9, from the locale-provenance study
+**Extended:** 2026-08-02 with #7 through #10, from the locale-provenance study
 
 ---
 
@@ -26,7 +26,7 @@ This document exists because the progression is the finding. Any one of these
 reads as an ordinary slip. Six in a row, under authors who knew about the
 pattern, is evidence about how evaluation metrics fail.
 
-Three later additions strengthen that claim rather than merely lengthening the
+Four later additions strengthen that claim rather than merely lengthening the
 list. **#7** was found five weeks on, in unrelated work, sitting inside the
 safety gate that protects *this document's own subject* — the pattern survived
 being written up. **#8** is a near-miss caught before it happened: a
@@ -34,8 +34,10 @@ configuration default that would have produced a clean, well-powered, entirely
 false null result. **#9** is not a metric at all but a shell pipeline whose exit code reported
 success while the process it wrapped had segfaulted — the same shape, one layer
 out, and it produced a wrong diagnosis that was reported to a human and acted
-on. None was findable by re-reading; each was found by running an affirmative
-check.
+on. **#10** is a line count that included a header — trivial in itself, and kept
+because the list's value is showing the same defect arrive through a new door
+each time. None was findable by re-reading; each was found by running an
+affirmative check.
 
 ## Why it is worth a document
 
@@ -197,7 +199,7 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
-## Three more, from the locale-provenance work
+## Four more, from the locale-provenance work
 
 ### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
 
@@ -371,6 +373,29 @@ formatting you wrapped around it. Redirect to a file and read it afterwards,
 use `PIPESTATUS`/`pipefail`, or simply do not pipe the command whose exit code
 is the signal. And when a long job "completes" implausibly fast, check that it
 produced its artifact before believing it.
+
+### 10. A line count — satisfied by the header
+
+Small, and included because the *arrival route* is the point.
+
+Run progress was checked with `wc -l results/run.jsonl`. The file is JSONL with
+a metadata header line, so the line count is always one greater than the record
+count. Two progress figures reported minutes apart — "270 records" from a
+verdict tally and "304 calls" from a line count — were quietly inconsistent by
+34: partly two different snapshots, partly the header.
+
+Nothing downstream depended on it. It is here because it is the **same defect
+arriving through a new door**: a count that is correct as arithmetic and wrong
+as evidence, because the measuring instrument included something the claim did
+not. It is the same shape as citing 305 tests when the suite ran 309, and as
+reading a dictionary as having 781 entries when 6 of those lines are a licence
+header.
+
+> **A count is a claim about a population. State the population, not just the
+> number.**
+
+Fixed by reporting header lines and record lines separately, and by timestamping
+progress snapshots rather than comparing two taken at different moments.
 
 ## What the six have in common
 
