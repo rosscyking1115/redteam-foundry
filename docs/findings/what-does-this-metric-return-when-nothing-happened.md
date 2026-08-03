@@ -1,12 +1,13 @@
 # What does this metric return when nothing happened?
 
-*One question, six failures, one repository, one day — and five more found
+*One question, six failures, one repository, one day — and seven more found
 later, in different work, in the same repository. Every figure below traces to a
 committed artifact and is re-derivable with the commands in
 [Provenance](#provenance).*
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
-**Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study
+**Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study ·
+**Extended:** 2026-08-03 with #12 and #13, from cutting a release
 
 ---
 
@@ -39,6 +40,14 @@ because the list's value is showing the same defect arrive through a new door
 each time. **#11** is the subtlest: a pass criterion that arrived after the
 design was fixed and was reported as though it had been preregistered. None was
 findable by re-reading; each was found by running an affirmative check.
+
+**#12** and **#13** came from preparing a release, and neither is a number. One
+is a publish workflow that runs no tests, so "the release succeeded" is satisfied
+by nothing having been checked. The other is a clean `git status` satisfied by
+the file being invisible to git, which had this repository packaging two
+untracked files into its own source distribution. They are kept because they show
+the pattern is not confined to metrics: anything that reports a state can be
+satisfied by the absence of what it claims to observe.
 
 ## Why it is worth a document
 
@@ -458,6 +467,91 @@ Fixed by labelling every reported contrast with its standing in place, and by
 stating plainly, where the subgroup appears, that no comparator for it exists in
 the preregistration and that the analysis is exploratory.
 
+## Two more, from cutting a release
+
+Both were found while fixing packaging before the 0.4.0 upload. Neither is a
+number, which is why they are worth adding: the pattern is not confined to
+metrics. Anything that *reports a state* can be satisfied by the absence of the
+thing it claims to observe — a tool's silence, or a pipeline's success.
+
+### 12. A green release — satisfied by no test having run
+
+This project publishes through a GitHub Actions workflow that triggers on a
+published Release. It checks out the tag, builds, verifies that the tag name
+matches the package version, and uploads to PyPI.
+
+It runs no tests. No `pytest`, no `ruff`, no `mypy`, no `needs:` on the CI job,
+no `workflow_run` gate. Its only guard is a shell string comparison of the
+version against the tag, which establishes that the two agree about a number and
+nothing whatever about whether the code works.
+
+The branch ruleset does not cover this either. Its target is `branch` with
+`ref_name.include: ["~DEFAULT_BRANCH"]` — it gates pushes to `main`. There is no
+tag ruleset, so a tag can be created on any commit on any branch, a Release
+published from it, and the upload proceeds.
+
+> **"The release succeeded" is satisfied by nothing having been checked.** A
+> release pipeline that only builds and uploads reports success identically
+> whether the code passed its tests or was never tested at all.
+
+The shape is the one this document is about, moved from a metric to a gate. A
+green tick that means "the upload completed" is easy to read as "the release was
+verified", and the two are the same colour.
+
+It is recorded rather than fixed, deliberately. Changing the release mechanism in
+the same act as using it would mean the release and the change to how releases
+work could not be reviewed separately. The 0.4.0 upload is not the case at risk —
+its commit reached `main` through a pull request with the required check green,
+and CI passed again on `main` afterwards — but that is a property of this
+release, not of the pipeline.
+
+### 13. A clean `git status` — satisfied by the file being hidden from git
+
+The second independent instance of a finding first written up in a sibling
+project, [`agent-release-gates`](https://github.com/rosscyking1115/agent-release-gates/blob/main/docs/finding_gitignore_not_a_packaging_control.md),
+which carries two instances of its own. Four across two repositories is why it is
+a class rather than an anecdote.
+
+A source distribution is built from the *directory*, not from the git index.
+Hatchling applies `.gitignore` files it finds inside the project and has no
+knowledge of a contributor's global gitignore, so anything hidden there is
+invisible to `git status`, invisible in review, invisible in CI — and packaged.
+
+This repository was doing it. Built against the configuration in place before
+0.4.0, the sdist contained `data/.gitkeep` and `results/.gitkeep`: two files git
+does not track, ignored by this repository's own `/data/` and `/results/` rules.
+Hatchling honoured a `!` re-inclusion that git does not, so the backend's file
+selection provably was not the repository's. Both files are empty, so nothing
+escaped. The mechanism is the finding, not the payload — `data/` holds a download
+cache and `results/` holds full run outputs.
+
+The mechanism was then reproduced under control, which is the part worth copying.
+A `docs/probe.key` was force-added: the test passed, because this repository's
+own `.gitignore` carries `*.key` and the file never entered the artifact. A
+`docs/credentials.json` was force-added: `git status` stayed clean, because that
+name is covered *only* by the global gitignore — and hatchling packaged it. The
+check that opened the artifact was the only one that saw it.
+
+> **A clean working tree is satisfied by the file being invisible to the tool
+> reporting it.** `git status` answers a question about the index, and publishing
+> asks a question about the directory.
+
+Fixed with an allowlist, which fails closed: anything not named is absent from
+the sdist, including a directory that does not exist yet. An exclude list fails
+open, and the defect being fixed *was* an exclude list. The enforcing test builds
+the sdist and fails on any member git does not track — a check that stops the
+class, because every local-only file is untracked by construction and no list of
+local tool names is required.
+
+**One thing this release did not close.** The publish workflow rebuilds from a
+fresh checkout of the tag; it does not upload the artifacts that were verified.
+Those were built from a pristine clone of the same commit, so the file selection
+and the README are identical by construction — but the bytes on PyPI are not the
+bytes that were inspected, and only the source tree, not the artifact, is known
+to be common to both. That distinction belongs in a record rather than in
+somebody's memory, which is the whole argument of this document applied to its
+own release.
+
 ## What the six have in common
 
 1. **Every number was computed correctly.** No arithmetic error appears here.
@@ -538,6 +632,17 @@ reliably self-detectable, and needs structure:
     discards the exit code that mattered. Capture the status of the process you
     care about, and when a long job completes implausibly fast, confirm it
     produced its artifact before believing it.
+15. **Ask what your *gate* returns when nothing was checked.** A release
+    pipeline that builds and uploads reports success identically whether the
+    tests passed or never ran. If a gate has no dependency on the thing it is
+    supposed to gate, it is a notification, not a gate — so read the workflow
+    for what it *depends on*, not for what it is named.
+16. **Inspect the artifact you are shipping, not the tree you built it from.**
+    An ignore file the build backend never reads is not a packaging control, and
+    a clean `git status` is satisfied by the file being invisible to git. Where
+    the pipeline rebuilds rather than uploading what you checked, say so: the
+    bytes verified are then not the bytes published, and only the source tree is
+    known to be shared.
 
 ## Provenance
 
@@ -563,6 +668,8 @@ python scripts/detector_control_verdict.py --run results/<detector-run>.judged.j
 | 6 | METHODOLOGY §7 | the redirect-zone table |
 | 7 | `ETHICS.md` (script exception), `_filters.py` module docstring | `tests/unit/test_exclusion_filter.py::test_the_english_patterns_alone_cannot_see_chinese`, `::test_both_chinese_scripts_are_covered` |
 | 8 | `docs/locale-provenance-preregistration.md` §3, `src/redteam/opencc_pin.py` | `tests/unit/test_provenance.py::test_s2tw_is_not_s2t`, `::test_s2twp_adds_vocabulary_that_s2tw_lacks`, `tests/unit/test_opencc_pin.py` |
+| 12 | this document | **nothing** — recorded, not fixed; the workflow is unchanged |
+| 13 | `pyproject.toml` (`[tool.hatch.build.targets.sdist]` comment), `CHANGELOG.md` 0.4.0 | `tests/unit/test_sdist_contents.py::test_built_sdist_contains_only_tracked_files`, `::test_built_sdist_carries_no_credential_shaped_file` |
 
 ## A note on what this is not
 
