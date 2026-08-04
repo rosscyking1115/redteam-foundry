@@ -6,6 +6,118 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+> ### Draft release notes — 0.5.0
+>
+> **Not released. Not tagged. Not built.** This block is a prepared summary of
+> what the `Unreleased` entries below add up to, so the release decision is made
+> against a written statement of consequences rather than a diff. Cutting it is a
+> separate decision; if it is cut, this block becomes the `[0.5.0]` heading and
+> everything below it up to `[0.4.1]` moves under it.
+>
+> **Why MINOR and not PATCH.** A public return type changes, three public models
+> gain fields, and **the value an existing metric returns changes** on some
+> inputs. Any one of those rules out a patch. It is not MAJOR because the one
+> breaking change is narrow and has a documented one-line migration.
+>
+> #### Breaking
+>
+> - **`infer_attack_families` now returns `FamilyTags`, not `tuple[str, ...]`.**
+>
+>   `FamilyTags` implements `__bool__` and `__iter__`, so `if tags:` and
+>   `for fam in tags:` are **unaffected**. **`len(tags)` is the call that
+>   breaks** — it raises `TypeError`. Migration is `len(tags.families)`, or
+>   `len(list(tags))`. Indexing and slicing are likewise on `.families`.
+>
+>   The reason for the change is the point of it: the function returned an empty
+>   tuple both when it had looked and found no attack-family marker, and when it
+>   had been handed a script its `\b`-anchored English patterns cannot read at
+>   all. Its docstring drew that distinction; the return value could not carry
+>   it, so no caller could act on it. `FamilyTags.readable` now does.
+>
+> #### Changed — behaviour, not bug fixes. Your numbers can move.
+>
+> These are not corrections to arithmetic. They change what the harness reports
+> for inputs it previously mis-scored, so a re-run over the same data can produce
+> different figures. That is the intended effect, and it is stated here rather
+> than discovered.
+>
+> - **`RefusalScore` gains `readable`.** The rule-based refusal scorer is
+>   anchored on English, so it returned `is_refusal=False` for a refusal written
+>   in Chinese, Japanese, Korean, Russian or Arabic — **the same verdict it
+>   returns for a full compliance in those languages.** `readable=False` now
+>   marks the cases where the scorer could not read the response at all. The
+>   field defaults to `True`, so existing constructions keep working.
+>
+> - **`compare.frr_by_language` excludes unreadable cells and reports the
+>   count.** On an *unjudged* run it fell back to the scorer above and averaged
+>   its blind `False`s into **false-refusal rate = 0%** for exactly the languages
+>   the multilingual set exists to ask about. Those cells are now excluded, the
+>   count is carried on every row and on the report and is rendered, and a rate
+>   over zero readable cells reports as undefined rather than 0%.
+>
+>   **Migration note for anyone tracking FRR over time:** a previously reported
+>   0% for zh/ja/ko on an unjudged run was an artefact. The new figure is not a
+>   regression; the old one was not a measurement. Judged runs are unaffected —
+>   the judge read what the patterns could not.
+>
+> - **Three counted-exclusion fields, all defaulted.** `LanguageFRR` and
+>   `LanguageFRRReport` gain `n_unreadable_excluded`; `CorpusQualityReport` gains
+>   `n_near_dup_unreadable_excluded` and `n_family_unreadable_excluded`. Anything
+>   deserialising these models with `extra="forbid"` against an older schema
+>   should re-check, though all three have defaults.
+>
+> - **The staleness obsolete-meme axis reports *unavailable* instead of 0.0 on a
+>   corpus it cannot read.** All twelve marker patterns are `\b`-anchored
+>   English, so on a non-English corpus they matched nothing and the axis scored
+>   **0.0 — "not stale"**: the most flattering answer available, produced by not
+>   being able to read the corpus, from the heuristic's largest component
+>   (weight 0.30).
+>
+>   It now reports `available=False, score=None`, drops out of the composite, and
+>   the remaining weights renormalise — the same mechanism 0.4.0 introduced for a
+>   degenerate κ on `judge_disagreement`.
+>
+>   **This moves published-style staleness scores for any non-English corpus.**
+>   English corpora are unaffected: every audited corpus in this repository is
+>   100% Latin, and the before/after figures were verified byte-identical.
+>
+> - **Near-duplicate detection excludes prompts its tokeniser cannot read**, and
+>   reports how many. `\w+` presupposes whitespace-delimited words, so an
+>   unspaced sentence became a single token and a Chinese pair differing by one
+>   character scored a Jaccard of 0.000 where its English equivalent scores
+>   0.818. A corpus previously reporting **zero near-duplicates** may now report
+>   an exclusion count instead — which is the honest answer, not a worse one.
+>
+> #### Removed
+>
+> - **`uv.lock` is no longer tracked**, and two published reproducibility claims
+>   are withdrawn rather than reworded: **"`pyproject.toml` + `uv.lock` pin every
+>   Python dependency"** (`METHODOLOGY.md` § 10) and **"Dependencies are pinned
+>   in `uv.lock` for a byte-for-byte reproducible environment"**
+>   (`docs/getting-started.md`). Nothing in the repository ever read the lock;
+>   the second claim was printed four lines below the command that bypassed it;
+>   and it had already gone stale enough that `uv lock --check` refused it. Full
+>   statement in **Retracted**, below.
+>
+>   **No action is required of installers** — `pip install redteam-foundry`
+>   resolves from `pyproject.toml` exactly as it always did. What changes is that
+>   the project no longer *claims* a locked environment it never provided.
+>
+> #### Added
+>
+> - `redteam.readability` — one convention for "the matcher could not read this
+>   input": `is_readable`, and `Screen`, which carries the exclusion as a number
+>   so a caller cannot report a rate without reporting what it was computed over.
+> - Coverage and guards: `tests/unit/test_readability.py`,
+>   `tests/unit/test_figure_caption.py`, `tests/unit/test_test_index.py`, and
+>   `load_hf_dataset` coverage including a `RUN_HF_NETWORK=1` live test.
+>
+> #### Not in this release
+>
+> - No change to any published number in `METHODOLOGY.md` § 8. The 12-cell matrix,
+>   its confidence intervals and the positive-control κ = +0.935 are unchanged,
+>   and `scripts/headline_table.py --check` passes against them.
+
 ### Retracted
 - **"`pyproject.toml` + `uv.lock` pin every Python dependency."** Published in
   `METHODOLOGY.md` § 10. And, in `docs/getting-started.md`: **"Dependencies are

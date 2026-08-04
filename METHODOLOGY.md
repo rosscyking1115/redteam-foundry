@@ -413,8 +413,12 @@ not in the v1 reported matrix — see §13.
 ## 10. Reproducibility guarantees
 
 Each guarantee below names **what enforces it**, because a pin nothing reads is
-a record rather than a guarantee. Two entries here say *not enforced*; that is
-deliberate, and they are the honest state rather than the tidy one.
+a record rather than a guarantee. Three entries say *nothing automated*; that is
+deliberate, and they are the honest state rather than the tidy one. Where a
+requirement is real but only a human checks it, it is labelled
+**review-enforced** rather than quietly listed beside the checked ones — and
+where a check is possible but not yet written, what would make it bite is
+recorded so the work is specified rather than merely regretted.
 
 | Guarantee | Enforced by |
 | --- | --- |
@@ -425,7 +429,8 @@ deliberate, and they are the honest state rather than the tidy one.
 | Run artifacts in `results/` carry the full per-case record — prompt, response, both judges' verdicts and reasoning — so any number in §8 can be audited case by case | `tests/unit/test_schemas.py` on the run/case schemas |
 | Any run exports to a **UK AISI Inspect** eval log via `redteam export-inspect` | `tests/unit/test_inspect_export.py` |
 | Lint, typecheck and the unit suite run on every PR, with no real API calls | `.github/workflows/ci.yml`; that the *release* path also gates is enforced by `tests/unit/test_release_gate.py` |
-| Every dataset is pinned to an upstream commit hash in `configs/dataset_versions.yaml` | **Nothing.** The file records the commits and says loaders "MUST resolve to one of these", but no code reads it and no test compares a loader against it. It is a written record, not a checked one. |
+| The commit recorded for each dataset in `configs/dataset_versions.yaml` is the one that was actually verified upstream | **Nothing automated — review-enforced.** The file header records that the commits were verified by hand against the upstream repositories, and that they change "only when the upstream is re-verified and the new SHA is recorded". Confirming a SHA still names the intended upstream state needs network access and human judgement about what changed, so this rung stays a review obligation. It is stated here rather than left implicit, because a requirement nobody can see is not a requirement anybody keeps. |
+| Loaders resolve to those pinned commits — the file's own "Loaders in `src/redteam/corpora/` **MUST** resolve to one of these" | **Nothing yet — and this one is checkable.** No code reads the file and no test compares a loader against it. It could: every loader exposes `pinned_revision` as a class attribute, so a test reading `configs/dataset_versions.yaml` and asserting `LOADERS[name].pinned_revision` matches the recorded `commit`/`revision` needs no network, no `data/` cache and no fixture, and would therefore bite in CI rather than skip. Recorded as specified work, not as a lament. |
 | Python dependency versions | **Nothing, by decision.** See below. |
 
 ### On Python dependencies
