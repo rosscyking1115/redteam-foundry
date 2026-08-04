@@ -3,9 +3,14 @@
 Renders attack-success rate (ASR) across all 12 evaluation cells -- two
 models x two benchmarks x defence configs -- as a point-estimate + 95%
 bootstrap-CI plot. The numbers mirror ``METHODOLOGY.md`` section 8: LLM-judge
-scored (Claude Haiku 4.5), two-judge cross-validated (Claude Sonnet 4.6).
-They are the published, frozen result; update them here only when
-``METHODOLOGY.md`` section 8 changes.
+scored (Claude Haiku 4.5), cross-judged by Claude Sonnet 4.6. They are the
+published, frozen result; update them here only when ``METHODOLOGY.md``
+section 8 changes.
+
+The caption is a published claim in its own right -- it travels to GitHub and
+to the PyPI project page -- so it is defined here as ``CAPTION``, embedded in
+the PNG's ``Description`` metadata, and guarded by
+``tests/unit/test_figure_caption.py``.
 
 Run from the repo root:
 
@@ -54,6 +59,26 @@ AGENTDOJO: list[Cell] = [
 
 _COLOR: dict[str, str] = {"Sonnet 4.6": "#2563eb", "Llama 3.1 8B": "#d97706"}
 _OUT = Path(__file__).resolve().parents[1] / "docs" / "results_matrix.png"
+
+# The caption says what is plotted, and stops.
+#
+# It used to end "two-judge cross-validated (ASR κ = 1.00, all 12 cells)".
+# 0.4.0 retracted exactly that claim: in 11 of the 12 cells both judges
+# labelled every case identically and constantly, so expected agreement
+# pe == 1 and Cohen's κ is an undefined 0/0 that the scorer fills in as
+# +1.000 by convention. The figure therefore advertised as cross-validation
+# the one thing the project had published a correction against.
+#
+# The surviving measurement -- the positive control's κ = +0.935, n = 98 --
+# is not stated here either, and deliberately. It belongs to a cell that is
+# not among the 12 plotted, so in this caption it would read as though the
+# matrix had been validated at 0.935. Every judge-agreement figure in this
+# project needs a sentence of qualification to be read correctly, and a
+# caption is the one place in a document that travels separated from its
+# qualification -- a screenshot of this figure carries the caption and
+# nothing else. The qualified version lives in README.md, under
+# "Why the result is trustworthy, not just low", and in METHODOLOGY.md 7/8.
+CAPTION = "Point = LLM-judge ASR; whisker = 95% bootstrap CI."
 
 
 def _draw_panel(ax: Axes, title: str, cells: list[Cell]) -> None:
@@ -119,19 +144,13 @@ def main() -> None:
         x=0.04,
         ha="left",
     )
-    fig.text(
-        0.04,
-        0.015,
-        "Point = LLM-judge ASR; whisker = 95% bootstrap CI; "
-        "two-judge cross-validated (ASR κ = 1.00, all 12 cells).",
-        fontsize=8,
-        color="#6b7280",
-        ha="left",
-    )
+    fig.text(0.04, 0.015, CAPTION, fontsize=8, color="#6b7280", ha="left")
 
     fig.tight_layout(rect=(0.0, 0.04, 1.0, 0.95))
     _OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(_OUT, dpi=200)
+    # Recorded in the PNG itself so the guard can read what the committed
+    # artifact claims, not only what the generator would claim on its next run.
+    fig.savefig(_OUT, dpi=200, metadata={"Description": CAPTION})
     print(f"Wrote {_OUT}")
 
 

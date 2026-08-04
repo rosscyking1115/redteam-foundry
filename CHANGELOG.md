@@ -6,6 +6,56 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **The headline figure was still making the claim 0.4.0 retracted.** The caption
+  rendered into `docs/results_matrix.png` read *"Point = LLM-judge ASR; whisker =
+  95% bootstrap CI; two-judge cross-validated (ASR κ = 1.00, all 12 cells)"* — the
+  retracted claim almost verbatim, presented as cross-validation, on the one image
+  through which the finding is delivered. The prose was corrected in 0.4.0 and the
+  figure was not, so the README argued against a claim its own headline graphic
+  went on asserting.
+
+  The caption now says what is plotted and stops: *"Point = LLM-judge ASR; whisker
+  = 95% bootstrap CI."* The surviving measurement — the positive control's
+  κ = +0.935, n = 98 — is deliberately **not** substituted in. It belongs to a cell
+  that is not among the 12 plotted, so in this caption it would read as though the
+  matrix had been validated at 0.935. Every judge-agreement figure here needs a
+  sentence of qualification, and a caption is the one part of a document
+  guaranteed to travel without it: a screenshot carries the caption and nothing
+  else. Shorter and true beats complete and misleading.
+
+  **No plotted value changed.** The figure was regenerated from the committed
+  generator rather than edited, and the result is pixel-identical to the published
+  image everywhere above the caption line — every point estimate and every
+  confidence interval is byte-for-byte what it was.
+
+  **This corrects the already-published pages, with no release.** The README's
+  image URL is pinned to `main` on `raw.githubusercontent.com` rather than to a
+  tag, so replacing the file fixes the GitHub README and the PyPI descriptions for
+  both 0.4.1 and 0.4.0 at once — including descriptions that are otherwise frozen
+  at upload. Worth stating plainly rather than discovering later: an image pinned
+  to `main` retroactively changes what an already-published page shows. That is
+  the right property for a correction and the wrong one for anything else, and it
+  is why the frozen-at-upload rule in 0.4.1 above does not bind here.
+
+  Why nothing caught it: the figure was checked three times during release work —
+  it resolves, it returns `image/png`, it uses no relative target — and every check
+  confirmed the image *loads*. None read what it said. An image is a claim, and
+  nothing in the repository tested what its figures assert.
+  `tests/unit/test_figure_caption.py` now does, against both the generator and the
+  committed PNG.
+
+### Added
+- **`tests/unit/test_figure_caption.py`** — the caption of the headline figure is
+  checked like any other published claim. The generator defines it as a named
+  `CAPTION` constant and records it in the PNG's `Description` metadata, so the
+  guard reads the committed artifact as well as the code that should have produced
+  it, and fails if the two disagree — the staleness case where the caption is
+  corrected and the figure is never regenerated. The rule enforced is not "no false
+  κ" but "no judge-agreement claim in this caption at all", for the reason given
+  above. It does not read the pixels; that limitation is stated in the module
+  rather than glossed.
+
 ## [0.4.1] — 2026-08-03
 
 **A patch: no API change, no behaviour change, two corrections to what the
