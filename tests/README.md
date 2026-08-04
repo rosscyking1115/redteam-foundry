@@ -40,6 +40,7 @@ it honest, without reading the whole suite.
 | [`test_controls.py`](unit/test_controls.py) | That a control harness can never be mistaken for a defence — registries disjoint, the `control:` marker reaching the artifact, and control runs excluded from corpus analysis rather than reclassified (§12.7). |
 | [`test_judge_human.py`](unit/test_judge_human.py) | The human spot-check export and the Cohen's-kappa helper used as a tertiary check. |
 | [`test_headline_table.py`](unit/test_headline_table.py) | That a published cross-judge kappa is only claimed as agreement when the labels actually varied — 11 of the 12 matrix cells are degenerate 0/0 and the claim rests on the positive control (§7) — and that the FAILED AgentDojo control stays in the frozen record (§12.6). |
+| [`test_figure_caption.py`](unit/test_figure_caption.py) | That the same correction holds *inside the headline figure*: the caption drawn into `docs/results_matrix.png` makes no judge-agreement claim, and the committed image agrees with the generator that should have produced it. A figure is a claim, and this is the surface where a retracted one survived two releases because every check only confirmed the image loaded. |
 
 ## Corpus audit & taxonomy — the quality findings (report card §1)
 
