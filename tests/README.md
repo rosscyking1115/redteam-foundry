@@ -50,6 +50,7 @@ it honest, without reading the whole suite.
 | [`test_taxonomy.py`](unit/test_taxonomy.py) | Language/script detection and attack-family inference — the coverage axes the audit reports. |
 | [`test_huggingface.py`](unit/test_huggingface.py) | The `corpora audit-hf` row mapping, so any Hugging Face dataset audits into the same canonical schema. |
 | [`test_staleness.py`](unit/test_staleness.py) | The staleness heuristic and its broken-out components (universal-low-ASR, defence-insensitivity, judge-disagreement). |
+| [`test_readability.py`](unit/test_readability.py) | That "found nothing" and "could not read the input" stay distinguishable. The single primitive behind the alphabet screens in the refusal scorer, the near-duplicate pass, the staleness meme axis and the attack-family tagger — including the direction that matters most, that readable input is untouched. |
 
 ## Over-refusal / defence comparison — the "free but useless" finding (report card §3)
 

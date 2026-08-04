@@ -14,6 +14,15 @@ Two coarse, deterministic, stdlib-only taggers used by the corpus audit:
   (instruction-override, roleplay/persona, indirect-injection framing,
   obfuscation). A match is a strong hint; a non-match means "no known marker",
   not "no attack". Reported as coverage, never as ground truth.
+
+  That caveat used to live only here, in prose. The function returned a bare
+  empty tuple whether it had found nothing or had been handed a script its
+  ``\\b``-anchored English patterns cannot read at all, so no caller could act
+  on the distinction the docstring drew. It now returns `FamilyTags`, which
+  carries `readable` — and callers must exclude unreadable cases from coverage
+  denominators and report how many they excluded. A disclaimer nothing can
+  enforce is the repository's own attestation-is-not-enforcement finding,
+  applied to a validator.
 """
 
 from __future__ import annotations
@@ -21,8 +30,11 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
+from collections.abc import Iterator
 
 from pydantic import BaseModel, ConfigDict
+
+from redteam.readability import is_readable
 
 # ---------------------------------------------------------------------------
 # Language / script detection
@@ -172,11 +184,42 @@ _ATTACK_FAMILY_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
 ATTACK_FAMILIES: tuple[str, ...] = tuple(_ATTACK_FAMILY_PATTERNS.keys())
 
 
-def infer_attack_families(text: str) -> tuple[str, ...]:
-    """Return the attack-family markers detected in a prompt (possibly empty)."""
-    hits = [
+class FamilyTags(BaseModel):
+    """Attack-family markers found in one prompt, and whether they could be.
+
+    `families` empty with `readable=True` means "looked, found no known
+    marker". Empty with `readable=False` means "could not look" — the patterns
+    are English and word-boundary anchored, and this prompt has no Latin
+    letters for them to anchor on. Those are different facts and a coverage
+    denominator that averages them together reports the second as the first.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    families: tuple[str, ...]
+    readable: bool
+
+    def __bool__(self) -> bool:
+        """Truthy when a marker was found, so `if tags:` reads as before."""
+        return bool(self.families)
+
+    def __iter__(self) -> Iterator[str]:  # type: ignore[override]
+        """Iterate the family names, so `for fam in tags:` reads as before."""
+        return iter(self.families)
+
+
+def infer_attack_families(text: str) -> FamilyTags:
+    """Return the attack-family markers detected in a prompt (possibly none).
+
+    A hit proves the text was readable, so `readable` is only computed on the
+    empty path — the one where "found nothing" and "could not look" are
+    otherwise indistinguishable.
+    """
+    hits = tuple(
         family
         for family, patterns in _ATTACK_FAMILY_PATTERNS.items()
         if any(p.search(text) for p in patterns)
-    ]
-    return tuple(hits)
+    )
+    if hits:
+        return FamilyTags(families=hits, readable=True)
+    return FamilyTags(families=(), readable=is_readable(text))

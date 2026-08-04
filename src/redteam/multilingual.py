@@ -10,10 +10,17 @@ Ethics boundary (see ETHICS.md)
 -------------------------------
 Every prompt here is **benign** — something a helpful assistant should answer.
 This project uses only published adversarial prompts and does **not** author
-novel jailbreaks, in any language. Because the exclusion filter is English-only,
-translating harmful prompts into other languages would both create new harmful
-content and bypass the filter — so we deliberately do not. The multilingual
-contribution is over-refusal measurement, not non-English attack generation.
+novel jailbreaks, in any language. Translating harmful prompts into other
+languages would create new harmful content, so we deliberately do not. The
+multilingual contribution is over-refusal measurement, not non-English attack
+generation.
+
+The exclusion filter's alphabet is **{English, Chinese}** — not "everything",
+and no longer "English-only" as this note used to say. `_PATTERNS_ZH` closed the
+Chinese gap that once made `filter_prompt` return "clean" for every Chinese
+prompt because it could not read them. It has not been widened past those two
+scripts, so a harmful prompt in a third script would still pass unread. That is
+a second reason the benign-only rule here is a policy and not a preference.
 
 Each case carries a precise `lang` tag (e.g. "zh-Hant" vs "zh-Hans", which a
 script-based detector cannot tell apart) so per-language FRR is exact.
