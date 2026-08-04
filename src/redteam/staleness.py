@@ -33,6 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from redteam.controls import is_control_run
 from redteam.corpora.quality import CorpusQualityReport, audit_corpus
 from redteam.orchestrator import RunResult
+from redteam.readability import screen
 from redteam.schemas import AttackCase
 from redteam.stats import is_degenerate_kappa
 
@@ -113,23 +114,59 @@ def _effective_asr(run: RunResult) -> float:
     return run.asr
 
 
-def _obsolete_pattern_score(cases: Sequence[AttackCase]) -> tuple[float, str]:
+def _obsolete_pattern_score(cases: Sequence[AttackCase]) -> tuple[float | None, str]:
+    """Prevalence of dated jailbreak-meme markers, over the prompts we can read.
+
+    Returns `(None, detail)` — the same "there was data, but the statistic is
+    undefined on it" state `judge_disagreement` uses — when no prompt is
+    readable. Every pattern in `_OBSOLETE_PATTERNS` is `\\b`-anchored English,
+    so on an unspaced-script corpus they all match nothing and the axis would
+    otherwise score **0.0 = "not stale"**: the most flattering answer available,
+    produced by not being able to read the corpus. The axis carries weight 0.30,
+    the largest of the five.
+
+    Readable prompts take exactly the path they took before; only the
+    denominator changes, and only when something was excluded.
+    """
     if not cases:
         return 0.0, "no cases"
-    n_hit = sum(1 for c in cases if any(p.search(c.prompt) for p in _OBSOLETE_PATTERNS))
-    frac = n_hit / len(cases)
-    return frac, f"{n_hit}/{len(cases)} prompts match a dated jailbreak-meme marker"
+    readable, sc = screen(cases, lambda c: c.prompt)
+    if sc.all_unreadable:
+        return None, (
+            f"undefined — no prompt is readable by the marker patterns ({sc.note('prompt')}). "
+            "Component dropped from the composite and the remaining weights renormalised."
+        )
+    n_hit = sum(1 for c in readable if any(p.search(c.prompt) for p in _OBSOLETE_PATTERNS))
+    frac = n_hit / len(readable)
+    detail = f"{n_hit}/{len(readable)} prompts match a dated jailbreak-meme marker"
+    if sc.any_unreadable:
+        detail += f"; {sc.note('prompt')}"
+    return frac, detail
 
 
 def _duplicate_cluster_score(report: CorpusQualityReport) -> tuple[float, str]:
+    """Duplication density. Exact-dup detection is script-agnostic; near-dup is not.
+
+    The exact-duplicate half is casefold + whitespace-collapse and reads any
+    script, so this component stays available even when the Jaccard pass had to
+    exclude prompts. The exclusion is surfaced in `detail` rather than folded
+    away, because a near-dup count of 0 beside a non-zero exclusion means
+    "none found in what could be read", not "none present".
+    """
     near_density = (
         min(1.0, report.n_near_duplicate_pairs / report.n_cases) if report.n_cases else 0.0
     )
     score = min(1.0, report.duplicate_rate + 0.5 * near_density)
-    return score, (
+    detail = (
         f"exact-dup rate {report.duplicate_rate:.1%}, "
         f"{report.n_near_duplicate_pairs} near-dup pair(s) over {report.n_cases} cases"
     )
+    if report.n_near_dup_unreadable_excluded:
+        detail += (
+            f"; {report.n_near_dup_unreadable_excluded} unique prompt(s) excluded from the "
+            "near-dup pass as unreadable by its tokeniser"
+        )
+    return score, detail
 
 
 def _universal_low_asr_score(runs: Sequence[RunResult]) -> tuple[float, str] | None:
@@ -289,7 +326,10 @@ def score_staleness(
     components.append(
         StalenessComponent(
             name="obsolete_pattern",
-            available=True,
+            # None means the corpus was unreadable by the marker patterns, not
+            # that it is free of markers — same distinction judge_disagreement
+            # draws below, and the same handling.
+            available=obs_score is not None,
             score=obs_score,
             weight=_WEIGHTS["obsolete_pattern"],
             detail=obs_detail,
