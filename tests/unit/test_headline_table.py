@@ -193,7 +193,11 @@ def test_check_flags_kappa_drift_on_informative_cells() -> None:
     )
     drift = ht.check([(cell, rc)])
     assert len(drift) == 1
+    # "κ" alone would match any kappa-flavoured complaint, including one raised
+    # for the wrong reason. Pin the drifted value and the frozen one it left.
     assert "κ" in drift[0]
+    assert "+0.500" in drift[0], f"complaint does not name the drifted value: {drift[0]!r}"
+    assert "+0.935" in drift[0], f"complaint does not name the frozen value: {drift[0]!r}"
 
 
 # ---------------------------------------------------------------------------

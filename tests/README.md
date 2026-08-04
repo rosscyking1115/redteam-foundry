@@ -11,6 +11,42 @@ The point of the mapping is legibility: a reviewer should be able to go from "do
 I believe the 0–4% headline?" to the exact test that keeps the machinery behind
 it honest, without reading the whole suite.
 
+**This index is complete, and [`test_test_index.py`](unit/test_test_index.py)
+enforces it.** The claim above — that the file maps *each* suite — used to be an
+attestation with nothing behind it, and it was wrong: ten suites were missing.
+A completeness claim nobody checks is this repository's own
+attestation-is-not-enforcement finding, in its own test documentation. Adding a
+test file without a row here now fails.
+
+## Test conventions
+
+Two rules, both earned rather than assumed.
+
+**1. A test module opens with `Defends:`** — one line naming the claim or
+published number it protects.
+
+**2. A test that asserts a failure must assert *which* failure.** Not that
+something went red — which thing, by message, by exception match, or by the
+specific counter that moved. The rule exists because a guard once failed for the
+wrong reason and looked identical to a guard working: the figure-caption guard
+could not read a `κ` in a UTF-8 PNG chunk, so it rejected the retracted caption
+as *unreadable metadata* rather than as a retracted claim. It was one small
+change away from passing blind, and only the failure *message* revealed it. In
+practice:
+
+- `pytest.raises(SomeError)` needs `match=` whenever more than one defect can
+  raise `SomeError` from the same call — which is nearly always, and always for
+  `ValidationError`.
+- A break-test that feeds bad input to a guard asserts the content of the
+  complaint, not merely that a complaint exists.
+- A guard that can pass vacuously carries a non-vacuity assertion: that the scan
+  saw targets, that the dictionary set is non-empty, that the claim list is not
+  empty. "0 problems found" and "nothing was examined" are otherwise the same
+  output.
+
+Written up as instance #16 and checklist item 20 in
+[`what-does-this-metric-return-when-nothing-happened.md`](../docs/findings/what-does-this-metric-return-when-nothing-happened.md).
+
 ## Ethics & safety (merge-blocking)
 
 | Suite | Defends |
@@ -71,3 +107,39 @@ it honest, without reading the whole suite.
 | [`test_pricing.py`](unit/test_pricing.py) | Token pricing is correct, so the real-USD cost reported per run is honest. |
 | [`test_inspect_export.py`](unit/test_inspect_export.py) | Every run exports to a valid UK AISI Inspect eval log — the interoperability claim (§10). |
 | [`test_smoke.py`](unit/test_smoke.py) | The package imports and the CLI is wired — the install/version claim. |
+| [`test_opencc_pin.py`](unit/test_opencc_pin.py) | The OpenCC treatment is defined by dictionary *content*, not by a package name — so an upgrade cannot silently change the conversion the locale-provenance study measured. |
+| [`test_provenance.py`](unit/test_provenance.py) | That `s2twp`, not `s2tw`, is the dictionary-localisation condition, and that round-trip rendering preserves intent mechanically. If this inverts, condition B collapses into A and the study reports a null caused by a config choice. |
+
+## Publication surface — what reaches a reader
+
+These defend claims that live *outside* the measurement core: on the PyPI page,
+in the published artifact, in the release workflow. They were the suites missing
+from this index when the completeness claim was first enforced — which is itself
+the pattern they exist to catch, since the publication surface is exactly where
+an unchecked claim reaches someone.
+
+| Suite | Defends |
+| --- | --- |
+| [`test_readme_links.py`](unit/test_readme_links.py) | No link or image in `README.md` is relative. The README *is* the PyPI `long_description`, and PyPI resolves no relative target — so a link GitHub renders fine is a dead link, or a broken headline figure, on the published page. |
+| [`test_sdist_contents.py`](unit/test_sdist_contents.py) | The published sdist contains only files git tracks. An sdist is built from the *directory*, so a file hidden by a contributor's global gitignore is invisible to `git status`, to review, to CI — and packaged anyway. Publication is permanent. |
+| [`test_release_gate.py`](unit/test_release_gate.py) | The release path gates rather than merely building and uploading: the suite runs before the upload via `needs:`, the tagged commit is reachable from `main`, and only the publishing job may mint an OIDC token. |
+| [`test_version.py`](unit/test_version.py) | `redteam version` reports the version actually installed. Exists because it failed: 0.4.0 shipped metadata saying 0.4.0 beside code saying 0.3.0, with a green test that held the same wrong number. |
+| [`test_test_index.py`](unit/test_test_index.py) | The completeness claim in this file — that it maps every suite. It did not. |
+
+## Absence & control discipline — that a null means something
+
+| Suite | Defends |
+| --- | --- |
+| [`test_absence_detector.py`](unit/test_absence_detector.py) | That a 0.00% absence rate is evidence — by firing the detector at blank, whitespace-only, unparseable and missing cells and asserting *which* counter moves. A counter that cannot return non-zero reports the same 0.00% as a healthy run. |
+| [`test_detector_control_verdict.py`](unit/test_detector_control_verdict.py) | That the only branch which condemns the AgentDojo arm requires affirmative evidence and cannot fire on a healthy run. Pre-registered, so these tests are what stop the boundary moving once a number exists (§12.7). |
+
+## Live smoke — gated behind `RUN_LIVE=1`, not part of `pytest tests/unit`
+
+These make real API calls and cost money, so they are excluded from the default
+run and from CI. They are indexed because the index claims to be complete, and
+an unlisted suite is indistinguishable from an absent one.
+
+| Suite | Defends |
+| --- | --- |
+| [`test_targets_live.py`](smoke/test_targets_live.py) | Phase 2 acceptance: each target returns a sane response to a trivial prompt, cost tracking rolls up, and the second run is a cache hit. |
+| [`test_defences_live.py`](smoke/test_defences_live.py) | Phase 3 exit criterion: a 20-case AdvBench subset through the bare target and through the prompt-only defence stack behaves as specified. |
