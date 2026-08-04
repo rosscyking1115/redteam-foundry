@@ -183,7 +183,10 @@ include = [
   "/SECURITY.md",
   "/LICENSE",
   "/pyproject.toml",
-  "/uv.lock",
+  # `/uv.lock` was here. The lockfile is no longer tracked (see METHODOLOGY.md
+  # section 10) and an allowlist entry naming an untracked path is exactly what
+  # tests/unit/test_sdist_contents.py refuses — it either packages something git
+  # does not track, or it is stale. That test is what caught this one.
   "/.env.example",
   "/.gitattributes",
   "/.gitignore",

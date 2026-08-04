@@ -6,6 +6,77 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Retracted
+- **"`pyproject.toml` + `uv.lock` pin every Python dependency."** Published in
+  `METHODOLOGY.md` § 10. And, in `docs/getting-started.md`: **"Dependencies are
+  pinned in [`uv.lock`](../uv.lock) for a byte-for-byte reproducible
+  environment."**
+
+  Neither was true, and the second was printed four lines below the command that
+  made it false. The setup block ends with `uv pip install -e ".[dev]"`, which
+  resolves fresh from `pyproject.toml` and never opens the lock — so a reader
+  following the instructions was executing the refutation at the moment of
+  reading the guarantee.
+
+  **Nothing in this repository read `uv.lock`.** CI (`ci.yml`) and the release
+  workflow (`publish.yml`) both install with `uv pip install --system -e
+  ".[dev]"`; `uv build` does not read it either. There was no `uv sync`, no
+  `--frozen` and no `--locked` anywhere in the repository. The file was tracked,
+  704 KB, documented twice, and consumed by none of it.
+
+  It had also **already failed its own check, unnoticed**: `uv lock --check`
+  exits 1 against the tracked file. Anyone running `uv sync --locked` would have
+  been refused. Nobody was, because nobody ran it.
+
+  Withdrawn rather than reworded, and `uv.lock` is no longer tracked. Written up
+  as instance #21 in
+  `docs/findings/what-does-this-metric-return-when-nothing-happened.md`.
+
+### Changed
+- **`METHODOLOGY.md` § 10 now names what enforces each guarantee**, and is
+  stronger for the retraction rather than shorter. Every row of the new table
+  points at the test, script or workflow that would fail if the guarantee
+  stopped holding — the OpenCC per-file SHA-256 pin and `test_opencc_pin.py`,
+  the content-addressed cache and `test_cache.py`, `headline_table.py --check`
+  and `test_headline_table.py`, and so on.
+
+  **Two rows say "nothing", deliberately.** Python dependency versions, per the
+  retraction above; and `configs/dataset_versions.yaml`, which records the
+  upstream commit for every corpus and states that loaders "MUST resolve to one
+  of these" — while no code reads the file and no test compares a loader against
+  it. That second one was found by the same question as the first and is
+  reported rather than quietly fixed, because fixing it properly needs a check
+  that bites in CI, where the loader manifests are not present.
+
+  **The decision behind the retraction, since it is a judgement and not a fact.**
+  Making CI read the lock was the alternative, and it was measured before being
+  rejected: the locked resolution and CI's differ by a major version of
+  `huggingface-hub` (0.36.2 against 1.26.0), because the lock's universal
+  resolution is constrained by `transformers<5` from the `guard` extra — an
+  extra CI never installs. Both resolutions were installed and the full suite
+  run under each; both green, and the `corpora audit-hf` path exercised directly
+  under each including a live load. Enforcing the lock would have bought
+  enforcement at the price of testing a configuration no user has: for a library
+  on PyPI, the resolution that matters is the fresh one, because that is what
+  `pip install` produces.
+
+### Added
+- **`load_hf_dataset` is tested.** It is the only place `datasets` is imported
+  and it had **zero coverage**, inside a suite reporting 80.19% against a 75%
+  floor. The gap became load-bearing while deciding the retraction above: the
+  question "does the audit path still work under the other resolution?" could
+  not be answered from the suite, because a green run said nothing about the one
+  function that touches the library.
+
+  Covered offline by substituting `datasets.load_dataset` — argument forwarding
+  including `revision` (the whole reproducibility story for an ad-hoc audit),
+  the missing-column error, `limit`, and the security property that
+  `trust_remote_code` is never passed for an untrusted repo id. That module is
+  now at 100%. One live test sits behind `RUN_HF_NETWORK=1`, since only a real
+  load can catch an upstream change and a unit suite must not depend on the Hub
+  being reachable; that CI does not cover the live path is stated in the module
+  rather than implied. Instance #22 in the absence catalogue.
+
 ### Fixed
 - **Four validators returned a confident negative for input they could not
   read.** Found by sweeping all 21 text-verdict validators in the repository for

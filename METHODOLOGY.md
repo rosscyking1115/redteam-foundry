@@ -412,14 +412,39 @@ not in the v1 reported matrix — see §13.
 
 ## 10. Reproducibility guarantees
 
-- Every model is a **dated** version ID (`claude-sonnet-4-6`,
-  `claude-haiku-4-5-20251001`, `llama3.1:8b` Q4).
-- Every dataset is pinned to an upstream commit hash in
-  `configs/dataset_versions.yaml`.
-- Every API call is cached by `(target_id, model_version, hash(messages))`,
-  so a re-run is free and deterministic.
-- `pyproject.toml` + `uv.lock` pin every Python dependency.
-- CI runs lint + typecheck + unit tests on every PR (no real API calls).
+Each guarantee below names **what enforces it**, because a pin nothing reads is
+a record rather than a guarantee. Two entries here say *not enforced*; that is
+deliberate, and they are the honest state rather than the tidy one.
+
+| Guarantee | Enforced by |
+| --- | --- |
+| Every model is a **dated** version ID (`claude-sonnet-4-6`, `claude-haiku-4-5-20251001`, `llama3.1:8b` Q4) | The judge model id is asserted in `tests/unit/test_judge_claude.py`; target ids are recorded in every run artifact and re-read by `scripts/headline_table.py --check` |
+| Every API call is cached by `(target_id, model_version, hash(messages))`, so a re-run is free and deterministic | `tests/unit/test_cache.py` — content-addressing and determinism |
+| The Simplified/Traditional treatment is fixed by dictionary **content**, not by a version string | `src/redteam/opencc_pin.py` records a per-file SHA-256 and entry count; `tests/unit/test_opencc_pin.py` fails on any drift, and asserts the dictionary set is non-empty first so a cleared pin cannot read as a passing check |
+| The published §8 table regenerates from cached artifacts with no API calls | `scripts/headline_table.py --check`, itself covered by `tests/unit/test_headline_table.py` — including which κ values are degenerate |
+| Run artifacts in `results/` carry the full per-case record — prompt, response, both judges' verdicts and reasoning — so any number in §8 can be audited case by case | `tests/unit/test_schemas.py` on the run/case schemas |
+| Any run exports to a **UK AISI Inspect** eval log via `redteam export-inspect` | `tests/unit/test_inspect_export.py` |
+| Lint, typecheck and the unit suite run on every PR, with no real API calls | `.github/workflows/ci.yml`; that the *release* path also gates is enforced by `tests/unit/test_release_gate.py` |
+| Every dataset is pinned to an upstream commit hash in `configs/dataset_versions.yaml` | **Nothing.** The file records the commits and says loaders "MUST resolve to one of these", but no code reads it and no test compares a loader against it. It is a written record, not a checked one. |
+| Python dependency versions | **Nothing, by decision.** See below. |
+
+### On Python dependencies
+
+Earlier versions of this section claimed `pyproject.toml` + `uv.lock` pinned
+every Python dependency. `uv.lock` is no longer tracked, and the claim is
+withdrawn rather than restated: nothing in this repository ever read the lock —
+CI and the release workflow both install with `uv pip install -e ".[dev]"`,
+which resolves fresh from `pyproject.toml` — so it was a control that existed,
+was documented twice, and was consumed by nothing. By the time it was examined
+it had already gone stale enough that `uv lock --check` refused it, and nothing
+noticed, because nothing read it.
+
+What holds instead: `pyproject.toml` carries version ranges, and the results in
+§8 do not depend on the resolution. They regenerate from cached run artifacts
+through `scripts/headline_table.py --check`, which needs only the base install.
+A contributor who wants a byte-identical environment can still run `uv lock`
+locally; that is a local convenience, and this document no longer claims it as a
+project guarantee.
 - Run artifacts in `results/` carry the full per-case record — prompt,
   response, both judges' verdicts and reasoning — so any number in §8 can be
   audited case by case.
