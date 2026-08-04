@@ -413,12 +413,21 @@ not in the v1 reported matrix — see §13.
 ## 10. Reproducibility guarantees
 
 Each guarantee below names **what enforces it**, because a pin nothing reads is
-a record rather than a guarantee. Three entries say *nothing automated*; that is
+a record rather than a guarantee. Two entries say *nothing automated*; that is
 deliberate, and they are the honest state rather than the tidy one. Where a
 requirement is real but only a human checks it, it is labelled
-**review-enforced** rather than quietly listed beside the checked ones — and
-where a check is possible but not yet written, what would make it bite is
-recorded so the work is specified rather than merely regretted.
+**review-enforced** rather than quietly listed beside the checked ones.
+
+One row moved out of that group rather than staying in it. The loader-pin rule
+was listed as unenforced on the belief that a check would need run manifests
+from gitignored `data/` and would therefore skip in CI — and a check that skips
+is the failure this document's companion finding is about. That belief was
+wrong: the loaders carry their pin as a class attribute, so the comparison needs
+nothing but an import and a YAML read. **The disclosure existed only because
+enforcement was thought impossible, so once it was shown to be possible the
+disclosure stopped being the right answer.** The row above it did not move, and
+should not: confirming that a recorded SHA still names the intended upstream
+state needs network access and human judgement, and no test can carry that.
 
 | Guarantee | Enforced by |
 | --- | --- |
@@ -430,8 +439,16 @@ recorded so the work is specified rather than merely regretted.
 | Any run exports to a **UK AISI Inspect** eval log via `redteam export-inspect` | `tests/unit/test_inspect_export.py` |
 | Lint, typecheck and the unit suite run on every PR, with no real API calls | `.github/workflows/ci.yml`; that the *release* path also gates is enforced by `tests/unit/test_release_gate.py` |
 | The commit recorded for each dataset in `configs/dataset_versions.yaml` is the one that was actually verified upstream | **Nothing automated — review-enforced.** The file header records that the commits were verified by hand against the upstream repositories, and that they change "only when the upstream is re-verified and the new SHA is recorded". Confirming a SHA still names the intended upstream state needs network access and human judgement about what changed, so this rung stays a review obligation. It is stated here rather than left implicit, because a requirement nobody can see is not a requirement anybody keeps. |
-| Loaders resolve to those pinned commits — the file's own "Loaders in `src/redteam/corpora/` **MUST** resolve to one of these" | **Nothing yet — and this one is checkable.** No code reads the file and no test compares a loader against it. It could: every loader exposes `pinned_revision` as a class attribute, so a test reading `configs/dataset_versions.yaml` and asserting `LOADERS[name].pinned_revision` matches the recorded `commit`/`revision` needs no network, no `data/` cache and no fixture, and would therefore bite in CI rather than skip. Recorded as specified work, not as a lament. |
+| Loaders resolve to those pinned commits — the file's own "Loaders in `src/redteam/corpora/` **MUST** resolve to one of these" | `tests/unit/test_dataset_pins.py` reads the config and asserts `LOADERS[name].pinned_revision` matches the recorded `commit`/`revision`, per loader, in both directions — a registered loader missing from the config, and a config entry no loader claims, are both drift. No network, no `data/` cache, no fixture, so it runs in CI rather than skipping. |
 | Python dependency versions | **Nothing, by decision.** See below. |
+
+**The upstream-verification row is now the most fragile guarantee in this
+table**, and worth watching for that reason. Every other row either has a test
+behind it or has been withdrawn as a claim; that one depends on somebody
+remembering to re-verify before changing a SHA. It is the only rung here whose
+failure mode is silence, and naming it is the most this document can do about
+it — a reader should weight it accordingly rather than reading the table as
+uniformly enforced.
 
 ### On Python dependencies
 

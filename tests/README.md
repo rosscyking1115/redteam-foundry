@@ -102,6 +102,7 @@ Written up as instance #16 and checklist item 20 in
 | --- | --- |
 | [`test_loaders.py`](unit/test_loaders.py) | Each corpus loader parses its source into the canonical case schema (§2). |
 | [`test_agentdojo_loader.py`](unit/test_agentdojo_loader.py) | The AgentDojo indirect-injection corpus loads and pins correctly (the §8 AgentDojo cells). |
+| [`test_dataset_pins.py`](unit/test_dataset_pins.py) | `configs/dataset_versions.yaml`'s own rule that loaders MUST resolve to its recorded commits — checked per loader and in both directions. Until now nothing read that file, so the corpus provenance published in §10 rested on a written record rather than a check. |
 | [`test_schemas.py`](unit/test_schemas.py) | The canonical run/case schemas validate their invariants. |
 | [`test_cache.py`](unit/test_cache.py) | The response cache is content-addressed and deterministic — the basis for "re-runs are free and reproduce the numbers exactly" (§10). |
 | [`test_pricing.py`](unit/test_pricing.py) | Token pricing is correct, so the real-USD cost reported per run is honest. |

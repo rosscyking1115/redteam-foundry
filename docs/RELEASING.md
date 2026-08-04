@@ -60,46 +60,78 @@ none of them.
 
 ## 2. Version + changelog
 
-- [ ] Bump the version in **both** `pyproject.toml` and
-      `src/redteam/__init__.py` (they must match; `test_smoke.py` asserts it).
+- [ ] Bump the version in `pyproject.toml`. **That is the only place it is
+      declared.** `src/redteam/__init__.py` reads the installed distribution
+      metadata, so there is nothing to keep in step — this checklist used to say
+      "bump it in **both**", which was the state before 0.4.1 and is exactly the
+      hand-synchronised second copy whose drift shipped a wheel saying 0.4.0
+      beside code saying 0.3.0. Do not re-add one.
+      `tests/unit/test_version.py` (not `test_smoke.py`) asserts the version
+      against `pyproject.toml`, against the installed distribution, and against
+      what the CLI prints.
+- [ ] After bumping, **reinstall** (`uv pip install -e ".[dev]"`) before running
+      the suite locally: the installed metadata still carries the old number
+      until you do, and `test_version.py` will fail on the mismatch. That is the
+      test working, not a false alarm.
 - [ ] Move the `CHANGELOG.md` "Unreleased" notes under a new `[X.Y.Z]` heading
       with the date, and update the compare links at the bottom.
+- [ ] Check the release date in that heading still matches the day you actually
+      release. It is written when the notes are prepared, which may not be the
+      day the release is cut.
 - [ ] Follow SemVer: patch = fixes, minor = additive features, major = breaking.
 
-## 3. Build
+## 3. Build — locally, to inspect only
+
+The workflow rebuilds from the tag and uploads what *it* built, so nothing you
+build here is ever published. Build locally to look at the artifact, not to
+produce the one that ships:
 
 ```bash
-uv pip install build twine        # or: pipx install build twine
-python -m build                   # writes dist/*.whl and dist/*.tar.gz
-python -m twine check dist/*      # metadata/readme render check
+uv build                          # writes dist/*.whl and dist/*.tar.gz
 ```
 
-## 4. Test-publish (recommended first time)
+`tests/unit/test_sdist_contents.py` already builds the sdist in process and
+asserts it contains only git-tracked files, so the packaging check is part of
+the suite rather than a manual step.
 
-```bash
-python -m twine upload --repository testpypi dist/*
-# then, in a fresh venv:
-pip install --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ redteam-foundry
-redteam version && redteam --help
-```
+## 4. Publishing — there is no manual step, and no token
 
-## 5. Publish
+**Do not run `twine`, and do not create a PyPI API token.** Publication is
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) over OIDC:
+`.github/workflows/publish.yml` mints a short-lived credential at run time, and
+**no API token exists for this project anywhere.** Earlier versions of this
+document ended with `python -m twine upload dist/*  # needs a PyPI API token`,
+which describes a mechanism this project does not use and would send whoever
+followed it looking for a secret that must not be created.
 
-```bash
-python -m twine upload dist/*     # needs a PyPI API token (~/.pypirc or env)
-```
+Nothing publishes until §5.
 
-## 6. Tag + GitHub release
+## 5. Tag, then release — and know which one is the point of no return
+
+**Pushing the tag publishes nothing.** No workflow watches tag pushes: `ci.yml`
+triggers on `pull_request` and on `push` to `main`; `publish.yml` triggers on
+`release: types: [published]`. A pushed tag is therefore still reversible
+(`git push --delete origin vX.Y.Z`).
 
 ```bash
 git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
+- [ ] **Publishing the GitHub release is the irreversible step.** It fires
+      `publish.yml`, which runs the gate, then builds from the tag and uploads.
+      **PyPI has no un-publish**: a version can be yanked, which hides it from
+      resolvers, but the files and the version number are permanent and cannot
+      be reused. Everything before this point can be undone; nothing after it
+      can.
 - [ ] Create the GitHub release from the tag; paste the `CHANGELOG.md` section.
 
-## 7. Smoke the published package
+Two guards run inside the workflow before anything is uploaded, and both refuse
+rather than warn: the suite must pass (`needs: test`), and the tagged commit
+must be reachable from `main`. A tag on an unreviewed branch is rejected at that
+point, not published.
+
+## 6. Smoke the published package
 
 - [ ] Fresh venv: `pip install redteam-foundry`, then
       `redteam corpora --help` and `redteam corpora audit --help` (the offline
