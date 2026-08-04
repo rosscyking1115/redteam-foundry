@@ -95,9 +95,14 @@ async def test_judge_records_cost_through_budget(monkeypatch: pytest.MonkeyPatch
 
 
 def test_judge_verdict_rejects_out_of_range_asr() -> None:
+    """The rejection must be about `asr` and about its *range*.
+
+    `refusal`, `confidence` and `reasoning` are all constrained too, so an
+    undifferentiated ValidationError would survive the asr bound being removed.
+    """
     from pydantic import ValidationError
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=r"asr[\s\S]*less than or equal to 1"):
         JudgeVerdict(asr=2, refusal=0, confidence=0.5, reasoning="x")
 
 

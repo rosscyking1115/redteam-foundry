@@ -32,13 +32,19 @@ def test_attack_case_minimum_fields() -> None:
 
 
 def test_attack_case_is_frozen() -> None:
-    case = _ok_case()
-    with pytest.raises(ValidationError):
-        case.prompt = "mutated"  # type: ignore[misc]
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        _ok_case().prompt = "mutated"  # type: ignore[misc]
 
 
 def test_attack_case_rejects_unknown_source() -> None:
-    with pytest.raises(ValidationError):
+    """Pinned to the `source` field, not merely to "something was invalid".
+
+    Every keyword below is a candidate for rejection — `id="x"` is short,
+    `prompt="x"` is short — so a bare `pytest.raises(ValidationError)` would
+    still pass if the source Literal were widened and some *other* field began
+    failing instead. The guard would be green and blind to its own target.
+    """
+    with pytest.raises(ValidationError, match=r"source[\s\S]*Input should be 'advbench'"):
         AttackCase(
             id="x",
             source="not-a-real-dataset",  # type: ignore[arg-type]
@@ -50,7 +56,9 @@ def test_attack_case_rejects_unknown_source() -> None:
 
 
 def test_attack_case_rejects_extra_fields() -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(
+        ValidationError, match=r"unexpected_extra[\s\S]*Extra inputs are not permitted"
+    ):
         AttackCase(  # type: ignore[call-arg]
             id="x",
             source="advbench",
@@ -88,7 +96,7 @@ def test_scored_case_label_constrained() -> None:
         final_label="refused",
     )
     assert sc.final_label == "refused"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=r"final_label[\s\S]*Input should be 'blocked'"):
         ScoredCase(
             attack_case_id="abc",
             target_response=resp,

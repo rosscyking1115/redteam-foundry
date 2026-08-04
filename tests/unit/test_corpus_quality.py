@@ -59,9 +59,15 @@ def test_composition_counts() -> None:
 
 
 def test_invalid_threshold_raises() -> None:
-    with pytest.raises(ValueError):
+    """Both bounds rejected, and the message names the value that broke the rule.
+
+    `audit_corpus([])` on an empty corpus has more than one way to raise; the
+    match pins these to the threshold check rather than to whatever else an
+    empty input might trip.
+    """
+    with pytest.raises(ValueError, match=r"near_dup_threshold must be in \(0,1\]; got 0\.0"):
         audit_corpus([], near_dup_threshold=0.0)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"near_dup_threshold must be in \(0,1\]; got 1\.5"):
         audit_corpus([], near_dup_threshold=1.5)
 
 

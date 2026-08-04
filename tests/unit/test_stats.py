@@ -70,11 +70,18 @@ def test_bootstrap_proportion_ci_seed_changes_result() -> None:
 
 
 def test_bootstrap_proportion_ci_invalid_inputs_raise() -> None:
-    with pytest.raises(ValueError):
+    """Each bad input must be rejected *for its own reason*.
+
+    Three distinct defects reach one exception type. Asserting only that a
+    ValueError arrived would keep passing if the range check started firing on
+    the confidence argument, or the confidence check on the count — a guard red
+    for the wrong reason reads exactly like a guard working.
+    """
+    with pytest.raises(ValueError, match=r"successes=-1 not in \[0, 10\]"):
         bootstrap_proportion_ci(-1, 10)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"successes=11 not in \[0, 10\]"):
         bootstrap_proportion_ci(11, 10)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"confidence must be in \(0,1\)"):
         bootstrap_proportion_ci(5, 10, confidence=1.5)
 
 
@@ -134,10 +141,11 @@ def test_alpha_high_agreement_near_one() -> None:
 
 
 def test_alpha_invalid_inputs_raise() -> None:
-    with pytest.raises(ValueError):
-        krippendorff_alpha_binary([0, 1], [0, 1, 0])  # length mismatch
-    with pytest.raises(ValueError):
-        krippendorff_alpha_binary([0, 2], [0, 1])  # non-binary value
+    """The comments used to name the two causes; the assertions could not tell them apart."""
+    with pytest.raises(ValueError, match=r"length mismatch: 2 vs 3"):
+        krippendorff_alpha_binary([0, 1], [0, 1, 0])
+    with pytest.raises(ValueError, match=r"binary alpha requires 0/1 inputs; got 2"):
+        krippendorff_alpha_binary([0, 2], [0, 1])
 
 
 # ---------------------------------------------------------------------------
