@@ -26,8 +26,24 @@ pytest tests/unit                    # should pass green
 redteam version                      # prints the installed version
 ```
 
-Dependencies are pinned in [`uv.lock`](../uv.lock) for a byte-for-byte
-reproducible environment.
+The command above resolves dependencies fresh from `pyproject.toml`, which is
+what CI and the release workflow do too. There is no lockfile to sync: `uv.lock`
+used to be tracked and this page used to promise a "byte-for-byte reproducible
+environment" from it, in the sentence directly under a command that never read
+it. Nothing read it, and it had gone stale unnoticed. The claim is withdrawn
+rather than reworded.
+
+What is actually reproducible, and how, is listed in
+[`METHODOLOGY.md` § 10](../METHODOLOGY.md#10-reproducibility-guarantees) — the
+short version being that the headline result regenerates from cached run
+artifacts with no API calls and no optional extras:
+
+```bash
+python scripts/headline_table.py --check
+```
+
+If you want a byte-identical environment for your own work, `uv lock` still
+produces one locally. It is a convenience, not a guarantee this project makes.
 
 > [!WARNING]
 > Live runs call paid APIs. Each run enforces a hard USD budget cap (set per

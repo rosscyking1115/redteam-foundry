@@ -9,7 +9,9 @@ committed artifact and is re-derivable with the commands in
 **Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study ·
 **Extended:** 2026-08-03 with #12 through #14, from cutting a release ·
 **Extended:** 2026-08-04 with #15 through #20, from the headline figure and a
-sweep of every validator in the repository for its alphabet
+sweep of every validator in the repository for its alphabet ·
+**Extended:** 2026-08-04 with #21 and #22, from asking what consumes a control
+rather than whether it exists
 
 ---
 
@@ -812,6 +814,97 @@ was never generalised. `src/redteam/readability.py` is now the single
 convention: exclude what cannot be read, and **publish the count**, because an
 exclusion nobody reports is the same defect one level up.
 
+## From asking what consumes a control, rather than whether it exists
+
+### 21. A lockfile — satisfied by being present in the repository
+
+`uv.lock` was tracked in git, 704 KB of it, and named as a reproducibility
+guarantee in two documents:
+
+- `METHODOLOGY.md` § 10 — *"`pyproject.toml` + `uv.lock` pin every Python
+  dependency."*
+- `docs/getting-started.md` — *"Dependencies are pinned in `uv.lock` for a
+  byte-for-byte reproducible environment."*
+
+**Nothing read it.** CI installs with `uv pip install --system -e ".[dev]"`, and
+so does the release workflow; both resolve fresh from `pyproject.toml` and never
+open the lock. `uv build` does not read it either. There was no `uv sync`, no
+`--frozen`, no `--locked`, anywhere in the repository.
+
+**The sharpest part is the adjacency.** `docs/getting-started.md` printed the
+reproducibility claim *immediately below* the setup block, and the last command
+in that block was `uv pip install -e ".[dev]"` — the command that bypasses the
+lock. The refutation and the claim were four lines apart on the same page. Any
+reader following the instructions was, at the moment of reading the guarantee,
+executing the thing that made it false.
+
+**And it had already failed its own check, silently.** Running `uv lock --check`
+against the tracked file:
+
+```
+The lockfile at `uv.lock` needs to be updated, but `--check` was provided.
+exit 1
+```
+
+So the file was not merely unused. It was stale to the point that anyone
+attempting `uv sync --locked` would have been refused — and nobody was refused,
+because nobody ran it. A control can rot for a long time when the only thing
+that would notice is the thing that never runs.
+
+**How it was found is the transferable part.** Not by auditing whether the pin
+existed — it plainly did, in git, in two documents, 704 KB of exact hashes. It
+was found by asking *what consumes it*, and grepping the workflows for the
+answer. Every earlier instance in this catalogue was found by asking what a
+number returns when the phenomenon is absent; this one needed a different
+question, because a lockfile does not return anything. **For a control rather
+than a metric, the question is not "what does it say?" but "what reads it?"**
+
+**What it was measured against before being removed.** The two resolutions do
+differ, so this is not merely tidying: the lock resolved `huggingface-hub` to
+0.36.2 and `datasets` to 5.0.0, while a fresh CI-style install resolves 1.26.0
+and 5.0.1 — a major version apart, because the lock's universal resolution is
+constrained by `transformers<5` from the `guard` extra, an extra CI never
+installs. Both resolutions were installed and the suite run under each: green
+under both, and the `corpora audit-hf` path exercised directly under each,
+including a live load.
+
+That last step was necessary because of instance #22, below.
+
+Resolved by removing the claim rather than enforcing it. Making CI read the lock
+would have bought enforcement at the price of testing a configuration no user
+has — for a published library, the resolution that matters is the fresh one,
+because that is what `pip install` produces. `METHODOLOGY.md` § 10 now lists each
+guarantee beside **what enforces it**, and two entries in that table say
+*nothing* — which is the honest state, and one of them is the next instance.
+
+### 22. A coverage floor — satisfied by an aggregate over the wrong lines
+
+Deciding instance #21 required answering one question: does the `corpora
+audit-hf` path still work under the other resolution? The test suite could not
+answer it.
+
+`load_hf_dataset` is the only place in the codebase that imports `datasets`. It
+had **zero test coverage**. `tests/unit/test_huggingface.py` never imported
+`datasets` at all — it covered `rows_to_cases`, the pure mapping function beside
+it — while the suite's aggregate sat at **80.19% against a 75% floor**, green on
+every run, and the module reported 76%.
+
+A coverage gate is an aggregate, and an aggregate is satisfied by the lines it
+does cover. It cannot distinguish "this module is well tested" from "this module
+is well tested except for the one function that touches the outside world",
+which is reliably the function most worth testing. The floor was doing exactly
+what it was configured to do and told us nothing about the question in hand.
+
+Fixed by covering the wrapper offline — substituting `datasets.load_dataset`,
+which the function-local import makes reachable — for argument forwarding,
+the column check, the `limit`, and the security property that
+`trust_remote_code` is never passed for an untrusted repo id. The module is now
+at 100%. One genuinely live test sits behind `RUN_HF_NETWORK=1`, because only a
+real load can catch an upstream change, and a unit suite that depends on the Hub
+being reachable fails for reasons unrelated to the code. **That CI therefore
+does not cover the live path is stated in the module rather than left implied** —
+which is the whole lesson of this document applied to its own repair.
+
 ## What they have in common
 
 1. **Every number was computed correctly.** No arithmetic error appears here.
@@ -924,6 +1017,21 @@ reliably self-detectable, and needs structure:
     goes red proves it is connected, not that it is right. #16 was a guard
     failing for the wrong reason, one small change away from passing blind, and
     it was visible only because the failure message was read.
+21. **For a control rather than a metric, ask what *reads* it.** A pin, a
+    lockfile, a config, a policy file returns nothing, so "what does it say when
+    nothing happened?" does not apply. Grep for its consumer instead. #21 was
+    tracked in git, named in two documents, 704 KB of exact hashes, consumed by
+    nothing, and already failing its own `--check` unnoticed. Existing is not
+    the same as being read.
+22. **A coverage floor is an aggregate, and aggregates are satisfied by the
+    lines they do cover.** Before trusting a green suite about a specific path,
+    check that path's own coverage. #22 was a module at 76% whose single
+    outside-world function was at zero — inside a suite at 80% against a 75%
+    floor, green throughout.
+23. **When you remove a claim, replace it with what is actually true.** A
+    deleted guarantee leaves a reader with less than a corrected one. § 10 of
+    `METHODOLOGY.md` is stronger after #21 than before it, because every row now
+    names its enforcement — including the two rows that name *nothing*.
 
 ## Provenance
 

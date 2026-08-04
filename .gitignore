@@ -71,3 +71,16 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# uv resolution lockfile — deliberately NOT tracked.
+#
+# Nothing in this repository ever read it: CI (.github/workflows/ci.yml) and the
+# release workflow both install with `uv pip install -e ".[dev]"`, which
+# resolves fresh from pyproject.toml. It was documented as a reproducibility
+# guarantee in two places while being consumed by none, and had drifted far
+# enough that `uv lock --check` refused it — unnoticed, because nothing read it.
+#
+# What actually pins this project is listed in METHODOLOGY.md section 10, and
+# every entry there names what enforces it. Run `uv lock` locally if you want a
+# byte-identical environment for your own work.
+uv.lock
