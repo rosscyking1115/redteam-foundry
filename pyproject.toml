@@ -225,6 +225,14 @@ ignore = [
 # The exclusion filter carries CJK blocklist patterns and CJK test fixtures.
 "src/redteam/corpora/_filters.py" = ["RUF001", "RUF002", "RUF003"]
 "tests/unit/test_exclusion_filter.py" = ["RUF001", "RUF002", "RUF003"]
+# The alphabet screen and the refusal scorer's tests are *about* non-Latin
+# input, so their fixtures are non-Latin by construction. Note the shape of
+# this list: every entry is a place where the repository handles text outside
+# the Latin alphabet, which is a rough map of where the screen is needed.
+"tests/unit/test_readability.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/unit/test_scorer_refusal.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/unit/test_taxonomy.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/unit/test_corpus_quality.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]
 quote-style = "double"

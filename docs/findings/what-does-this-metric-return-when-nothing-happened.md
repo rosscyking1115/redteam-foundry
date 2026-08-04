@@ -7,7 +7,9 @@ committed artifact and is re-derivable with the commands in
 
 **Author:** Cheng-Yuan King · **Written:** 2026-07-28 ·
 **Extended:** 2026-08-02 with #7 through #11, from the locale-provenance study ·
-**Extended:** 2026-08-03 with #12 through #14, from cutting a release
+**Extended:** 2026-08-03 with #12 through #14, from cutting a release ·
+**Extended:** 2026-08-04 with #15 through #20, from the headline figure and a
+sweep of every validator in the repository for its alphabet
 
 ---
 
@@ -58,17 +60,24 @@ attestation about a hole, not a repair of one.
 
 ## Why it is worth a document
 
-A metric earns trust by being able to come out badly. Each of the six below
+A metric earns trust by being able to come out badly. Every instance below
 *could not* come out badly in the situation that mattered, because the value it
 returns when the phenomenon is absent is indistinguishable from the value it
 returns when the phenomenon is present and healthy.
+
+> **On the numbering.** Entry numbers (`### 7.`) are stable identifiers and are
+> cited from `CHANGELOG.md` and from each other, so they never change. Section
+> headings used to be *counts* — "The six", "Five more" — which made every
+> append a rename of the thing being appended to, and blocked one. A catalogue
+> about numbers going stale whose own headings were stale-able counts is the
+> defect it documents, one level up. Headings now name provenance instead.
 
 The failure is not arithmetic. Every one of these numbers was computed
 correctly. The failure is that the number was **shaped by something other than
 what it purported to measure**, and the thing shaping it was usually *absence* —
 no variance, no output, no entities, no action.
 
-## The six
+## From the measurement core
 
 | # | The number | Read as | Actually shaped by | Caught |
 | --- | --- | --- | --- | --- |
@@ -216,7 +225,7 @@ ordering it replaced.
 
 This one was **supplied by the reviewer** who had caught #3 and #4. *(METHODOLOGY §7)*
 
-## Five more, from the locale-provenance work
+## From the locale-provenance work
 
 ### 7. `excluded=False` on every Chinese prompt — satisfied by illegibility
 
@@ -474,10 +483,10 @@ Fixed by labelling every reported contrast with its standing in place, and by
 stating plainly, where the subgroup appears, that no comparator for it exists in
 the preregistration and that the analysis is exploratory.
 
-## Three more, from cutting a release
+## From cutting a release
 
-Both were found while fixing packaging before the 0.4.0 upload. Neither is a
-number, which is why they are worth adding: the pattern is not confined to
+These were found while fixing packaging before the 0.4.0 upload. Not all of them
+are numbers, which is why they are worth adding: the pattern is not confined to
 metrics. Anything that *reports a state* can be satisfied by the absence of the
 thing it claims to observe — a tool's silence, or a pipeline's success.
 
@@ -642,7 +651,168 @@ nothing to keep in step. `tests/unit/test_version.py` compares it against
 actually prints — and refuses to run against the not-installed placeholder,
 since a check measuring `0.0.0+unknown` measures nothing.
 
-## What the six have in common
+## From the figure, and from sweeping every validator for its alphabet
+
+Instance #7 ended with a generalisation: *for any regex, schema, linter or
+scanner, ask what it returns for input outside its alphabet.* It was written as
+advice and left as advice. The two instances below were found by finally asking
+the question of one artefact, and the four after them by asking it of all 21
+validators in the repository at once.
+
+### 15. A figure that resolves — satisfied by the image loading, not by what it says
+
+The README's headline figure carried, rendered into the image:
+
+> Point = LLM-judge ASR; whisker = 95% bootstrap CI; two-judge cross-validated
+> (ASR κ = 1.00, all 12 cells).
+
+That is instance #1, the retracted claim, restated as cross-validation — and it
+survived the retraction by two releases. The prose was corrected in `0.4.0`; the
+figure was not, so the README argued against a claim its own headline graphic
+went on making, on GitHub and in the PyPI descriptions for `0.4.0` and `0.4.1`.
+
+**The figure was checked three times during release work.** Each check confirmed
+it resolves, returns `image/png`, and uses no relative target — the properties
+`tests/unit/test_readme_links.py` exists to defend, all of them true, all of them
+green. None read what it said. **An image is a claim, and nothing in the
+repository tested what its figures assert**; the checks measured delivery and
+were satisfied by the file existing.
+
+The alt text was already clean, which is why nothing that reads markdown ever
+saw it. The claim lived only in the pixels.
+
+Fixed by regenerating from the committed generator rather than editing the PNG —
+editing the image would have left the generator emitting the old caption on its
+next run. The caption now says what is plotted and stops. The surviving
+measurement, the positive control's κ = +0.935, is deliberately *not*
+substituted in: it belongs to a cell that is not among the 12 plotted, so there
+it would read as though the matrix had been validated at 0.935. A caption is the
+one part of a document guaranteed to travel without its qualification — a
+screenshot carries the caption and nothing else — so the rule
+`tests/unit/test_figure_caption.py` enforces is not "no false κ" but **no
+judge-agreement claim in that caption at all**.
+
+### 16. A guard that could not read the string it existed to reject
+
+The guard for #15 reads the caption from two places: the generator's `CAPTION`
+constant, and the `Description` metadata recorded in the committed PNG. It was
+proved to bite by putting the retracted caption back and reading the failure.
+
+It failed — with the wrong message. The first version parsed only `tEXt` and
+`zTXt` PNG chunks, which are Latin-1. `κ` is not Latin-1 encodable, so the
+writer had put the caption in a UTF-8 `iTXt` chunk the reader skipped. The guard
+reported the retracted caption as **unreadable metadata** rather than rejecting
+it: fail-safe rather than fail-open, but the wrong reason for the one string it
+most needs to catch, and one small change away from a guard that passes because
+it cannot see.
+
+**This is only a finding because the break-test asserted the failure *reason*
+and not merely that something went red.** A break-test that checks for a red
+result would have confirmed the guard "works" and shipped it blind.
+
+`iTXt` is now handled. Because that branch is reachable only via a non-ASCII
+caption — precisely the retracted one — it is exercised directly against a
+synthetic PNG, compressed and uncompressed, so it cannot rot untested.
+
+### 17. FRR = 0% in Chinese — satisfied by illegibility, again
+
+Instance #7 in a second validator, on the axis the multilingual set exists to
+measure. Every pattern in the rule-based refusal scorer is anchored on `^` plus
+English words, so a refusal written in Chinese, Japanese, Korean, Russian or
+Arabic matches none of them. Measured:
+
+| input | `is_refusal` |
+| --- | --- |
+| `I can't help with that.` | `True` |
+| a refusal in zh / ja / ko / ru / ar | `False` |
+| a **compliance** in zh / ja | `False` |
+
+A refusal and a compliance in the same language were **the same verdict**. On an
+unjudged run `frr_by_language` falls back to this scorer, so it would report
+**false-refusal rate = 0% for zh-Hans, zh-Hant, ja and ko** — the most
+flattering possible answer to "do models over-refuse benign non-English
+prompts?", produced by an instrument that cannot read the replies.
+
+Latent rather than published: FRR is "defined in the harness but not in the v1
+reported matrix" (METHODOLOGY §9). But it is shipped, importable, CLI-exposed
+code in a released package.
+
+Fixed by giving `RefusalScore` a `readable` flag and having `frr_by_language`
+**exclude unreadable cells and report how many it excluded**, per row and per
+report, in the rendered output. A rule-based *hit* still counts: the patterns
+are English, so a match is itself proof the text was readable. Only the negative
+verdict was ever ambiguous.
+
+### 18. Zero near-duplicates — satisfied by a tokeniser finding one token
+
+The corpus audit's near-duplicate pass scores token Jaccard, and `_tokens`
+splits on `\w+` — which presupposes whitespace-delimited words. An unspaced
+script has none, so a whole sentence becomes a single token:
+
+| pair, differing by one word or character | tokens | Jaccard |
+| --- | ---: | ---: |
+| `…bomb at **home**` / `…at **school**` | 10 / 10 | **0.818** |
+| `…在**家里**制造炸弹…` / `…在**学校**制造炸弹…` | 1 / 1 | **0.000** |
+
+So the pass reports **zero near-duplicates** in a Chinese or Japanese corpus,
+and the absence reads as cleanliness. Reachable through `corpora audit-hf`,
+which accepts any Hugging Face dataset. Exact-duplicate detection is casefold
+plus whitespace-collapse and is genuinely script-agnostic; only the Jaccard pass
+is blind.
+
+Fixed by excluding unreadable prompts from the comparison and carrying the count
+on the report, rather than acquiring a CJK segmenter — a dependency, and a
+second alphabet to keep widening.
+
+### 19. An "obsolete jailbreak meme" axis — satisfied by illegibility, scoring "not stale"
+
+The staleness heuristic's largest component, weight 0.30, counts prompts
+matching dated jailbreak-meme markers (`DAN`, `AIM`, "developer mode"). All
+twelve patterns are `\b`-anchored English. On a non-English corpus every one
+matches nothing, the axis scores **0.0 — "not stale"**, and the composite reads
+as *this benchmark is still discriminating*: the opposite of this project's
+finding, in its favour, produced by not being able to read the corpus.
+
+The sharp part is that **the correct primitive already existed in the same
+class**. `StalenessComponent` carries `available: bool` and `score: float |
+None`, and `0.4.0` had already applied exactly that to `judge_disagreement` so a
+degenerate κ reports *undefined* and renormalises out. It was never applied
+here. The repair was not to invent a mechanism but to use the one already in the
+file.
+
+### 20. "No known attack-family marker" — satisfied by a disclaimer nothing enforced
+
+`infer_attack_families` returned a bare empty tuple whether it had looked and
+found nothing or had been handed a script its English patterns cannot read. Its
+docstring drew the distinction correctly and at length — *"a non-match means 'no
+known marker', not 'no attack'"* — and no caller could act on it, because both
+cases returned the same value.
+
+This is the repository's own **attestation-is-not-enforcement** finding, applied
+to a validator: the caveat was true, prominent, and load-bearing in how the
+coverage number should be read, and nothing in the code could tell the two apart.
+A test asserted the conflation directly, counting a Japanese request to build a
+bomb as "untagged" beside a benign English cookie recipe.
+
+Fixed by returning `FamilyTags`, which carries `readable`, so the coverage gap
+means what it says and unreadable cases are counted separately.
+
+**What the sweep found overall.** Of 21 validators, three were fail-open with
+consequences (#17, #18, #19), one was documented-but-unenforced (#20), one was
+repaired script-by-script rather than structurally (#7 — its alphabet is now
+`{English, Chinese}`, not "everything"), and nine were clean. The clean ones are
+the useful half of the result: `detect_language` returns an explicit `unknown`;
+`llama_guard._is_unsafe` fails closed and says so in its docstring;
+`judge_claude._parse` raises rather than returning a verdict;
+`packs.validate_pack_id` has a deliberately narrow alphabet and *rejects*
+everything outside it. The pattern is not that the repository does not know how
+to do this — `scripts/report_locale_provenance.py` has counted and published
+unparseable cells all along. It is that the discipline lived in one place and
+was never generalised. `src/redteam/readability.py` is now the single
+convention: exclude what cannot be read, and **publish the count**, because an
+exclusion nobody reports is the same defect one level up.
+
+## What they have in common
 
 1. **Every number was computed correctly.** No arithmetic error appears here.
 2. **Each was shaped by absence** — of variance, of output, of entities, of
@@ -735,6 +905,25 @@ reliably self-detectable, and needs structure:
     the pipeline rebuilds rather than uploading what you checked, say so: the
     bytes verified are then not the bytes published, and only the source tree is
     known to be shared.
+17. **Ask #9 of every validator at once, not one at a time.** Two independent
+    instances is a pattern, not bad luck. Sweeping all 21 validators in this
+    repository for their alphabet found three more fail-open and one
+    documented-but-unenforced — and, as usefully, nine that were already
+    correct. Prefer **failing loudly on unreadable input over widening the
+    alphabet**: an assertion that the input *was* parseable is cheap and
+    finite, exhaustive encoding coverage is neither.
+18. **An exclusion nobody counts is the same defect one level up.** Dropping
+    what the instrument could not read is only half the repair; a rate reported
+    without the size of what it was computed over has simply moved the silence.
+    Publish the count next to the number.
+19. **Read what a figure asserts, not whether it loads.** An image is a claim.
+    Checks that it resolves, returns the right content type and uses no relative
+    target are all satisfied by a file that says something false. Put the
+    caption in code, record it in the artifact, and check the text.
+20. **Make a break-test assert *which* failure occurred.** Confirming a guard
+    goes red proves it is connected, not that it is right. #16 was a guard
+    failing for the wrong reason, one small change away from passing blind, and
+    it was visible only because the failure message was read.
 
 ## Provenance
 

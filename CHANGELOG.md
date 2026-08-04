@@ -7,6 +7,72 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Four validators returned a confident negative for input they could not
+  read.** Found by sweeping all 21 text-verdict validators in the repository for
+  the question instance #7 had already generalised and left as advice: *what
+  does this return for input outside its alphabet?* Two instances is a pattern,
+  so it was asked of all of them at once.
+
+  | validator | what it returned outside its alphabet |
+  | --- | --- |
+  | `scorers/refusal_keywords.score_refusal` | `is_refusal=False` for a refusal in zh/ja/ko/ru/ar — **the same verdict as a compliance in the same language**. On an unjudged run `frr_by_language` averaged those into **FRR = 0%** for exactly the languages the multilingual set exists to ask about. |
+  | `corpora/quality._near_duplicates` | Jaccard `0.000` for a Chinese pair differing by one character, where the English equivalent scores `0.818` — `\w+` makes an unspaced sentence one token. **Zero near-duplicates**, read as a clean corpus. |
+  | `staleness._obsolete_pattern_score` | `0.0` — "not stale" — on any non-English corpus, from the heuristic's largest component (weight 0.30). |
+  | `corpora/taxonomy.infer_attack_families` | An empty tuple whether it looked and found nothing or could not look. The docstring drew the distinction; the return value could not carry it. |
+
+  **No published number changes.** Verified rather than asserted: every audited
+  corpus is 100% `latin` (504/504, 949/949, 342/342, 88/88), FRR is not in the
+  v1 reported matrix, rule-based ASR feeds staleness only as a fallback behind
+  judge ASR, and `results/*.json` already carry frozen verdicts. Every
+  downstream figure was recomputed before and after and the two snapshots are
+  byte-identical; `scripts/headline_table.py --check` stays green.
+
+  Written up as instances #17 through #20 in
+  `docs/findings/what-does-this-metric-return-when-nothing-happened.md`, with
+  #15 and #16 covering the figure caption and the guard that could not read `κ`.
+
+### Added
+- **`src/redteam/readability.py` — one convention for "could not read this".**
+  Deliberately not a second script classifier: `is_readable` is a one-bit
+  precondition ("any Latin letter for a `\b` to anchor on?"), and `Screen`
+  carries the exclusion as a number so a caller cannot report a rate without
+  reporting what it was computed over. Modelled on the discipline
+  `scripts/report_locale_provenance.py` has had all along — exclude the
+  unreadable cell, **count it, and publish the count**.
+
+  Applied at all four sites, and in every case the caller now excludes *and*
+  reports: `LanguageFRR` gains `n_unreadable_excluded` per row and renders it;
+  `CorpusQualityReport` gains `n_near_dup_unreadable_excluded` and
+  `n_family_unreadable_excluded`; the staleness meme axis reports
+  `available=False` and renormalises out, reusing the `score: float | None`
+  mechanism 0.4.0 built for degenerate κ and never applied here.
+
+  Two rules keep the screen from over-reaching. A *hit* proves readability — the
+  patterns are English, so a match could not have come from anywhere else — so
+  only the negative verdict is screened, and true positives on mixed-script text
+  survive. And readable input takes exactly the path it took before, which is
+  what makes the byte-identical snapshot possible.
+
+### Changed
+- **`RefusalScore` gains `readable`, and `infer_attack_families` now returns
+  `FamilyTags` rather than a bare tuple.** Both are behaviour changes to shipped,
+  importable API. `FamilyTags` keeps `__bool__` and `__iter__` so `if tags:` and
+  `for fam in tags:` read as before; `RefusalScore.readable` defaults to `True`
+  so existing constructions keep working.
+- `multilingual.py` said the exclusion filter is "English-only". Stale since
+  `_PATTERNS_ZH` landed. Its alphabet is **{English, Chinese}** — not
+  "everything", which is a second reason the benign-only rule there is a policy
+  rather than a preference.
+- **The absence catalogue's section headings no longer carry counts.** They read
+  "The six", "Five more", "Three more", so every append renamed the thing being
+  appended to — and one append was blocked on exactly that. A catalogue about
+  numbers going stale whose own headings were stale-able counts is the defect it
+  documents, one level up. Headings now name provenance; entry numbers are
+  stable identifiers and are unchanged, since `CHANGELOG.md` and the entries
+  themselves cite them. One heading was already stale when found: "Both were
+  found while fixing packaging" stood above three entries.
+
+### Fixed
 - **The headline figure was still making the claim 0.4.0 retracted.** The caption
   rendered into `docs/results_matrix.png` read *"Point = LLM-judge ASR; whisker =
   95% bootstrap CI; two-judge cross-validated (ASR κ = 1.00, all 12 cells)"* — the

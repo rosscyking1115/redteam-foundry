@@ -200,9 +200,17 @@ def test_audit_populates_language_and_family_coverage() -> None:
     assert sum(r.language_coverage.values()) == 3
     assert r.language_coverage.get("ja", 0) == 1
     assert r.language_coverage.get("latin", 0) == 2
-    # Attack-family coverage: the override marker on case "a", others untagged.
+    # Attack-family coverage: the override marker on case "a".
     assert r.attack_family_coverage["instruction_override"] == 1
-    assert r.n_untagged_family == 2
+    # "Untagged" now means looked-and-found-nothing, and only case "b" qualifies.
+    # Case "c" is Japanese: the family patterns are `\b`-anchored English and had
+    # no chance to read it, so counting it beside a benign English cookie recipe
+    # as "no known marker" stated something the audit had not established. It is
+    # a harmful prompt, and the coverage gap was absorbing it.
+    assert r.n_untagged_family == 1
+    assert r.n_family_unreadable_excluded == 1
+    # The two together still account for every case that produced no marker.
+    assert r.n_untagged_family + r.n_family_unreadable_excluded == 2
     # The full family list is always present (zeros included), not just hits.
     assert set(r.attack_family_coverage) >= {"roleplay_persona", "obfuscation"}
 

@@ -37,6 +37,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 from redteam.corpora.taxonomy import ATTACK_FAMILIES, detect_language, infer_attack_families
+from redteam.readability import Screen, screen
 from redteam.schemas import AttackCase
 
 # Tokeniser for near-duplicate Jaccard. Unicode word characters so CJK and
@@ -157,6 +158,11 @@ class CorpusQualityReport(BaseModel):
     n_near_duplicate_pairs: int
     n_cross_source_near_duplicate_pairs: int
     near_duplicate_pairs: list[NearDuplicatePair] = Field(default_factory=list)
+    # Unique prompts dropped from the Jaccard pass because its `\w+` tokeniser
+    # could not read them. `n_near_duplicate_pairs` is a count over the rest,
+    # so a zero beside a non-zero here means "none found in what we could read"
+    # rather than "none present".
+    n_near_dup_unreadable_excluded: int = 0
 
     # Language / script coverage (Phase 1b — script-based, coarse).
     language_coverage: dict[str, int] = Field(default_factory=dict)
@@ -166,6 +172,9 @@ class CorpusQualityReport(BaseModel):
     # several families or none). `n_untagged_family` is the coverage gap.
     attack_family_coverage: dict[str, int] = Field(default_factory=dict)
     n_untagged_family: int = 0
+    # Cases the family patterns could not read at all. Kept out of
+    # `n_untagged_family` so "no known marker" keeps meaning that.
+    n_family_unreadable_excluded: int = 0
 
     # Label / integrity issues.
     n_label_issues: int
@@ -215,7 +224,7 @@ def audit_corpus(
     exact_groups, n_dup_cases, n_cross_groups = _exact_duplicates(cases, max_groups_reported)
     duplicate_rate = (n_dup_cases / n) if n else 0.0
 
-    near_pairs, n_near_total, n_near_cross = _near_duplicates(
+    near_pairs, n_near_total, n_near_cross, near_screen = _near_duplicates(
         cases, near_dup_threshold, max_near_dup_pairs_reported
     )
 
@@ -226,17 +235,24 @@ def audit_corpus(
     n_mixed = 0
     family_coverage: Counter[str] = Counter({fam: 0 for fam in ATTACK_FAMILIES})
     n_untagged = 0
+    n_family_unreadable = 0
     for case in cases:
         tag = detect_language(case.prompt)
         language_coverage[tag.label] += 1
         if tag.mixed:
             n_mixed += 1
-        families = infer_attack_families(case.prompt)
-        if families:
-            for fam in families:
+        tags = infer_attack_families(case.prompt)
+        if tags.families:
+            for fam in tags.families:
                 family_coverage[fam] += 1
-        else:
+        elif tags.readable:
             n_untagged += 1
+        else:
+            # Looked-and-found-nothing and could-not-look are separated here.
+            # Folding these into `n_untagged` would report "no known marker"
+            # for prompts the English patterns never had a chance to read, and
+            # the coverage gap would silently absorb them.
+            n_family_unreadable += 1
 
     return CorpusQualityReport(
         n_cases=n,
@@ -253,10 +269,12 @@ def audit_corpus(
         n_near_duplicate_pairs=n_near_total,
         n_cross_source_near_duplicate_pairs=n_near_cross,
         near_duplicate_pairs=near_pairs,
+        n_near_dup_unreadable_excluded=near_screen.n_unreadable,
         language_coverage=dict(language_coverage),
         n_mixed_script=n_mixed,
         attack_family_coverage=dict(family_coverage),
         n_untagged_family=n_untagged,
+        n_family_unreadable_excluded=n_family_unreadable,
         n_label_issues=len(label_issues),
         label_issues=label_issues[:max_groups_reported],
     )
@@ -300,21 +318,39 @@ def _exact_duplicates(
 
 def _near_duplicates(
     cases: Sequence[AttackCase], threshold: float, max_reported: int
-) -> tuple[list[NearDuplicatePair], int, int]:
+) -> tuple[list[NearDuplicatePair], int, int, Screen]:
     """Token-Jaccard near-duplicate pass over exact-dup representatives.
 
     O(r^2) over the r unique normalised prompts, with a length-ratio prune so
     wildly different prompts are skipped before the Jaccard is computed.
+
+    Unreadable prompts are excluded and counted
+    -------------------------------------------
+    `_tokens` splits on `\\w+`, which presupposes whitespace-delimited words.
+    An unspaced script has none, so a whole Chinese or Japanese sentence
+    becomes a *single* token and the Jaccard of two near-identical prompts is
+    0.0 — measured: an English pair differing by one word scores 0.818, its
+    Chinese equivalent differing by one character scores 0.000. The pass would
+    report **zero near-duplicates** in such a corpus and the absence would read
+    as cleanliness.
+
+    Rather than acquire a CJK segmenter (a dependency, and a second alphabet to
+    keep widening), prompts the tokeniser cannot read are dropped from the
+    comparison and the count is returned for the report to carry.
     """
     # One representative per exact-duplicate cluster, so near-dup work is done
     # on unique prompts only (and exact dups are not re-reported as near dups).
+    # Exact-duplicate detection is casefold+whitespace based and *is* script-
+    # agnostic, so it runs over everything; only this Jaccard pass is screened.
     seen: set[str] = set()
-    reps: list[AttackCase] = []
+    unique: list[AttackCase] = []
     for case in cases:
         key = normalize_text(case.prompt)
         if key not in seen:
             seen.add(key)
-            reps.append(case)
+            unique.append(case)
+
+    reps, screened = screen(unique, lambda c: c.prompt)
 
     tokens = [_tokens(c.prompt) for c in reps]
     lengths = [len(t) for t in tokens]
@@ -356,7 +392,7 @@ def _near_duplicates(
                     )
     # Most-similar first for the reported subset.
     pairs.sort(key=lambda p: p.similarity, reverse=True)
-    return pairs, n_total, n_cross
+    return pairs, n_total, n_cross, screened
 
 
 def _label_issues(cases: Sequence[AttackCase]) -> list[LabelIssue]:
