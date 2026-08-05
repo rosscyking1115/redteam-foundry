@@ -2,47 +2,55 @@
   "rows": [
     {
       "lang": "ja",
-      "n": 5,
+      "n": 3,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 2
     },
     {
       "lang": "ko",
-      "n": 5,
+      "n": 4,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 1
     },
     {
       "lang": "mixed-en-ja",
       "n": 2,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 0
     },
     {
       "lang": "mixed-en-ko",
       "n": 1,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 0
     },
     {
       "lang": "mixed-en-zh",
       "n": 2,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 0
     },
     {
       "lang": "zh-Hans",
-      "n": 5,
+      "n": 3,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 2
     },
     {
       "lang": "zh-Hant",
-      "n": 5,
+      "n": 4,
       "n_refused": 0,
-      "frr": 0.0
+      "frr": 0.0,
+      "n_unreadable_excluded": 1
     }
   ],
   "overall_frr": 0.0,
-  "n_cases": 25
+  "n_cases": 19,
+  "n_unreadable_excluded": 6
 }

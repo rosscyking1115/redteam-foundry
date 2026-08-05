@@ -13,12 +13,22 @@ Regenerate any of them from a fresh checkout after `redteam corpora download`.
 
 | Corpus | Staleness (heuristic) | Reading |
 | --- | ---: | --- |
-| [AdvBench](staleness/advbench/staleness_report.md) | **0.38** / 1.00 (mixed) | No dated memes, no duplication; but attacks barely succeed (max baseline ASR 1%) and defences can't move ASR — the benchmark can't discriminate on 2026 models. |
-| [AgentDojo](staleness/agentdojo/staleness_report.md) | **0.43** / 1.00 (mixed) | Same near-universal attack failure, plus heavy templated near-duplication. Cross-judge κ = +1.000 confirms ASR itself is well-posed. |
+| [AdvBench](staleness/advbench/staleness_report.md) | **0.43** / 1.00 (mixed) | No dated memes, no duplication; but attacks barely succeed (max baseline ASR 1%) and defences can't move ASR — the benchmark can't discriminate on 2026 models. |
+| [AgentDojo](staleness/agentdojo/staleness_report.md) | **0.43** / 1.00 (mixed) | Same near-universal attack failure, plus heavy templated near-duplication. |
 
-Both are driven by `universal_low_asr` and `low_defence_sensitivity`, while
-`judge_disagreement` is 0.00 (perfect cross-judge agreement) — the honest
-decomposition of "robust model vs stale benchmark".
+Both are driven by `universal_low_asr` and `low_defence_sensitivity`.
+
+`judge_disagreement` is **not** the reassurance an earlier version of this page
+claimed. It read "0.00 (perfect cross-judge agreement)", and for AgentDojo it
+added that "cross-judge κ = +1.000 confirms ASR itself is well-posed" — the
+inference 0.4.0 retracted. In 11 of the 12 matrix cells both judges labelled
+every case identically and constantly, so κ is an undefined `0/0` that the
+scorer fills in as +1.000 by convention, not a measurement. Read the linked
+reports rather than this summary: AdvBench's component is now **undefined**
+(4/4 cross-judged runs degenerate) and drops out of the composite, which is why
+its score is 0.43 and not the 0.38 this table used to show; AgentDojo's rests on
+a single informative run out of eight. The surviving agreement evidence is the
+positive control's κ = +0.935 (n = 98), not these cells.
 
 ## Defence comparison
 
@@ -41,11 +51,21 @@ decomposition of "robust model vs stale benchmark".
 ## False-refusal by language
 
 [`frr_by_language/`](frr_by_language/frr_by_language.md) — over the multilingual
-benign control set on Claude Sonnet 4.6: **0% false refusal across every
-language** (Traditional/Simplified Chinese, Japanese, Korean, and code-switched).
-Sonnet 4.6 does not over-refuse benign non-English prompts — a real result, since
-many models do. (FRR here is the rule-based refusal rate; for benign prompts a
-refusal is unambiguously a *false* refusal.)
+benign control set on Claude Sonnet 4.6: **0% false refusal over the 19 of 25
+cases that could be scored**, with **6 excluded as unreadable**.
+
+FRR here is the *rule-based* refusal rate — this run was never judged — and that
+scorer is anchored on English. Where a reply carried no Latin characters at all
+it could not be read, so a verdict of "no refusal" on those six carries no
+information. They are excluded and counted rather than scored as compliance,
+which is the 0.5.0 behaviour change.
+
+An earlier version of this page reported **0% across every language over all 25
+cases** and called it "a real result, since many models do". That overstated it:
+six of the non-English cases were never actually scored, and counting them as
+0% was the artefact 0.5.0 exists to remove. What survives is narrower and still
+worth having — on the cases the scorer could read, Sonnet 4.6 did not
+over-refuse. Settling the remaining six needs a judged run.
 
 ## Corpus data card
 
