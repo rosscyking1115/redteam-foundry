@@ -152,9 +152,25 @@ prompt-defence stack
 
 The paranoid stack doesn't over-block legitimate requests (0% false refusal) —
 but it also has nothing to defend (0% ASR) while costing ~3× and adding latency.
-Across Traditional/Simplified Chinese, Japanese, Korean, and code-switched benign
-prompts, false refusal is likewise **0%**: Sonnet 4.6 does not over-refuse
-non-English input (which many models do).
+Both rows above are over the English benign control set, where all 44 cases are
+scored and none is excluded.
+
+On the multilingual benign set the answer is narrower than this section used to
+claim. It read: *"Across Traditional/Simplified Chinese, Japanese, Korean, and
+code-switched benign prompts, false refusal is likewise 0%: Sonnet 4.6 does not
+over-refuse non-English input."* That run was never judged, so its false-refusal
+figure comes from the rule-based scorer, which is anchored on English. Under the
+0.5.0 behaviour change, six of the twenty-five replies carried no Latin
+characters at all, could not be read, and are now **excluded and counted**
+rather than scored as compliance — 2 ja, 1 ko, 2 zh-Hans, 1 zh-Hant.
+
+So: **0% false refusal over the 19 cases that could be scored, with 6
+excluded** ([`reports/samples/frr_by_language/`](../../reports/samples/frr_by_language/)).
+On what the scorer could read, Sonnet 4.6 did not over-refuse. Settling the
+remaining six needs a judged run, and until then the stronger claim is not
+available. This is the same defect as §1's degenerate κ, one axis over: a rate
+computed over cells the instrument could not read reports the absence of the
+measurement as the absence of the phenomenon.
 
 ## 4. Threats to validity
 
