@@ -125,6 +125,7 @@ an unchecked claim reaches someone.
 | [`test_sdist_contents.py`](unit/test_sdist_contents.py) | The published sdist contains only files git tracks. An sdist is built from the *directory*, so a file hidden by a contributor's global gitignore is invisible to `git status`, to review, to CI — and packaged anyway. Publication is permanent. |
 | [`test_release_gate.py`](unit/test_release_gate.py) | The release path gates rather than merely building and uploading: the suite runs before the upload via `needs:`, the tagged commit is reachable from `main`, and only the publishing job may mint an OIDC token. |
 | [`test_version.py`](unit/test_version.py) | `redteam version` reports the version actually installed. Exists because it failed: 0.4.0 shipped metadata saying 0.4.0 beside code saying 0.3.0, with a green test that held the same wrong number. |
+| [`test_release_heading.py`](unit/test_release_heading.py) | The top-most `CHANGELOG.md` heading agrees with the version being published and the day it is published on — the check `publish.yml` runs in its gate job. The heading is what a reader sees on PyPI, and a PyPI description is frozen at upload. |
 | [`test_test_index.py`](unit/test_test_index.py) | The completeness claim in this file — that it maps every suite. It did not. |
 
 ## Absence & control discipline — that a null means something

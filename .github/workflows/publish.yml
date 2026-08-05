@@ -72,6 +72,23 @@ jobs:
       - name: Pytest (unit) + coverage
         run: pytest tests/unit --cov=src/redteam --cov-report=term-missing --cov-fail-under=75
 
+      # The CHANGELOG heading is what a reader sees on PyPI, and a PyPI
+      # description is frozen at upload. Until this step it was guarded by a
+      # tickbox in docs/RELEASING.md while every other release constraint was
+      # enforced here — the same position this file's header describes for
+      # 0.4.0. It had already gone wrong once: the 0.5.0 heading was first
+      # stamped with the working day after the calendar had rolled over.
+      #
+      # `published_at` is the release's own timestamp in UTC, so there is no
+      # timezone gap between whoever clicked publish and whichever region this
+      # runner started in, and no case where a job crossing midnight disagrees
+      # with the release it is publishing. Passed through env rather than
+      # interpolated into the shell.
+      - name: Verify the CHANGELOG heading matches this release
+        env:
+          RELEASE_PUBLISHED_AT: ${{ github.event.release.published_at }}
+        run: python scripts/check_release_heading.py --published-at "$RELEASE_PUBLISHED_AT"
+
   publish:
     name: Build and publish to PyPI
     needs: test # <- the release gate. Do not remove; see the header.

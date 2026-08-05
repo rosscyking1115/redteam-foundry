@@ -75,10 +75,25 @@ none of them.
       test working, not a false alarm.
 - [ ] Move the `CHANGELOG.md` "Unreleased" notes under a new `[X.Y.Z]` heading
       with the date, and update the compare links at the bottom.
-- [ ] Check the release date in that heading still matches the day you actually
-      release. It is written when the notes are prepared, which may not be the
-      day the release is cut.
 - [ ] Follow SemVer: patch = fixes, minor = additive features, major = breaking.
+
+> **The heading is checked for you — you are not the guard.** This step used to
+> read "check the release date in that heading still matches the day you
+> actually release", which put a permanent, published field behind a tickbox
+> while every other release constraint was enforced in the workflow. It had
+> already gone wrong: the 0.5.0 heading was first stamped with the working day
+> after the calendar had rolled over.
+>
+> `publish.yml`'s gate job now runs `scripts/check_release_heading.py` before
+> anything is built, asserting that the top-most versioned heading's **version**
+> matches `pyproject.toml` and its **date** matches the release's own
+> `published_at` timestamp in UTC. If the notes were prepared on one day and
+> released on another, the release fails and tells you both values — it does not
+> publish a wrong date and leave you to notice.
+>
+> The version half is additionally asserted in `tests/unit/test_release_heading.py`,
+> so a bump that forgets the heading goes red on the pull request rather than at
+> the release.
 
 ## 3. Build — locally, to inspect only
 
