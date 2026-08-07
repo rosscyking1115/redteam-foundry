@@ -6,6 +6,50 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-08-07
+
+**A patch: two things a user hits that the repository could not see.** No API
+change, no behaviour change to any metric, and no published number moves. Both
+fixes are about what reaches somebody who is not reading this file.
+
+### Fixed
+- **The PyPI page carried no warning about 0.5.0's breaking change.**
+  `infer_attack_families` returning `FamilyTags` is named in the 0.5.0 release
+  notes and in this changelog, and PyPI renders `README.md` only — so anyone who
+  upgraded by reading the project page got no warning that `len(tags)` would now
+  raise. Structurally invisible to the release checks, because every one of them
+  passed: the description rendered, the figure loaded, the links resolved.
+
+  `README.md` now carries a compact note directly under the install line, so the
+  warning travels with the artifact it applies to. It names the failing call and
+  its one-line migration rather than pointing at a changelog the reader is not
+  currently looking at, and it also flags that false-refusal figures can move.
+
+- **`corpora audit-hf --help` gave an example that no longer works.** It named
+  `walledai/AdvBench`, which has since become **gated** on the Hugging Face Hub.
+  A new user copying the example out of `--help` — the one place they are
+  guaranteed to look — got an access error on their first run, with nothing to
+  distinguish "you need to request access" from "this tool is broken". Nothing in
+  the repository could notice: the dataset's availability is not ours to control
+  and no test reaches the Hub.
+
+  The example is now `JailbreakBench/JBB-Behaviors`, verified ungated and
+  verified to run end to end, and it is given as a **complete invocation**
+  (`--config behaviors --split harmful --prompt-column Goal`) rather than a bare
+  id, since the config and split are not guessable.
+
+  A gated load now also prints what happened and what to do: request access and
+  `huggingface-cli login`, or switch to the ungated example. The detection matches
+  on the message rather than the exception type, because `datasets` has moved that
+  class between releases and a type-pinned check would stop firing silently on an
+  upgrade — a hint that quietly disappears being the failure mode this repository
+  keeps cataloguing. `tests/unit/test_smoke.py` pins the real Hub wording as the
+  fixture, asserts an ordinary error does *not* trigger the hint, and asserts the
+  known-gated dataset cannot return to the help text.
+
+  This does not prove the new example is *still* ungated — only a live call can,
+  and none runs in CI. Stated rather than implied.
+
 ## [0.5.0] — 2026-08-05
 
 **Why MINOR and not PATCH.** A public return type changes, three public models
@@ -702,6 +746,7 @@ unchanged; these are additive. First public release.
   confidence intervals; Cohen's κ and Krippendorff's α.
 - UK AISI Inspect eval-log export.
 
+[0.5.1]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.5.1
 [0.5.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.5.0
 [0.4.1]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.4.1
 [0.4.0]: https://github.com/rosscyking1115/redteam-foundry/releases/tag/v0.4.0
