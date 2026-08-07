@@ -48,6 +48,20 @@ def _not_yet(phase: int, command: str) -> None:
     raise typer.Exit(code=0)
 
 
+# Matched on the message rather than the exception type: `datasets` raises a
+# plain error whose class has moved between releases, so pinning the type would
+# make this hint disappear silently on an upgrade — the failure mode being that
+# the hint stops appearing and nothing says so. Kept broad and cheap: a false
+# positive prints one extra suggestion, a false negative prints none.
+_GATED_MARKERS = ("gated dataset", "gated repo", "ask for access", "awaiting a review")
+
+
+def _looks_gated(exc: Exception) -> bool:
+    """Does this load failure look like Hub gating rather than a user error?"""
+    text = str(exc).lower()
+    return any(marker in text for marker in _GATED_MARKERS)
+
+
 # ---------------------------------------------------------------------------
 # Top-level commands
 # ---------------------------------------------------------------------------
@@ -268,7 +282,14 @@ def corpora_audit(
 def corpora_audit_hf(
     dataset: Annotated[
         str,
-        typer.Option("--dataset", help="Hugging Face dataset id, e.g. 'walledai/AdvBench'."),
+        typer.Option(
+            "--dataset",
+            # Deliberately an ungated example. The previous one, `walledai/AdvBench`,
+            # became gated on the Hub, so anyone copying it out of `--help` hit an
+            # access error on their first run — a broken example in the one place a
+            # new user is guaranteed to look.
+            help="Hugging Face dataset id, e.g. 'JailbreakBench/JBB-Behaviors'.",
+        ),
     ],
     prompt_column: Annotated[
         str,
@@ -295,6 +316,16 @@ def corpora_audit_hf(
 
     Loads the dataset, runs the safety exclusion filter (so nothing excluded is
     audited or previewed), then writes the same quality report + data card.
+
+    A complete, working invocation:
+
+        redteam corpora audit-hf --dataset JailbreakBench/JBB-Behaviors \\
+            --config behaviors --split harmful --prompt-column Goal
+
+    Datasets on the Hub can become gated after the fact, which is why the
+    example is named in full rather than left as a bare id: a `--dataset` value
+    that worked when it was written can start returning an access error without
+    anything in this repository changing.
     """
     from redteam.corpora._filters import filter_cases
     from redteam.corpora.datacard import render_datacard, render_quality_report
@@ -313,6 +344,21 @@ def corpora_audit_hf(
         )
     except Exception as exc:
         typer.echo(typer.style(f"   FAILED: {exc}", fg=typer.colors.RED))
+        # A gated dataset is the one failure here that is not the user's mistake
+        # and not a bug: the id is correct, the command is correct, and the Hub
+        # is refusing until access is granted. Without this the error reads like
+        # a broken tool, so say what happened and what to do about it.
+        if _looks_gated(exc):
+            typer.echo(
+                typer.style(
+                    "   This dataset is gated on the Hugging Face Hub — nothing is wrong with "
+                    "your command. Request access on the dataset page, then run "
+                    "`huggingface-cli login`; or point --dataset at an ungated one, "
+                    "e.g. JailbreakBench/JBB-Behaviors "
+                    "(--config behaviors --split harmful --prompt-column Goal).",
+                    fg=typer.colors.YELLOW,
+                )
+            )
         raise typer.Exit(code=1) from exc
 
     if not raw:

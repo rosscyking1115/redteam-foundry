@@ -29,6 +29,20 @@ paranoid set of defences does not measurably change that.
 pipx install redteam-foundry && redteam --help
 ```
 
+> **Breaking change in 0.5.0 — `infer_attack_families`.** It now returns
+> `FamilyTags` rather than `tuple[str, ...]`. `__bool__` and `__iter__` are
+> implemented, so `if tags:` and `for fam in tags:` are unaffected; **`len(tags)`
+> raises `TypeError`** — use `len(tags.families)`. Indexing and slicing likewise
+> move to `.families`.
+>
+> The reason is the point of it: the old return value was an empty tuple both
+> when the patterns had looked and found no marker, and when they had been handed
+> a script they cannot read at all. `FamilyTags.readable` now tells those apart.
+> 0.5.0 also changes what some numbers report — false-refusal rate now excludes
+> and counts replies the rule-based scorer cannot read, so a re-run over the same
+> data can produce different figures. Full detail in the
+> [changelog](https://github.com/rosscyking1115/redteam-foundry/blob/main/CHANGELOG.md).
+
 ## What this is for
 
 For anyone who has to decide whether a safety evaluation is still worth running:
